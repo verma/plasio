@@ -1,0 +1,77 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>LAS Viewer</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				color: #cccccc;
+				font-family:'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', Monospace;
+				font-size:13px;
+
+				background-color: #ddd;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#fps {
+				position: absolute;
+				right: 10px;
+				font-size: 20px;
+				color: white;
+				top: 10px;
+			}
+
+			#messages {
+				position: absolute;
+				left: 10px;
+				bottom: 210px;
+				font-size: 12px;
+			}
+
+			#container {
+				position: absolute;
+				left: 0px;
+				top: 0px;
+				width: 100%;
+				bottom: 200px;
+			}
+
+			#control-panel {
+				position: absolute;
+				font-family: sans-serif;
+				left: 0px;
+				bottom: 0px;
+				height: 200px;
+				width: 100%;
+				background-color: #444444;
+				padding: 10px;
+				box-sizing: border-box;
+			}
+			#control-panel .title {
+				text-transform: uppercase;
+				padding-bottom: 5px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="container"></div>
+		<div id="fps"></div>
+		<div id="messages"></div>
+		<div id="pointCount"></div>
+		<div id="control-panel">
+			<div class="title">Choose a las file to view</div>
+			<input id="lasfile" type="file" accepts="*/*"></input>
+		</div>
+
+		<script src="js/jquery.js"></script>
+		<script src="js/three.js"></script>
+		<script src="js/Detector.js"></script>
+		<script src="js/controls/TrackballControls.js"></script>
+		<script src="js/render.js"></script>
+		<script src="js/client.js"></script>
+	</body>
+</html>
+
