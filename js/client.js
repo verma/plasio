@@ -37,7 +37,12 @@ function endsWith(str, s) {
 			try {
 				if (endsWith(file.name.toLowerCase(), ".las")) {
 					var lf = new LASBuffer(buf);
-					loadLASBuffer(lf);
+					var batcher = new ParticleSystemBatcher(
+						$("#vertexshader").text(),
+						$("#fragmentshader").text());
+
+					batcher.push(lf);
+					loadBatcher(batcher);
 					message("Load complete. Now viewing " + file.name);
 				}
 				else {
