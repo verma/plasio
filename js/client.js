@@ -2,39 +2,42 @@
 // Client side stuffs for greyhound web viewer
 //
 
+var isLAZDecoderAvailable = false;
+
+var pointFormatReaders = {
+	1: function(dv) {
+		return {
+			"position": [ dv.getInt32(0, true), dv.getInt32(4, true), dv.getInt32(8, true)],
+			"intensity": dv.getUint16(12, true),
+			"classification": dv.getUint8(16, true)
+		};
+	},
+	2: function(dv) {
+		return {
+			"position": [ dv.getInt32(0, true), dv.getInt32(4, true), dv.getInt32(8, true)],
+			"intensity": dv.getUint16(12, true),
+			"classification": dv.getUint8(16, true),
+			"color": [dv.getUint16(20, true), dv.getUint16(22, true), dv.getUint16(24, true)]
+		};
+	},
+	3: function(dv) {
+		return {
+			"position": [ dv.getInt32(0, true), dv.getInt32(4, true), dv.getInt32(8, true)],
+			"intensity": dv.getUint16(12, true),
+			"classification": dv.getUint8(16, true),
+			"color": [dv.getUint16(28, true), dv.getUint16(30, true), dv.getUint16(32, true)]
+		};
+	}
+};
+
+
 var LASBuffer = function(arraybuffer) {
 	this.arrayb = arraybuffer;
-	this.pointFormatReaders = {
-		1: function(dv) {
-			return {
-				"position": [ dv.getInt32(0, true), dv.getInt32(4, true), dv.getInt32(8, true)],
-				"intensity": dv.getUint16(12, true),
-				"classification": dv.getUint8(16, true)
-			};
-		},
-		2: function(dv) {
-			return {
-				"position": [ dv.getInt32(0, true), dv.getInt32(4, true), dv.getInt32(8, true)],
-				"intensity": dv.getUint16(12, true),
-				"classification": dv.getUint8(16, true),
-				"color": [dv.getUint16(20, true), dv.getUint16(22, true), dv.getUint16(24, true)]
-			};
-		},
-		3: function(dv) {
-			return {
-				"position": [ dv.getInt32(0, true), dv.getInt32(4, true), dv.getInt32(8, true)],
-				"intensity": dv.getUint16(12, true),
-				"classification": dv.getUint8(16, true),
-				"color": [dv.getUint16(28, true), dv.getUint16(30, true), dv.getUint16(32, true)]
-			};
-		}
-	};
-
 	if (!this.isMagicValid())
 		throw new Error("Invalid file magic header");
 
 	this.version = this.parseVersion();
-	this.versionAsString = (this.version/10) + "." + (this.version % 10);
+	this.versionAsString = (this.version/10).toFixed(0) + "." + (this.version % 10).toFixed(0);
 
 	console.log("Magic is valid");
 	console.log("LAS file version:", this.versionAsString);
@@ -89,7 +92,7 @@ LASBuffer.prototype.readHeader = function() {
 	this.pointsStructSize = readAs(this.arrayb, Uint16Array, 32*3+8+1);
 	this.pointsCount = readAs(this.arrayb, Uint32Array, 32*3 + 11);
 
-	this.formatReader = this.pointFormatReaders[this.pointsFormatId];
+	this.formatReader = pointFormatReaders[this.pointsFormatId];
 
 	console.log("Points offset: ", this.pointsOffset);
 	console.log("Points Id: ", this.pointsFormatId);
@@ -145,6 +148,83 @@ LASBuffer.prototype.getPoint = function(index) {
 	return this.formatReader(dv);
 };
 
+// only one waiting command at a time
+// 
+var waitingHandler = null;
+function handleMessage(message_event) {
+	var msg = message_event.data;
+	common.logMessage("From module: " + msg);
+
+	if (waitingHandler === null)
+		return console.log("Got a message but there is no waiting handler");
+
+	waitingHandler(msg);
+}
+
+var doExchange = function(cmd, callback) {
+	waitingHandler = function(msg) {
+		// call the callback in a separate context, make sure we've cleaned our
+		// state out before the callback is invoked since it may queue more doExchanges
+		console.log(msg);
+		setTimeout(function() { 
+			if (msg.status !== undefined && msg.status === false)
+				return callback(new Error(msg.message || "Unknown Error"));
+			callback(null, msg);
+		}, 0);
+	}
+	nacl_module.postMessage(cmd);
+}
+
+var AsyncLAZBuffer = function(buffer) {
+	if (!isLAZDecoderAvailable)
+		throw new Error("LAZ Decoder is not available");
+
+	this.arrayb = buffer;
+};
+
+AsyncLAZBuffer.prototype.open = function(cb) {
+	doExchange({
+		'command': 'open',
+		'target': 'myfile',
+		'buffer': this.arrayb
+	}, cb);
+};
+
+AsyncLAZBuffer.prototype.getHeader = function(cb) {
+	doExchange({ command: 'getheader'}, cb);
+};
+
+AsyncLAZBuffer.prototype.readData = function(buf, cb) {
+	doExchange({
+		command: 'read',
+		buffer: buf
+	}, cb);
+}
+
+function endsWith(str, s) {
+	return str.indexOf(s) === (str.length - s.length);
+}
+
+// ducktype compatible with LASBuffer
+//
+var LASWrapper = function(buffer, pointFormatID, pointSize, pointsCount, scale, offset) {
+	this.arrayb = buffer;
+	this.decoder = pointFormatReaders[pointFormatID];
+	this.pointsCount = pointsCount;
+	this.pointSize = pointSize;
+	this.scale = scale;
+	this.offset = offset;
+
+	console.log('decoder', this.decoder);
+};
+
+LASWrapper.prototype.getPoint = function(index) {
+	if (index < 0 || index >= this.pointsCount)
+		throw new Error("Point index out of range");
+
+	var dv = new DataView(this.arrayb, index * this.pointSize, this.pointSize);
+	return this.decoder(dv);
+};
 
 (function(w) {
 	"use strict";
@@ -176,15 +256,46 @@ LASBuffer.prototype.getPoint = function(index) {
 			console.log("Data read complete: ", buf.byteLength);
 
 			try {
-				var lf = new LASBuffer(buf);
-				loadLASBuffer(lf);
+				if (endsWith(file.name.toLowerCase(), ".las")) {
+					var lf = new LASBuffer(buf);
+					loadLASBuffer(lf);
+					message("Load complete. Now viewing " + file.name);
+				}
+				else {
+					var lf = new AsyncLAZBuffer(buf);
+					lf.open(function(err, msg) {
+						if (err) return console.log('Error:', err.message);
+						console.log('Open status:', msg);
 
-				message("Load complete. Now viewing " + file.name);
+						lf.getHeader(function(err, header) {
+							if (err) return console.log('Error getting header:', err.message);
+							console.log('Get header status:', header);
+
+							// finally get the data out
+							var pointCount = Math.min(header.point_count, 100000);
+							var arr = new ArrayBuffer(pointCount * header.point_record_length);
+							lf.readData(arr, function(err, res) {
+								console.log(err, res);
+
+								var view = new Uint8Array(res.buffer);
+								for (var i = 0 ; i < 100 ; i ++) {
+									console.log(view[i]);
+									loadLASBuffer(new LASWrapper(res.buffer,
+																 header.point_format_id,
+																 header.point_record_length,
+																 pointCount,
+																 header.scales,
+																 header.offsets));
+									 message("Load complete. Now viewing " + file.name);
+								}
+							});
+						});
+					});
+				}
 			}
 			catch(e) {
-				errorOut(e.getMessage());
+				errorOut(e.message);
 			}
-
 		};
 
 		fr.readAsArrayBuffer(file);
@@ -196,6 +307,38 @@ LASBuffer.prototype.getPoint = function(index) {
 
 })(window);
 
+// Called by the common.js module.
+window.domContentLoaded = function(name, tc, config, width, height) {
+	navigator.webkitPersistentStorage.requestQuota(2048 * 2048, function(bytes) {
+		common.updateStatus(
+			'Allocated ' + bytes + ' bytes of persistant storage.');
+			common.attachDefaultListeners();
+			common.createNaClModule(name, tc, config, width, height);
+	},
+	function(e) { alert('Failed to allocate space') });
+};
+
+window.moduleDidLoad = function() {
+	common.hideModule();
+	isLAZDecoderAvailable = true;
+}
+
 $(function() {
-	start();
+	var layout = $("body").layout({
+		applyDefaultStyles: true,
+		east: {
+			resizable: true,
+			resize: true,
+			togglerContent_open:   "&#8250;",
+			togglerContent_closed: "&#8249;",
+			minSize: 200,
+			maxSize: 600,
+			size: 400
+		},
+
+		onresize: function() {
+			doRenderResize();
+		}});
+
+	setTimeout(start, 500);
 });

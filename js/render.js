@@ -24,25 +24,22 @@
 		}
 	};
 
+	var oldPS = null; // the particle system which is already loaded
+
 	w.loadLASBuffer = function(lasBuffer) {
 		var geometry = new THREE.BufferGeometry();
 		var count = lasBuffer.pointsCount;
 
-		geometry.addAttribute( 'position', Float32Array, count * 3, 3 );
-		geometry.addAttribute( 'color', Float32Array, count * 3, 3 );
+		geometry.addAttribute( 'position', Float32Array, count, 3 );
+		geometry.addAttribute( 'color', Float32Array, count, 3 );
 
 		var positions = geometry.attributes.position.array;
 		var colors = geometry.attributes.color.array;
 
-		var mx = lasBuffer.maxs;
-		var mn = lasBuffer.mins;
-
-		var mid = [
-			mn[0] + (mx[0] - mn[0])/2,
-			mn[1] + (mx[1] - mn[1])/2,
-			mn[2] + (mx[2] - mn[2])/2];
-
-		console.log(mid);
+		// the running average of cg
+		var cg = null;
+		var mx = null;
+		var mn = null;
 
 		for ( var i = 0; i < count; i ++) {
 			var p = lasBuffer.getPoint(i);
@@ -51,10 +48,31 @@
 			var y = p.position[1] * lasBuffer.scale[1] + lasBuffer.offset[1];
 			var z = p.position[2] * lasBuffer.scale[2] + lasBuffer.offset[2];
 
+			if (cg === null)
+				cg = new THREE.Vector3(x, y, z);
+			else
+				cg.set((cg.x * i + x) / (i+1),
+					   (cg.y * i + y) / (i+1),
+					   (cg.z * i + z) / (i+1));
 
-			positions[ 3*i ]     = x - mid[0];
-			positions[ 3*i + 1 ] = z - mid[2];
-			positions[ 3*i + 2 ] = y - mid[1]; 
+			if (mx === null)
+				mx = new THREE.Vector3(x, y, z);
+			else
+				mx.set(Math.max(mx.x, x),
+					   Math.max(mx.y, y),
+					   Math.max(mx.z, z));
+
+			if (mn === null)
+				mn = new THREE.Vector3(x, y, z);
+			else
+				mn.set(Math.min(mn.x, x),
+					   Math.min(mn.y, y),
+					   Math.min(mn.z, z));
+
+
+			positions[ 3*i ]     = x;
+			positions[ 3*i + 1 ] = y;
+			positions[ 3*i + 2 ] = z;
 
 			var r, g, b;
 
@@ -64,7 +82,7 @@
 				b = p.color[2] / 255.0;
 			}
 			else {
-				var c = (z - lasBuffer.mins[2]) / (float)(lasBuffer.maxs[2] - lasBuffer.mins[2]);
+				var c = (z - mn.z) / (mx.z - mn.z);
 				r = g = b = c;
 			}
 
@@ -73,14 +91,70 @@
 			colors[ 3*i + 2 ] = b;
 		}
 
-		var material = new THREE.ParticleSystemMaterial({ vertexColors: true, size: 5 });
-		var ps = new THREE.ParticleSystem(geometry, material);
+		console.log('Mins:', mn);
+		console.log('Maxs:', mx);
+		console.log('CG:', cg);
 
+		var attributes = {
+			color: { type: 'c', value: null }
+		};
+
+		var uniforms = {
+			pointSize: { type: 'f', value: 3.0 },
+			blendFactor: { type: 'f', value: 0.0 },
+			clampLower: { type: 'f', value: 20.0},
+			clampHigher: { type: 'f', value: 150.0},
+			offsets: { type: 'v3', value: cg }
+		};
+
+		//var material = new THREE.ParticleSystemMaterial({ vertexColors: true, size: 5 });
+		var material = new THREE.ShaderMaterial({
+			vertexShader: $("#vertexshader").text(),
+			fragmentShader: $("#fragmentshader").text(),
+			attriutes: attributes,
+			uniforms: uniforms
+		});
+
+		var ps = new THREE.ParticleSystem(geometry, material);
 		console.log(ps, material, geometry);
 
+		if (oldPS !== null)
+			scene.remove(oldPS);
+
 		scene.add(ps);
-		camera.position.set(200, 200, 200);
+		oldPS = ps;
+
+		setupView(mn, mx);
+	}
+
+	var setupView = function(mins, maxs) {
+		// make sure the projection and camera is setup correctly to view the loaded data
+		//
+		var range = [
+			maxs.x - mins.x,
+			maxs.y - mins.y,
+			maxs.z - mins.z ];
+
+		var farPlaneDist = Math.max(range[0], range[1], range[2]);
+		console.log('Far plane distance', farPlaneDist);
+
+		// TODO: we'd have to check what kind of projection mode we're in
+		//
+		camera.far = farPlaneDist * 4;
+
+		// find a spot for our camera
+		// we are switching coords where because the data is switched the 
+		// same way, y is z and z is y
+		//
+		camera.position.set(
+			-range[0]/2,
+			2000,
+			-range[1]/2);
+
+		console.log('Camera position set to:', camera.position);
+
 		camera.lookAt(new THREE.Vector3(0, 0, 0));
+		camera.updateProjectionMatrix();
 	}
 
 	var numberWithCommas = function(x) {
@@ -88,8 +162,12 @@
 	};
 
 	function init() {
+		var container = $('#container');
+		var w = container.width(),
+			h = container.height();
+
 		camera = new THREE.PerspectiveCamera(60,
-			window.innerWidth / window.innerHeight, 1, 10000);
+			w / h, 1, 10000);
 		camera.position.z = 500;
 
 		controls = new THREE.TrackballControls( camera );
@@ -112,13 +190,18 @@
 
 		// setup material to use vertex colors
 		// renderer
+		//
+		console.log(container);
+		var w = container.width(),
+			h = container.height();
+
+		console.log("Setting render size to: ", w, h);
 
 		renderer = new THREE.WebGLRenderer( { antialias: false } );
 		renderer.setClearColor("#111");
-		renderer.setSize( window.innerWidth, window.innerHeight - 200 );
+		renderer.setSize(w, h);
 
-		container = document.getElementById( 'container' );
-		container.appendChild( renderer.domElement );
+		container.append( renderer.domElement );
 
 		window.addEventListener( 'resize', onWindowResize, false );
 
@@ -127,16 +210,22 @@
 	}
 
 	function onWindowResize() {
-		var h = window.innerHeight - 200;
-		camera.aspect = window.innerWidth / h;
+		var container = $("#container");
+		console.log('Container is:', container);
+		console.log(container.width(), container.height());
+
+		var w =	container.width();
+		var h = container.height();
+
+		camera.aspect = w / h;
 		camera.updateProjectionMatrix();
-
-		renderer.setSize(window.innerWidth, h);
-
+		renderer.setSize(w, h);
 		controls.handleResize();
-		render();
 
+		render();
 	}
+
+	w.doRenderResize = onWindowResize;
 
 	function animate() {
 		requestAnimationFrame(animate);

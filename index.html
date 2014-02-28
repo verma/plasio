@@ -27,7 +27,7 @@
 			#messages {
 				position: absolute;
 				left: 10px;
-				bottom: 210px;
+				bottom: 10px;
 				font-size: 12px;
 			}
 
@@ -36,14 +36,15 @@
 				left: 0px;
 				top: 0px;
 				width: 100%;
-				bottom: 200px;
+				bottom: 0px;
+				overflow: hidden;
 			}
 
 			#control-panel {
 				position: absolute;
 				font-family: sans-serif;
 				left: 0px;
-				bottom: 0px;
+				top: 0px;
 				height: 200px;
 				width: 100%;
 				background-color: #444444;
@@ -54,24 +55,93 @@
 				text-transform: uppercase;
 				padding-bottom: 5px;
 			}
+			/* format the text inside the toggler */
+			.ui-layout-toggler .content {
+				font-size: 12px; /* IMPORTANT: default = 1px */
+				font-weight: bold;
+				text-align: center;
+				color: green;
+			}
+
+			// 'important' required ONLY when applyDefaultStyles=true
+			.ui-layout-resizer {
+				background-color: #666 !important;
+			}
 		</style>
 	</head>
-	<body>
-		<div id="container"></div>
-		<div id="fps"></div>
-		<div id="messages"></div>
-		<div id="pointCount"></div>
-		<div id="control-panel">
-			<div class="title">Choose a las file to view</div>
-			<input id="lasfile" type="file" accepts="*/*"></input>
+	<body data-custom-load="true" data-name="pnacl_test" data-tools="" data-configs="" data-path="">
+		<div class="ui-layout-center">
+			<div id="container"></div>
+			<div id="fps"></div>
+			<div id="messages"></div>
+			<div id="pointCount"></div>
+		</div>
+		<div class="ui-layout-east">
+			<div id="mainActions">
+				<h3>File</h3>
+				<div>
+					<input id="lasfile" type="file" accepts="*/*"></input>
+				</div>
+
+				<h3>Camera</h3>
+				<div></div>
+
+				<h3>Data</h3>
+				<div></div>
+			</div>
+			<!--
+			<div id="control-panel">
+				<div class="title">Choose a las file to view</div>
+			</div>
+			-->
 		</div>
 
+		<div id="listener"></div>
+
 		<script src="js/jquery.js"></script>
+		<script src="js/jquery.ui.js"></script>
+		<script src="js/jquery.layout.js"></script>
+		<script src="js/common.js"></script>
 		<script src="js/three.js"></script>
 		<script src="js/Detector.js"></script>
 		<script src="js/controls/TrackballControls.js"></script>
 		<script src="js/render.js"></script>
 		<script src="js/client.js"></script>
+		<script type="x-shader/x-vertex" id="vertexshader">
+			uniform float pointSize;
+			uniform float blendFactor;
+			uniform float clampLower;
+			uniform float clampHigher;
+			uniform vec3  offsets;
+
+			attribute vec3 color;
+			attribute float intensity;
+
+			varying vec4 col;
+
+
+			void main() {
+				vec3 fpos = vec3(position.x - offsets.x,
+								 position.z - offsets.z,
+								 position.y - offsets.y);
+
+				vec4 mvPosition = modelViewMatrix * vec4( fpos, 1.0 );
+				gl_Position = projectionMatrix * mvPosition;
+
+				float i = (intensity - clampLower) / (clampHigher - clampLower);
+				vec3 intensityColor = vec3(i, i, i);
+
+				gl_PointSize = pointSize;
+				col = vec4(intensityColor * blendFactor + color * (1.0 - blendFactor), 1.0);
+			}
+		</script>
+		<script type="x-shader/x-fragment" id="fragmentshader">
+			varying vec4 col;
+
+			void main() {
+				gl_FragColor = col;
+			}
+		</script>
 	</body>
 </html>
 
