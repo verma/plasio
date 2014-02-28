@@ -24,107 +24,15 @@
 		}
 	};
 
-	var oldPS = null; // the particle system which is already loaded
+	var oldBatcher = null; // the particle system which is already loaded
+	w.loadBatcher = function(batcher) {
+		if (oldBatcher !== null)
+			oldBatcher.removeFromScene(scene);
 
-	w.loadLASBuffer = function(lasBuffer) {
-		var geometry = new THREE.BufferGeometry();
-		var count = lasBuffer.pointsCount;
+		batcher.addToScene(scene);
+		oldBatcher = batcher;
 
-		geometry.addAttribute( 'position', Float32Array, count, 3 );
-		geometry.addAttribute( 'color', Float32Array, count, 3 );
-
-		var positions = geometry.attributes.position.array;
-		var colors = geometry.attributes.color.array;
-
-		// the running average of cg
-		var cg = null;
-		var mx = null;
-		var mn = null;
-
-		for ( var i = 0; i < count; i ++) {
-			var p = lasBuffer.getPoint(i);
-
-			var x = p.position[0] * lasBuffer.scale[0] + lasBuffer.offset[0];
-			var y = p.position[1] * lasBuffer.scale[1] + lasBuffer.offset[1];
-			var z = p.position[2] * lasBuffer.scale[2] + lasBuffer.offset[2];
-
-			if (cg === null)
-				cg = new THREE.Vector3(x, y, z);
-			else
-				cg.set((cg.x * i + x) / (i+1),
-					   (cg.y * i + y) / (i+1),
-					   (cg.z * i + z) / (i+1));
-
-			if (mx === null)
-				mx = new THREE.Vector3(x, y, z);
-			else
-				mx.set(Math.max(mx.x, x),
-					   Math.max(mx.y, y),
-					   Math.max(mx.z, z));
-
-			if (mn === null)
-				mn = new THREE.Vector3(x, y, z);
-			else
-				mn.set(Math.min(mn.x, x),
-					   Math.min(mn.y, y),
-					   Math.min(mn.z, z));
-
-
-			positions[ 3*i ]     = x;
-			positions[ 3*i + 1 ] = y;
-			positions[ 3*i + 2 ] = z;
-
-			var r, g, b;
-
-			if (p.color) {
-				r = p.color[0] / 255.0;
-				g = p.color[1] / 255.0;
-				b = p.color[2] / 255.0;
-			}
-			else {
-				var c = (z - mn.z) / (mx.z - mn.z);
-				r = g = b = c;
-			}
-
-			colors[ 3*i ] = r;
-			colors[ 3*i + 1 ] = g;
-			colors[ 3*i + 2 ] = b;
-		}
-
-		console.log('Mins:', mn);
-		console.log('Maxs:', mx);
-		console.log('CG:', cg);
-
-		var attributes = {
-			color: { type: 'c', value: null }
-		};
-
-		var uniforms = {
-			pointSize: { type: 'f', value: 3.0 },
-			blendFactor: { type: 'f', value: 0.0 },
-			clampLower: { type: 'f', value: 20.0},
-			clampHigher: { type: 'f', value: 150.0},
-			offsets: { type: 'v3', value: cg }
-		};
-
-		//var material = new THREE.ParticleSystemMaterial({ vertexColors: true, size: 5 });
-		var material = new THREE.ShaderMaterial({
-			vertexShader: $("#vertexshader").text(),
-			fragmentShader: $("#fragmentshader").text(),
-			attriutes: attributes,
-			uniforms: uniforms
-		});
-
-		var ps = new THREE.ParticleSystem(geometry, material);
-		console.log(ps, material, geometry);
-
-		if (oldPS !== null)
-			scene.remove(oldPS);
-
-		scene.add(ps);
-		oldPS = ps;
-
-		setupView(mn, mx);
+		setupView(batcher.mn, batcher.mx);
 	}
 
 	var setupView = function(mins, maxs) {
@@ -255,4 +163,142 @@
 		frames ++;
 		renderer.render(scene, camera);
 	}
+
+	// An object that manages a bunch of particle systems
+	var ParticleSystemBatcher = function(vs, fs) {
+		this.attributes = {
+			color: { type: 'c', value: null }
+		};
+
+		this.uniforms = {
+			pointSize: { type: 'f', value: 3.0 },
+			blendFactor: { type: 'f', value: 0.0 },
+			clampLower: { type: 'f', value: 20.0},
+			clampHigher: { type: 'f', value: 150.0},
+			offsets: { type: 'v3', value: new THREE.Vector3(0, 0, 0) }
+		};
+
+		//var material = new THREE.ParticleSystemMaterial({ vertexColors: true, size: 5 });
+		this.material = new THREE.ShaderMaterial({
+			vertexShader: vs,
+			fragmentShader: fs,
+			attriutes: this.attributes,
+			uniforms: this.uniforms
+		});
+
+		this.pss = []; // particle systems in use
+
+		this.mx = null;
+		this.mn = null;
+		this.cg = null;
+		this.pointsSoFar = 0;
+	};
+
+	ParticleSystemBatcher.prototype.push = function(lasBuffer) {
+		var geometry = new THREE.BufferGeometry();
+		var count = lasBuffer.pointsCount;
+
+		geometry.addAttribute( 'position', Float32Array, count, 3 );
+		geometry.addAttribute( 'color', Float32Array, count, 3 );
+
+		var positions = geometry.attributes.position.array;
+		var colors = geometry.attributes.color.array;
+
+		// the running average of cg
+		var cg = null;
+		var mx = null;
+		var mn = null;
+
+		for ( var i = 0; i < count; i ++) {
+			var p = lasBuffer.getPoint(i);
+
+			var x = p.position[0] * lasBuffer.scale[0] + lasBuffer.offset[0];
+			var y = p.position[1] * lasBuffer.scale[1] + lasBuffer.offset[1];
+			var z = p.position[2] * lasBuffer.scale[2] + lasBuffer.offset[2];
+
+			if (cg === null)
+				cg = new THREE.Vector3(x, y, z);
+			else
+				cg.set((cg.x * i + x) / (i+1),
+					   (cg.y * i + y) / (i+1),
+					   (cg.z * i + z) / (i+1));
+
+			if (mx === null)
+				mx = new THREE.Vector3(x, y, z);
+			else
+				mx.set(Math.max(mx.x, x),
+					   Math.max(mx.y, y),
+					   Math.max(mx.z, z));
+
+			if (mn === null)
+				mn = new THREE.Vector3(x, y, z);
+			else
+				mn.set(Math.min(mn.x, x),
+					   Math.min(mn.y, y),
+					   Math.min(mn.z, z));
+
+
+			positions[ 3*i ]     = x;
+			positions[ 3*i + 1 ] = y;
+			positions[ 3*i + 2 ] = z;
+
+			var r, g, b;
+
+			if (p.color) {
+				r = p.color[0] / 255.0;
+				g = p.color[1] / 255.0;
+				b = p.color[2] / 255.0;
+			}
+			else {
+				var c = (z - mn.z) / (mx.z - mn.z);
+				r = g = b = c;
+			}
+
+			colors[ 3*i ] = r;
+			colors[ 3*i + 1 ] = g;
+			colors[ 3*i + 2 ] = b;
+		}
+
+		if (this.cg === null) this.cg = cg;
+		else this.cg.set(
+			(this.cg.x * this.pointsSoFar + cg.x * count) / (this.pointsSoFar + count),
+			(this.cg.y * this.pointsSoFar + cg.y * count) / (this.pointsSoFar + count),
+			(this.cg.z * this.pointsSoFar + cg.z * count) / (this.pointsSoFar + count));
+
+		if (this.mx === null) this.mx = mx;
+		else this.mx.set(
+			Math.max(mx.x, this.mx.x),
+			Math.max(mx.y, this.mx.y),
+			Math.max(mx.z, this.mx.z));
+
+		if (this.mn === null) this.mn = mn;
+		else this.mn.set(
+			Math.min(mn.x, this.mn.x),
+			Math.min(mn.y, this.mn.y),
+			Math.min(mn.z, this.mn.z));
+
+		var ps = new THREE.ParticleSystem(geometry, this.material);
+		this.pss.push(ps);
+
+		this.pointsSoFar += count;
+	};
+
+
+	ParticleSystemBatcher.prototype.addToScene = function(scene) {
+		// update some of the fields
+		this.uniforms.offsets.value = this.cg;
+		console.log('Set CG to:', this.cg);
+
+		for (var i = 0, il = this.pss.length ; i < il ; i ++) {
+			scene.add(this.pss[i]);
+		}
+	};
+
+	ParticleSystemBatcher.prototype.removeFromScene = function(scene) {
+		for (var i = 0, il = this.pss.length ; i < il ; i ++) {
+			scene.remove(this.pss[i]);
+		}
+	};
+
+	w.ParticleSystemBatcher = ParticleSystemBatcher;
 })(window);
