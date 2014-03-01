@@ -5,12 +5,15 @@
 		<title>LAS Viewer</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link rel="stylesheet" href="/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/css/bootstrap-theme.min.css">
+		<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+
 		<style>
 			body {
-				color: #cccccc;
-				font-family:'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', Monospace;
+				color: #333;
 				font-size:13px;
-
+				font-family: 'Open Sans', sans-serif;
 				background-color: #ddd;
 				margin: 0px;
 				overflow: hidden;
@@ -67,6 +70,57 @@
 			.ui-layout-resizer {
 				background-color: #666 !important;
 			}
+
+			.ui-layout-east {
+				background-color: #666;
+				padding: 0px;
+				margin: 0px;
+			}
+
+			.section {
+				margin-bottom: 20px;
+			}
+
+			.section h3 {
+				color: #666;
+				font-weight: bold;
+				text-transform: uppercase;
+				border-bottom: 1px solid #666;
+				font-size: 18px;
+
+				padding: 0px;
+				margin: 0 0 10px 0;
+			}
+
+			.props tr td:last-child {
+				text-align: right;
+			}
+
+			#loaderProgress {
+				padding: 10px 0px;
+				box-sizing: border-box;
+			}
+
+			.btn-file {
+				position: relative;
+				overflow: hidden;
+			}
+			.btn-file input[type=file] {
+				position: absolute;
+				top: 0;
+				right: 0;
+				min-width: 100%;
+				min-height: 100%;
+				font-size: 999px;
+				text-align: right;
+				filter: alpha(opacity=0);
+				opacity: 0;
+				outline: none;
+				background: white;
+				cursor: inherit;
+				display: block;
+			}
+
 		</style>
 	</head>
 	<body data-custom-load="true" data-name="plasio_laszip"
@@ -79,16 +133,37 @@
 		</div>
 		<div class="ui-layout-east">
 			<div id="mainActions">
-				<h3>File</h3>
-				<div>
-					<input id="lasfile" type="file" accepts="*/*"></input>
+				<div class="section">
+					<h3>File</h3>
+					<span class="btn btn-default btn-sm btn-block btn-file">
+						Browse <input type="file">
+					</span>
+					<div id="loaderProgress">
+						<div class="progress">
+							<div class="progress-bar" role="progressbar" aria-valuenow="20"
+								aria-valuemin="0" aria-valuemax="100" style="width: 20%;">
+							</div>
+						</div>
+					</div>
+					<table class="props table">
+					</table>
 				</div>
 
-				<h3>Camera</h3>
-				<div></div>
+				<div class="section">
+					<h3>Camera</h3>
+					<div style="text-align: center;" :class="btn-toolbar" role="toolbar">
+						<div class="btn-group btn-group-sm">
+							<button type="button" class="btn btn-default">Perspective</button>
+							<button type="button" class="btn btn-default">Orthographic</button>
+							<button type="button" class="btn btn-default">Top-View</button>
+						</div>
+					</div>
+				</div>
 
-				<h3>Data</h3>
-				<div></div>
+				<div class="section">
+					<h3>Data</h3>
+					<div></div>
+				</div>
 			</div>
 			<!--
 			<div id="control-panel">
@@ -99,15 +174,43 @@
 
 		<div id="listener"></div>
 
+		<div id="fileOpen" class="modal fade">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h4 class="modal-title">Open a LAZ/LAS file</h4>
+					</div>
+					<div class="modal-body">
+						<p>Choose a LAZ/LAS file to load or drag one over.</p>
+						<input id="lasfile" type="file" accepts="*/*"></input>
+						<div id="loaderProgress">
+						<div class="progress">
+							<div class="progress-bar" role="progressbar"
+								aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%;">
+								<span class="sr-only">60% Complete</span>
+							</div>
+						</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					</div>
+				</div><!-- /.modal-content -->
+			</div><!-- /.modal-dialog -->
+		</div><!-- /.modal -->
+
 		<script src="js/jquery.js"></script>
 		<script src="js/jquery.ui.js"></script>
 		<script src="js/jquery.layout.js"></script>
+		<script src="js/bootstrap.min.js"></script>
+		<script src="js/bluebird.js"></script>
 		<script src="js/common.js"></script>
 		<script src="js/three.js"></script>
 		<script src="js/Detector.js"></script>
 		<script src="js/controls/TrackballControls.js"></script>
 		<script src="js/laslaz.js"></script>
 		<script src="js/render.js"></script>
+		<script src="js/ui.js"></script>
 		<script src="js/client.js"></script>
 		<script type="x-shader/x-vertex" id="vertexshader">
 			uniform float pointSize;

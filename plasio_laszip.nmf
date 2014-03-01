@@ -2,7 +2,7 @@
   "program": {
     "portable": {
       "pnacl-translate": {
-        "url": "pnacl_test.pexe"
+        "url": "plasio_laszip.pexe"
       }
     }
   }

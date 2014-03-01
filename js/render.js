@@ -99,7 +99,6 @@
 		// setup material to use vertex colors
 		// renderer
 		//
-		console.log(container);
 		var w = container.width(),
 			h = container.height();
 
@@ -119,7 +118,6 @@
 
 	function onWindowResize() {
 		var container = $("#container");
-		console.log('Container is:', container);
 		console.log(container.width(), container.height());
 
 		var w =	container.width();
