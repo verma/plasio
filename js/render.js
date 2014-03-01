@@ -12,8 +12,8 @@
 
 	var cross;
 
-	w.startRenderer = function(status_cb) {
-		init();
+	w.startRenderer = function(render_container, status_cb) {
+		init(render_container);
 		animate();
 
 		if(status_cb) {
@@ -69,8 +69,8 @@
 		return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 	};
 
-	function init() {
-		var container = $('#container');
+	function init(render_container) {
+		var container = $(render_container)
 		var w = container.width(),
 			h = container.height();
 
@@ -78,7 +78,7 @@
 			w / h, 1, 10000);
 		camera.position.z = 500;
 
-		controls = new THREE.TrackballControls( camera );
+		controls = new THREE.TrackballControls( camera, render_container );
 
 		controls.rotateSpeed = 1.0;
 		controls.zoomSpeed = 1.2;
@@ -162,27 +162,80 @@
 		renderer.render(scene, camera);
 	}
 
-	// An object that manages a bunch of particle systems
-	var ParticleSystemBatcher = function(vs, fs) {
-		this.attributes = {
-			color: { type: 'c', value: null }
+	function updateUniformsForSource(uniforms, source) {
+		uniforms.rgb_f.value = 0.0;
+		uniforms.intensity_f.value = 0.0;
+		uniforms.class_f.value = 0.0;
+		uniforms.height_f.value = 0.0;
+		uniforms.map_f.value = 0.0;
+
+		console.log('updating', source);
+
+		switch(source) {
+			case "rgb": uniforms.rgb_f.value = 1.0; break;
+			case "intensity": uniforms.intensity_f.value = 1.0; break
+			case "classification": uniforms.class_f.value = 1.0; break;
+			case "heightmap": uniforms.height_f.value = 1.0; break;
+			case "heightmap-color": uniforms.map_f.value = 1.0; break;
+		}
+
+		console.log(uniforms);
+	}
+
+	var shaderMaterial = null;
+	function getMaterial(vs, fs) {
+		if (shaderMaterial !== null)
+			return shaderMaterial;
+
+		var attributes = {
+			color: { type: 'c', value: null },
+			intensity: { type: 'f', value: null },
+			classification: { type: 'f', value: null }
 		};
 
-		this.uniforms = {
+		var uniforms = {
 			pointSize: { type: 'f', value: 3.0 },
-			blendFactor: { type: 'f', value: 0.0 },
+			rgb_f: { type: 'f', value: 1.0 },
+			intensity_f: { type: 'f', value: 0.0 },
+			class_f: { type: 'f', value: 0.0 },
+			height_f: { type: 'f', value: 0.0 },
+			map_f: { type: 'f', value: 0.0 },
 			clampLower: { type: 'f', value: 20.0},
 			clampHigher: { type: 'f', value: 150.0},
-			offsets: { type: 'v3', value: new THREE.Vector3(0, 0, 0) }
+			zrange: { type: 'v2', value: new THREE.Vector2(0, 0) },
+			offsets: { type: 'v3', value: new THREE.Vector3(0, 0, 0) },
+			map: { type: 't', value: THREE.ImageUtils.loadTexture(currentColorMap())}
 		};
 
-		//var material = new THREE.ParticleSystemMaterial({ vertexColors: true, size: 5 });
-		this.material = new THREE.ShaderMaterial({
+		updateUniformsForSource(uniforms, currentColorSource());
+
+		shaderMaterial = new THREE.ShaderMaterial({
 			vertexShader: vs,
 			fragmentShader: fs,
-			attriutes: this.attributes,
-			uniforms: this.uniforms
+			attriutes: attributes,
+			uniforms: uniforms
 		});
+
+		// attach handlers for notifications
+		$(document).on("plasio.colormapChanged", function() {
+			var colormap = currentColorMap();
+			uniforms.map.value = THREE.ImageUtils.loadTexture(currentColorMap());
+			uniforms.map.needsUpdate = true;
+		});
+
+		$(document).on("plasio.colorsourceChanged", function() {
+			updateUniformsForSource(uniforms, currentColorSource());
+		});
+
+		shaderMaterial.uniforms = uniforms;
+		shaderMaterial.attributes = attributes;
+
+		return shaderMaterial;
+	}
+
+	// An object that manages a bunch of particle systems
+	var ParticleSystemBatcher = function(vs, fs) {
+		this.material = getMaterial(vs, fs);
 
 		this.pss = []; // particle systems in use
 
@@ -198,9 +251,13 @@
 
 		geometry.addAttribute( 'position', Float32Array, count, 3 );
 		geometry.addAttribute( 'color', Float32Array, count, 3 );
+		geometry.addAttribute( 'intensity', Float32Array, count, 1 );
+		geometry.addAttribute( 'classification', Float32Array, count, 1 );
 
 		var positions = geometry.attributes.position.array;
 		var colors = geometry.attributes.color.array;
+		var intensity = geometry.attributes.intensity.array;
+		var classification = geometry.attributes.classification.array;
 
 		// the running average of cg
 		var cg = null;
@@ -255,6 +312,9 @@
 			colors[ 3*i ] = r;
 			colors[ 3*i + 1 ] = g;
 			colors[ 3*i + 2 ] = b;
+
+			intensity[i] = p.intensity;
+			classification[i] = p.classification;
 		}
 
 		if (this.cg === null) this.cg = cg;
@@ -284,8 +344,13 @@
 
 	ParticleSystemBatcher.prototype.addToScene = function(scene) {
 		// update some of the fields
-		this.uniforms.offsets.value = this.cg;
+		var zrange = new THREE.Vector2(this.mn.z, this.mx.z);
+
+		this.material.uniforms.offsets.value = this.cg;
+		this.material.uniforms.zrange.value = zrange;
+
 		console.log('Set CG to:', this.cg);
+		console.log('Set Z-Range to:', zrange);
 
 		for (var i = 0, il = this.pss.length ; i < il ; i ++) {
 			scene.add(this.pss[i]);

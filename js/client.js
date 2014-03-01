@@ -23,7 +23,7 @@ function endsWith(str, s) {
 
 
 	w.start = function() {
-		startRenderer(message);
+		startRenderer($("#container").get(0), message);
 	};
 
 })(window);

@@ -248,16 +248,16 @@
 					<div class="labeled-controls">
 						<h4>Color Source</h4>
 						<h5>Different sources provide different perspective of the data.</h5>
-						<div class="btn-group btn-block">
-							<button type="button" class="btn btn-default btn-block dropdown-toggle" data-toggle="dropdown">
+						<div class="btn-group btn-block" id="colorsource">
+							<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown" target="rgb">
 								RGB <span class="caret"></span>
 							</button>
 							<ul class="dropdown-menu btn-block" role="menu">
-								<li><a href="#">RGB</a></li>
-								<li><a href="#">Intensity</a></li>
-								<li><a href="#">Classification</a></li>
-								<li><a href="#">Heightmap Grayscale</a></li>
-								<li><a href="#">Heightmap Color</a></li>
+								<li><a href="#rgb">RGB</a></li>
+								<li><a href="#intensity">Intensity</a></li>
+								<li><a href="#classification">Classification</a></li>
+								<li><a href="#heightmap">Heightmap Grayscale</a></li>
+								<li><a href="#heightmap-color">Heightmap Color</a></li>
 							</ul>
 						</div>
 					</div>
@@ -269,8 +269,8 @@
 					<div class="labeled-controls">
 						<h4>Colormap</h4>
 						<h5>Color gradient values used for Heightmap Color and Classification color sources</h5>
-						<div class="btn-group btn-block map-picker">
-							<button type="button" class="btn btn-default btn-block dropdown-toggle" data-toggle="dropdown">
+						<div class="btn-group btn-block map-picker" id="colormap">
+							<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown">
 								<img src="/colormaps/heat-map.png"> <span class="caret"></span>
 							</button>
 							<ul class="dropdown-menu btn-block" role="menu" style="text-align: center">
@@ -305,13 +305,22 @@
 		<script src="js/client.js"></script>
 		<script type="x-shader/x-vertex" id="vertexshader">
 			uniform float pointSize;
-			uniform float blendFactor;
+
+			uniform float rgb_f;
+			uniform float intensity_f;
+			uniform float class_f;
+			uniform float height_f;
+			uniform float map_f;
+
 			uniform float clampLower;
 			uniform float clampHigher;
+			uniform vec2  zrange;
 			uniform vec3  offsets;
+			uniform sampler2D map;
 
 			attribute vec3 color;
 			attribute float intensity;
+			attribute float classification;
 
 			varying vec4 col;
 
@@ -325,10 +334,20 @@
 				gl_Position = projectionMatrix * mvPosition;
 
 				float i = (intensity - clampLower) / (clampHigher - clampLower);
-				vec3 intensityColor = vec3(i, i, i);
+				vec3 intensity_color = vec3(i, i, i);
+
+				float nheight = (position.z - zrange.x) / (zrange.y - zrange.x);
+
+				vec3 height_color = vec3(nheight, nheight, nheight);
+				vec3 map_color = texture2D(map, vec2(nheight, 0.5)).rgb;
+				vec3 class_color = texture2D(map, vec2(classification / 12.0, 0.5)).rgb;
 
 				gl_PointSize = pointSize;
-				col = vec4(intensityColor * blendFactor + color * (1.0 - blendFactor), 1.0);
+				col = vec4(color * rgb_f +
+					  intensity_color * intensity_f +
+					  class_color * class_f +
+					  height_color * height_f +
+					  map_color * map_f, 1.0);
 			}
 		</script>
 		<script type="x-shader/x-fragment" id="fragmentshader">

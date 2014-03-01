@@ -26,6 +26,7 @@
 
 		setupFileOpenHandlers();
 		setupSliders();
+		setupComboBoxActions();
 	});
 
 	var progress = function(percent, msg) {
@@ -135,6 +136,51 @@
 			start: [10, 50],
 			connect: true
 		});
+	};
+
+	var setupComboBoxActions = function() {
+		$("#colorsource").on("click", "a", function(e) {
+			e.preventDefault();
+			var $a = $(this);
+			console.log($a);
+
+			var option = $a.text();
+			var target = $a.attr("href").substring(1);
+			$("#colorsource").find("button")
+				.html(option + "&nbsp;<span class='caret'></span>")
+				.attr("target", target);
+
+			$.event.trigger({
+				type: "plasio.colorsourceChanged"
+			});
+		});
+
+		$("#colormap").on("click", "a", function(e) {
+			e.preventDefault();
+			var $a = $(this);
+
+			var $img = $a.find("img");
+			var imageUrl = $img.attr("src");
+
+			var $target = $("#colormap").find("button img");
+			$target.attr("src", imageUrl);
+
+			$.event.trigger({
+				type: "plasio.colormapChanged"
+			});
+		});
+
+		scope.currentColorSource = function() {
+			console.log($("#colorsource button"));
+			var source = $("#colorsource button").attr('target');
+			console.log("Source is:", source);
+			return source;
+		};
+
+		scope.currentColorMap = function() {
+			var $target = $("#colormap").find("button img");
+			return $target.attr("src");
+		};
 	};
 
 
