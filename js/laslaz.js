@@ -210,6 +210,10 @@
 	var LASFile = function(arraybuffer) {
 		this.arraybuffer = arraybuffer;
 
+		this.determineVersion();
+		if (this.version > 12)
+			throw new Error("Only file versions <= 1.2 are supported at this time");
+
 		this.determineFormat();
 		this.loader = this.isCompressed ?
 			new LAZLoader(this.arraybuffer) :
@@ -225,6 +229,12 @@
 			throw new Error("Old style compression not supported");
 
 		this.isCompressed = (bit_7 === 1 || bit_6 === 1);
+	};
+
+	LASFile.prototype.determineVersion = function() {
+		var ver = new Int8Array(this.arraybuffer, 24, 2);
+		this.version = ver[0] * 10 + ver[1];
+		this.versionAsString = ver[0] + "." + ver[1];
 	};
 
 	LASFile.prototype.open = function() {
@@ -248,9 +258,6 @@
 		this.pointSize = pointSize;
 		this.scale = scale;
 		this.offset = offset;
-
-		console.log(this.arrayb, this.pointsCount, this.pointSize, this.scale, this.offset);
-		console.log(this.decoder);
 	};
 
 	LASDecoder.prototype.getPoint = function(index) {

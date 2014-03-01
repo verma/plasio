@@ -23,38 +23,44 @@
 				doRenderResize();
 			}});
 
-		// bind open action to show popup
-		$("#fileOpenAction").on("click", function() {
-			$("#fileOpen").modal();
-		});
-
 
 		setupFileOpenHandlers();
 	});
 
+	var progress = function(percent, msg) {
+		$("#loaderProgress").show();
+		if (msg)
+			$("#loaderProgress p").html(msg);
 
-	scope.startUpload = function() {
+		$("#loaderProgress .progress-bar")
+			.attr("aria-valuenow", percent)
+			.css("width", percent + "%");
 	};
 
-	scope.uploadProgress = function(p) {
-	};
-
-	scope.uploadComplete = function() {
+	var numberWithCommas = function(x) {
+		return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 	};
 
 	var setupFileOpenHandlers = function() {
+		$("#loaderProgress").hide();
+
 		$(document).on('change', '.btn-file :file', function(e) {
 			var input = $(this);
 			var file = input.get(0).files[0];
 
 			e.preventDefault();
 
-			//message("Loading " + file.name + " ...");
-
+			progress(0, "Fetching " + file.name + "...");
 			var fr = new FileReader();
+			fr.onprogress = function(e) {
+				console.log('progress', arguments);
+				progress(Math.round(e.loaded * 100 / e.total));
+			};
 			fr.onload = function(e) {
 				var d = e.target.result;
 				var lf = new LASFile(d);
+
+				progress(0, 'Decoding ' + file.name + '...');
 
 				console.log('Compressed?', lf.isCompressed);
 				lf.open().then(function() {
@@ -66,6 +72,7 @@
 						$("#vertexshader").text(),
 						$("#fragmentshader").text());
 
+					var totalRead = 0;
 					var reader = function() {
 						return lf.readData(1000000, 0, 0).then(function(data) {
 							batcher.push(new LASDecoder(data.buffer,
@@ -75,16 +82,31 @@
 														header.scale,
 														header.offset));
 
+							totalRead += data.count;
+							progress(Math.round(100 * totalRead / header.pointsCount));
+
 							console.log('Got data', data.count);
 							if (data.hasMoreData)
 								return reader();
-							else
+							else {
 								loadBatcher(batcher);
+								return header;
+							}
 						});
 					};
 					return reader();
-				}).then(function() {
+				}).then(function(header) {
 					console.log('Done');
+					$("#loaderProgress").hide();
+					$(".props").html(
+						"<tr><td>File Version</td><td>" + lf.versionAsString + "</td></tr>" +
+						"<tr><td>Compressed?</td><td>" + (lf.isCompressed ? "Yes" : "No") + "</td></tr>" +
+						"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + "</td></tr>" +
+						"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
+						"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>");
+
+
+					console.log(header);
 				});
 			};
 			/*

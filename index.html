@@ -7,7 +7,7 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link rel="stylesheet" href="/css/bootstrap.min.css">
 		<link rel="stylesheet" href="/css/bootstrap-theme.min.css">
-		<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+		<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
 
 		<style>
 			body {
@@ -94,11 +94,20 @@
 
 			.props tr td:last-child {
 				text-align: right;
+				font-weight: bold;
 			}
 
 			#loaderProgress {
 				padding: 10px 0px;
 				box-sizing: border-box;
+			}
+			#loaderProgress p {
+				padding: 0px;
+				margin: 0px;
+			}
+
+			#loaderProgress .progress {
+				margin: 0px;
 			}
 
 			.btn-file {
@@ -144,6 +153,7 @@
 								aria-valuemin="0" aria-valuemax="100" style="width: 20%;">
 							</div>
 						</div>
+						<p>Loading...</p>
 					</div>
 					<table class="props table">
 					</table>
@@ -173,31 +183,6 @@
 		</div>
 
 		<div id="listener"></div>
-
-		<div id="fileOpen" class="modal fade">
-			<div class="modal-dialog">
-				<div class="modal-content">
-					<div class="modal-header">
-						<h4 class="modal-title">Open a LAZ/LAS file</h4>
-					</div>
-					<div class="modal-body">
-						<p>Choose a LAZ/LAS file to load or drag one over.</p>
-						<input id="lasfile" type="file" accepts="*/*"></input>
-						<div id="loaderProgress">
-						<div class="progress">
-							<div class="progress-bar" role="progressbar"
-								aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%;">
-								<span class="sr-only">60% Complete</span>
-							</div>
-						</div>
-						</div>
-					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-					</div>
-				</div><!-- /.modal-content -->
-			</div><!-- /.modal-dialog -->
-		</div><!-- /.modal -->
 
 		<script src="js/jquery.js"></script>
 		<script src="js/jquery.ui.js"></script>
