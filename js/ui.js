@@ -25,6 +25,7 @@
 
 
 		setupFileOpenHandlers();
+		setupSliders();
 	});
 
 	var progress = function(percent, msg) {
@@ -109,75 +110,29 @@
 					console.log(header);
 				});
 			};
-			/*
-			fr.onload = function(e) {
-				var buf = e.target.result;
-				console.log("Data read complete: ", buf.byteLength);
-
-				try {
-					if (endsWith(file.name.toLowerCase(), ".las")) {
-						var lf = new LASBuffer(buf);
-						var batcher = new ParticleSystemBatcher(
-							$("#vertexshader").text(),
-							$("#fragmentshader").text());
-
-							batcher.push(lf);
-							loadBatcher(batcher);
-							message("Load complete. Now viewing " + file.name);
-					}
-					else {
-						var lf = new AsyncLAZBuffer(buf);
-						lf.open(function(err, msg) {
-							if (err) return console.log('Error:', err.message);
-							console.log('Open status:', msg);
-
-							lf.getHeader(function(err, header) {
-								if (err) return console.log('Error getting header:', err.message);
-								console.log('Get header status:', header);
-
-								var batcher = new ParticleSystemBatcher(
-									$("#vertexshader").text(),
-									$("#fragmentshader").text());
-
-									var readSoFar = 0;
-									var totalToRead = header.point_count;
-
-									var loadPoints = function() {
-										lf.readData(1000000, 100, function(err, res, count, hasMore) {
-											if (err) return console.log('Error loading data:', err);
-
-											readSoFar += count;
-											uploadProgress(readSoFar / totalToRead);
-
-											batcher.push(new LASWrapper(res,
-																		header.point_format_id,
-																		header.point_record_length,
-																		count,
-																		header.scales,
-																		header.offsets));
-																		if (hasMore)
-																			loadPoints();
-																		else {
-																			console.log('Done reading data');
-																			loadBatcher(batcher);
-
-																			uploadComplete();
-																		}
-										});
-									};
-
-									startUpload();
-									loadPoints();
-							});
-						});
-					}
-				}
-				catch(e) {
-					errorOut(e.message);
-				}
-			};*/
-
 			fr.readAsArrayBuffer(file);
+		});
+	};
+
+	var setupSliders = function() {
+		$("#loadFidelity").noUiSlider({
+			range: [0, 100],
+			start: 50,
+			handles: 1,
+			connect: "lower"
+		});
+
+		$("#fov").noUiSlider({
+			range: [10, 110],
+			start: 60,
+			handles: 1,
+			connect: "lower"
+		});
+
+		$("#intensity").noUiSlider({
+			range: [0, 255],
+			start: [10, 50],
+			connect: true
 		});
 	};
 

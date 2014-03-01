@@ -7,6 +7,7 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link rel="stylesheet" href="/css/bootstrap.min.css">
 		<link rel="stylesheet" href="/css/bootstrap-theme.min.css">
+		<link rel="stylesheet" href="/css/jquery.nouislider.min.css">
 		<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
 
 		<style>
@@ -23,8 +24,9 @@
 				position: absolute;
 				right: 10px;
 				font-size: 20px;
-				color: white;
+				color: #999;
 				top: 10px;
+				font-family: 'Consolas', 'Menlo', 'Monaco', Monospace;
 			}
 
 			#messages {
@@ -32,6 +34,8 @@
 				left: 10px;
 				bottom: 10px;
 				font-size: 12px;
+				color: #999;
+				font-family: 'Consolas', 'Menlo', 'Monaco', Monospace;
 			}
 
 			#container {
@@ -75,6 +79,10 @@
 				background-color: #666;
 				padding: 0px;
 				margin: 0px;
+			}
+
+			#mainActions {
+				margin: 0px 10px;
 			}
 
 			.section {
@@ -130,6 +138,36 @@
 				display: block;
 			}
 
+			.labeled-controls {
+				margin-bottom: 20px;
+				background-color: #eee;
+				padding: 15px 10px;
+			}
+			.labeled-controls h4 {
+				color: #3E754E;
+				text-transform: uppercase;
+				font-weight: bold;
+				font-size: 15px;
+				margin: 0px;
+			}
+
+			.labeled-controls h5 {
+				margin-top: 5px;
+				margin-bottom: 15px;
+				color: #aaa;
+				font-size: 12px;
+				line-height: 14px;
+				letter-spacing: 0px;
+			}
+			.map-picker {
+				text-align: center;
+			}
+
+			.map-picker img {
+				height: 10px;
+				width: 75%;
+			}
+
 		</style>
 	</head>
 	<body data-custom-load="true" data-name="plasio_laszip"
@@ -144,12 +182,18 @@
 			<div id="mainActions">
 				<div class="section">
 					<h3>File</h3>
+					<div class="labeled-controls">
+						<h4>Fidelity</h4>
+						<h5>Set the fidelity of the files to load, use lower values to load faster and on lower end hardware</h5>
+						<div id="loadFidelity"></div>
+					</div>
+
 					<span class="btn btn-default btn-sm btn-block btn-file">
 						Browse <input type="file">
 					</span>
 					<div id="loaderProgress">
 						<div class="progress">
-							<div class="progress-bar" role="progressbar" aria-valuenow="20"
+							<div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="20"
 								aria-valuemin="0" aria-valuemax="100" style="width: 20%;">
 							</div>
 						</div>
@@ -161,25 +205,66 @@
 
 				<div class="section">
 					<h3>Camera</h3>
-					<div style="text-align: center;" :class="btn-toolbar" role="toolbar">
-						<div class="btn-group btn-group-sm">
-							<button type="button" class="btn btn-default">Perspective</button>
-							<button type="button" class="btn btn-default">Orthographic</button>
-							<button type="button" class="btn btn-default">Top-View</button>
+					<div class="labeled-controls">
+						<h4>Type</h4>
+						<h5>Perspective camera provides a 3D view, while orthographic and top-view cameras provide an ortho views</h5>
+						<div style="text-align: center;" :class="btn-toolbar" role="toolbar">
+							<div class="btn-group btn-group-sm">
+								<button type="button" class="btn btn-default">Perspective</button>
+								<button type="button" class="btn btn-default">Orthographic</button>
+								<button type="button" class="btn btn-default">Top-View</button>
+							</div>
 						</div>
+					</div>
+					<div class="labeled-controls">
+						<h4>Field of View</h4>
+						<h5>Changing Field of View provides interesting effects, only applies to Perspective Cameras</h5>
+						<div id="fov"></div>
 					</div>
 				</div>
 
 				<div class="section">
 					<h3>Data</h3>
-					<div></div>
+					<div class="labeled-controls">
+						<h4>Color Source</h4>
+						<h5>Different sources provide different perspective of the data.</h5>
+						<div class="btn-group btn-block">
+							<button type="button" class="btn btn-default btn-block dropdown-toggle" data-toggle="dropdown">
+								RGB <span class="caret"></span>
+							</button>
+							<ul class="dropdown-menu btn-block" role="menu">
+								<li><a href="#">RGB</a></li>
+								<li><a href="#">Intensity</a></li>
+								<li><a href="#">Classification</a></li>
+								<li><a href="#">Heightmap Grayscale</a></li>
+								<li><a href="#">Heightmap Color</a></li>
+							</ul>
+						</div>
+					</div>
+					<div class="labeled-controls">
+						<h4>Intensity Scaling</h4>
+						<h5>Narrow down on a range of intensity values</h5>
+						<div id="intensity"></div>
+					</div>
+					<div class="labeled-controls">
+						<h4>Colormap</h4>
+						<h5>Color gradient values used for Heightmap Color and Classification color sources</h5>
+						<div class="btn-group btn-block map-picker">
+							<button type="button" class="btn btn-default btn-block dropdown-toggle" data-toggle="dropdown">
+								<img src="/colormaps/heat-map.png"> <span class="caret"></span>
+							</button>
+							<ul class="dropdown-menu btn-block" role="menu" style="text-align: center">
+								<li><a href="#"><img src="/colormaps/blue-hue.png"></a></li>
+								<li><a href="#"><img src="/colormaps/blue-orange.png"></a></li>
+								<li><a href="#"><img src="/colormaps/heat-map.png"></a></li>
+								<li><a href="#"><img src="/colormaps/awesome-green.png"></a></li>
+								<li><a href="#"><img src="/colormaps/pestel-shades.png"></a></li>
+								<li><a href="#"><img src="/colormaps/black-orange.png"></a></li>
+							</ul>
+						</div>
+					</div>
 				</div>
 			</div>
-			<!--
-			<div id="control-panel">
-				<div class="title">Choose a las file to view</div>
-			</div>
-			-->
 		</div>
 
 		<div id="listener"></div>
@@ -188,6 +273,7 @@
 		<script src="js/jquery.ui.js"></script>
 		<script src="js/jquery.layout.js"></script>
 		<script src="js/bootstrap.min.js"></script>
+		<script src="js/jquery.nouislider.min.js"></script>
 		<script src="js/bluebird.js"></script>
 		<script src="js/common.js"></script>
 		<script src="js/three.js"></script>
