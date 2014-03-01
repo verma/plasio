@@ -162,21 +162,33 @@
 		renderer.render(scene, camera);
 	}
 
-	function updateUniformsForSource(uniforms, source) {
+	function updateColorUniformsForSource(uniforms, source) {
 		uniforms.rgb_f.value = 0.0;
-		uniforms.intensity_f.value = 0.0;
 		uniforms.class_f.value = 0.0;
-		uniforms.height_f.value = 0.0;
 		uniforms.map_f.value = 0.0;
+		uniforms.imap_f.value = 0.0;
+
+		switch(source) {
+			case "rgb": uniforms.rgb_f.value = 1.0; break;
+			case "classification": uniforms.class_f.value = 1.0; break;
+			case "heightmap-color": uniforms.map_f.value = 1.0; break;
+			case "heightmap-color-inv": uniforms.imap_f.value = 1.0; break;
+		}
+
+		console.log(uniforms);
+	}
+
+	function updateIntensityUniformsForSource(uniforms, source) {
+		uniforms.intensity_f.value = 0.0;
+		uniforms.height_f.value = 0.0;
+		uniforms.iheight_f.value = 0.0;
 
 		console.log('updating', source);
 
 		switch(source) {
-			case "rgb": uniforms.rgb_f.value = 1.0; break;
 			case "intensity": uniforms.intensity_f.value = 1.0; break
-			case "classification": uniforms.class_f.value = 1.0; break;
 			case "heightmap": uniforms.height_f.value = 1.0; break;
-			case "heightmap-color": uniforms.map_f.value = 1.0; break;
+			case "heightmap-inv": uniforms.iheight_f.value = 1.0; break;
 		}
 
 		console.log(uniforms);
@@ -195,11 +207,19 @@
 
 		var uniforms = {
 			pointSize: { type: 'f', value: 3.0 },
+			intensityBlend: { type: 'f', value: 0.5 },
+
+			// colors
 			rgb_f: { type: 'f', value: 1.0 },
-			intensity_f: { type: 'f', value: 0.0 },
 			class_f: { type: 'f', value: 0.0 },
-			height_f: { type: 'f', value: 0.0 },
 			map_f: { type: 'f', value: 0.0 },
+			imap_f: { type: 'f', value: 0.0 },
+
+			// intensity
+			intensity_f: { type: 'f', value: 0.0 },
+			height_f: { type: 'f', value: 0.0 },
+			iheight_f: { type: 'f', value: 0.0 },
+
 			clampLower: { type: 'f', value: 20.0},
 			clampHigher: { type: 'f', value: 150.0},
 			zrange: { type: 'v2', value: new THREE.Vector2(0, 0) },
@@ -207,7 +227,8 @@
 			map: { type: 't', value: THREE.ImageUtils.loadTexture(currentColorMap())}
 		};
 
-		updateUniformsForSource(uniforms, currentColorSource());
+		updateColorUniformsForSource(uniforms, currentColorSource());
+		updateIntensityUniformsForSource(uniforms, currentIntensitySource());
 
 		shaderMaterial = new THREE.ShaderMaterial({
 			vertexShader: vs,
@@ -224,7 +245,22 @@
 		});
 
 		$(document).on("plasio.colorsourceChanged", function() {
-			updateUniformsForSource(uniforms, currentColorSource());
+			updateColorUniformsForSource(uniforms, currentColorSource());
+		});
+
+		$(document).on("plasio.intensitysourceChanged", function() {
+			updateIntensityUniformsForSource(uniforms, currentIntensitySource());
+		});
+
+		$(document).on("plasio.intensityClampChanged", function() {
+			var range = currentIntensityClamp();
+			uniforms.clampLower.value = range[0];
+			uniforms.clampHigher.value = range[1];
+		});
+
+		$(document).on("plasio.intensityBlendChanged", function() {
+			var f = currentIntensityBlend();
+			uniforms.intensityBlend.value = f / 100.0;
 		});
 
 		shaderMaterial.uniforms = uniforms;

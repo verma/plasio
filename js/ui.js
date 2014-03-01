@@ -133,9 +133,33 @@
 
 		$("#intensity").noUiSlider({
 			range: [0, 255],
-			start: [10, 50],
-			connect: true
+			start: [20, 150],
+			connect: true,
+			slide: function() {
+				$.event.trigger({
+					type: 'plasio.intensityClampChanged'
+				});
+			}
 		});
+
+		$("#blending").noUiSlider({
+			range: [0, 100],
+			start: 50,
+			handles: 1,
+			slide: function() {
+				$.event.trigger({
+					type: 'plasio.intensityBlendChanged'
+				});
+			}
+		});
+
+		scope.currentIntensityClamp = function() {
+			return $("#intensity").val();
+		};
+
+		scope.currentIntensityBlend = function() {
+			return $("#blending").val();
+		};
 	};
 
 	var setupComboBoxActions = function() {
@@ -155,6 +179,23 @@
 			});
 		});
 
+		$("#intensitysource").on("click", "a", function(e) {
+			e.preventDefault();
+			var $a = $(this);
+			console.log($a);
+
+			var option = $a.text();
+			var target = $a.attr("href").substring(1);
+			$("#intensitysource").find("button")
+				.html(option + "&nbsp;<span class='caret'></span>")
+				.attr("target", target);
+
+			$.event.trigger({
+				type: "plasio.intensitysourceChanged"
+			});
+		});
+
+
 		$("#colormap").on("click", "a", function(e) {
 			e.preventDefault();
 			var $a = $(this);
@@ -173,6 +214,13 @@
 		scope.currentColorSource = function() {
 			console.log($("#colorsource button"));
 			var source = $("#colorsource button").attr('target');
+			console.log("Source is:", source);
+			return source;
+		};
+
+		scope.currentIntensitySource = function() {
+			console.log($("#intensitysource button"));
+			var source = $("#intensitysource button").attr('target');
 			console.log("Source is:", source);
 			return source;
 		};

@@ -177,6 +177,15 @@
 				box-sizing: border-box;
 			}
 
+			.blend-factor {
+				margin-top: 10px;
+			}
+			.blend-factor div {
+				color: #aaa;
+				font-size: 10px;
+				text-transform: uppercase;
+			}
+
 		</style>
 	</head>
 	<body data-custom-load="true" data-name="plasio_laszip"
@@ -247,24 +256,18 @@
 					<h3>Data</h3>
 					<div class="labeled-controls">
 						<h4>Color Source</h4>
-						<h5>Different sources provide different perspective of the data.</h5>
+						<h5>Different color sources provide different perspective of data</h5>
 						<div class="btn-group btn-block" id="colorsource">
 							<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown" target="rgb">
 								RGB <span class="caret"></span>
 							</button>
 							<ul class="dropdown-menu btn-block" role="menu">
 								<li><a href="#rgb">RGB</a></li>
-								<li><a href="#intensity">Intensity</a></li>
 								<li><a href="#classification">Classification</a></li>
-								<li><a href="#heightmap">Heightmap Grayscale</a></li>
 								<li><a href="#heightmap-color">Heightmap Color</a></li>
+								<li><a href="#heightmap-color-inv">Heightmap Color Inverted</a></li>
 							</ul>
 						</div>
-					</div>
-					<div class="labeled-controls">
-						<h4>Intensity Scaling</h4>
-						<h5>Narrow down on a range of intensity values</h5>
-						<div id="intensity"></div>
 					</div>
 					<div class="labeled-controls">
 						<h4>Colormap</h4>
@@ -282,6 +285,34 @@
 								<li><a href="#"><img src="/colormaps/black-orange.png"></a></li>
 							</ul>
 						</div>
+					</div>
+					<div class="labeled-controls">
+						<h4>Intensity Source</h4>
+						<h5>Color modulators, modulation can be played with</h5>
+						<div class="btn-group btn-block" id="intensitysource">
+							<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown" target="intensity">
+								Intensity <span class="caret"></span>
+							</button>
+							<ul class="dropdown-menu btn-block" role="menu">
+								<li><a href="#intensity">Intensity</a></li>
+								<li><a href="#heightmap">Heightmap Grayscale</a></li>
+								<li><a href="#heightmap-inv">Heightmap Grayscale Inverted</a></li>
+							</ul>
+						</div>
+					</div>
+					<div class="labeled-controls">
+						<h4>Intensity Blending</h4>
+						<h5>How much of intensity to blend with color</h5>
+						<div id="blending"></div>
+						<div class="clearfix blend-factor">
+							<div class="pull-left">All Color</div>
+							<div class="pull-right">All Intensity</div>
+						</div>
+					</div>
+					<div class="labeled-controls">
+						<h4>Intensity Scaling</h4>
+						<h5>Narrow down on a range of intensity values, only applies to intensity values fetch from point source</h5>
+						<div id="intensity"></div>
 					</div>
 				</div>
 			</div>
@@ -305,12 +336,15 @@
 		<script src="js/client.js"></script>
 		<script type="x-shader/x-vertex" id="vertexshader">
 			uniform float pointSize;
+			uniform float intensityBlend;
 
 			uniform float rgb_f;
 			uniform float intensity_f;
 			uniform float class_f;
 			uniform float height_f;
+			uniform float iheight_f;
 			uniform float map_f;
+			uniform float imap_f;
 
 			uniform float clampLower;
 			uniform float clampHigher;
@@ -332,22 +366,36 @@
 
 				vec4 mvPosition = modelViewMatrix * vec4( fpos, 1.0 );
 				gl_Position = projectionMatrix * mvPosition;
+				float nheight = (position.z - zrange.x) / (zrange.y - zrange.x);
 
+				// compute color channels
+				//
+				vec3 map_color = texture2D(map, vec2(nheight, 0.5)).rgb;
+				vec3 inv_map_color = texture2D(map, vec2(1.0 - nheight, 0.5)).rgb;
+				vec3 class_color = texture2D(map, vec2(classification / 12.0, 0.5)).rgb;
+
+				// compute intensity channels
 				float i = (intensity - clampLower) / (clampHigher - clampLower);
 				vec3 intensity_color = vec3(i, i, i);
 
-				float nheight = (position.z - zrange.x) / (zrange.y - zrange.x);
 
 				vec3 height_color = vec3(nheight, nheight, nheight);
-				vec3 map_color = texture2D(map, vec2(nheight, 0.5)).rgb;
-				vec3 class_color = texture2D(map, vec2(classification / 12.0, 0.5)).rgb;
+				vec3 inv_height_color = vec3(1.0 - nheight, 1.0 - nheight, 1.0 - nheight);
 
+				// turn the appropriate channels on
+				//
+				vec3 color_source = color * rgb_f +
+									class_color * class_f +
+									map_color * map_f +
+									inv_map_color * imap_f;
+
+				vec3 intensity_source = intensity_color * intensity_f +
+										height_color * height_f +
+										inv_height_color * iheight_f;
+
+				// blend and return
 				gl_PointSize = pointSize;
-				col = vec4(color * rgb_f +
-					  intensity_color * intensity_f +
-					  class_color * class_f +
-					  height_color * height_f +
-					  map_color * map_f, 1.0);
+				col = vec4(mix(color_source, intensity_source, intensityBlend), 1.0);
 			}
 		</script>
 		<script type="x-shader/x-fragment" id="fragmentshader">
