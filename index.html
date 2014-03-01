@@ -168,6 +168,15 @@
 				width: 75%;
 			}
 
+			#browse .dropdown-lead{
+				width: 92%;
+				box-sizing: border-box;
+			}
+			#browse .dropdown-toggle{
+				width: 8%;
+				box-sizing: border-box;
+			}
+
 		</style>
 	</head>
 	<body data-custom-load="true" data-name="plasio_laszip"
@@ -188,9 +197,20 @@
 						<div id="loadFidelity"></div>
 					</div>
 
-					<span class="btn btn-default btn-sm btn-block btn-file">
-						Browse <input type="file">
-					</span>
+					<div class="btn-group btn-block" id="browse">
+						<button type="button" class="btn btn-default btn-sm btn-file dropdown-lead">
+							Browse <input type="file">
+						</button>
+						<button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+							<span class="caret"></span>
+							<span class="sr-only">Toggle Dropdown</span>
+						</button>
+						<ul class="dropdown-menu btn-block" role="menu">
+							<li><a href="#">St. Helens</a></li>
+							<li><a href="#">Half Dome</a></li>
+							<li><a href="#">More Interesting</a></li>
+						</ul>
+					</div>
 					<div id="loaderProgress">
 						<div class="progress">
 							<div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="20"

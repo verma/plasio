@@ -100,6 +100,7 @@
 					console.log('Done');
 					$("#loaderProgress").hide();
 					$(".props").html(
+						"<tr><td>Name</td><td>" + file.name + "</td></tr>" +
 						"<tr><td>File Version</td><td>" + lf.versionAsString + "</td></tr>" +
 						"<tr><td>Compressed?</td><td>" + (lf.isCompressed ? "Yes" : "No") + "</td></tr>" +
 						"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + "</td></tr>" +
