@@ -158,6 +158,14 @@
 		});
 	};
 
+	LASLoader.prototype.close = function() {
+		var o = this;
+		return new Promise(function(res, rej) {
+			o.arraybuffer = null;
+			setTimeout(res, 0);
+		});
+	};
+
 	// LAZ Loader
 	// Uses NaCL module to load LAZ files
 	//
@@ -206,6 +214,12 @@
 		});
 	};
 
+	LAZLoader.prototype.close = function() {
+		return doDataExchange({
+			command: 'close'
+		});
+	};
+
 	// A single consistent interface for loading LAS/LAZ files
 	var LASFile = function(arraybuffer) {
 		this.arraybuffer = arraybuffer;
@@ -247,6 +261,10 @@
 
 	LASFile.prototype.readData = function(count, start, skip) {
 		return this.loader.readData(count, start, skip);
+	};
+
+	LASFile.prototype.close = function() {
+		return this.loader.close();
 	};
 
 	// Decodes LAS records into points

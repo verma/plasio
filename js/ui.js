@@ -74,9 +74,12 @@
 						$("#vertexshader").text(),
 						$("#fragmentshader").text());
 
+					var skip = Math.round((10 - currentLoadFidelity()));
+					console.log("Skip value:", skip);
 					var totalRead = 0;
+					var totalToRead = (skip <= 1 ? header.pointsCount : header.pointsCount / skip);
 					var reader = function() {
-						return lf.readData(1000000, 0, 0).then(function(data) {
+						return lf.readData(1000000, 0, skip).then(function(data) {
 							batcher.push(new LASDecoder(data.buffer,
 														header.pointsFormatId,
 														header.pointsStructSize,
@@ -85,31 +88,34 @@
 														header.offset));
 
 							totalRead += data.count;
-							progress(Math.round(100 * totalRead / header.pointsCount));
+							progress(Math.round(100 * totalRead / totalToRead));
 
 							console.log('Got data', data.count);
 							if (data.hasMoreData)
 								return reader();
 							else {
 								loadBatcher(batcher);
+								header.totalRead = totalRead;
 								return header;
 							}
 						});
 					};
 					return reader();
 				}).then(function(header) {
-					console.log('Done');
 					$("#loaderProgress").hide();
 					$(".props").html(
 						"<tr><td>Name</td><td>" + file.name + "</td></tr>" +
 						"<tr><td>File Version</td><td>" + lf.versionAsString + "</td></tr>" +
 						"<tr><td>Compressed?</td><td>" + (lf.isCompressed ? "Yes" : "No") + "</td></tr>" +
-						"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + "</td></tr>" +
+						"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
+						numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
 						"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
 						"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>");
 
-
-					console.log(header);
+					// finally close the file
+					return lf.close();
+				}).then(function() {
+					console.log("Done");
 				});
 			};
 			fr.readAsArrayBuffer(file);
@@ -118,10 +124,11 @@
 
 	var setupSliders = function() {
 		$("#loadFidelity").noUiSlider({
-			range: [0, 100],
-			start: 50,
+			range: [1, 9],
+			start: 5,
 			handles: 1,
-			connect: "lower"
+			connect: "lower",
+			step: 1
 		});
 
 		$("#fov").noUiSlider({
@@ -153,6 +160,9 @@
 			}
 		});
 
+		scope.currentLoadFidelity = function() {
+			return $("#loadFidelity").val();
+		};
 		scope.currentIntensityClamp = function() {
 			return $("#intensity").val();
 		};
