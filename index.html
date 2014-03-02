@@ -2,20 +2,22 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>LAS Viewer</title>
+		<title>plas.io</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link rel="stylesheet" href="/css/bootstrap.min.css">
 		<link rel="stylesheet" href="/css/bootstrap-theme.min.css">
+		<link rel="stylesheet" href="/css/layout-default-latest.css">
 		<link rel="stylesheet" href="/css/jquery.nouislider.min.css">
 		<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+		<link href='http://fonts.googleapis.com/css?family=Archivo+Black' rel='stylesheet' type='text/css'>
 
 		<style>
 			body {
 				color: #333;
 				font-size:13px;
 				font-family: 'Open Sans', sans-serif;
-				background-color: #ddd;
+				background-color: white;
 				margin: 0px;
 				overflow: hidden;
 			}
@@ -186,10 +188,49 @@
 				text-transform: uppercase;
 			}
 
+			.title {
+				margin-bottom: 30px;
+			}
+
+			.title h1{
+				margin: 0px;
+				font-family: 'Archivo Black', sans-serif;
+				color: rgb(63, 115, 10);
+			}
+
+			.fullscreen .title .name {
+				position:absolute;
+				top: 200px;
+				left: 0px;
+				width: 100%;
+				text-align: center;
+				font-size: 70px;
+				margin: 0px;
+				font-family: 'Archivo Black', sans-serif;
+				color: rgb(63, 115, 10);
+				text-shadow: 0px 2px 1px #000;
+			}
+
+			.fullscreen {
+				position: absolute;
+				z-index: 10000 !important;
+				left: 0px;
+				width: 100%;
+				top: 0px;
+				height: 100%;
+				background-color: #eee;
+				text-align: center;
+			}
+
 		</style>
 	</head>
 	<body data-custom-load="true" data-name="plasio_laszip"
 		data-tools="" data-configs="" data-path="">
+		<div class="fullscreen">
+			<div class="title">
+				<div class="name">plas.io</div>
+			</div>
+		</div>
 		<div class="ui-layout-center">
 			<div id="container"></div>
 			<div id="fps"></div>
@@ -198,6 +239,10 @@
 		</div>
 		<div class="ui-layout-east">
 			<div id="mainActions">
+				<div class="title">
+					<h1>plas.io</h1>
+					<a href="https://github.com/verma/plasio"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://github-camo.global.ssl.fastly.net/e7bbb0521b397edbd5fe43e7f760759336b5e05f/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png"></a>
+				</div>
 				<div class="section">
 					<h3>File</h3>
 					<div class="labeled-controls">
@@ -217,7 +262,7 @@
 						<ul class="dropdown-menu btn-block" role="menu">
 							<li><a href="/data/st-helens.laz">St. Helens</a></li>
 							<li><a href="/data/half-dome.laz">Half Dome</a></li>
-							<li><a href="/data/autzen.laz">Autzen</a></li>
+							<li><a href="/data/autzen.laz">Autzen Stadium</a></li>
 						</ul>
 					</div>
 					<div id="loaderProgress">

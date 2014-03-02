@@ -164,6 +164,7 @@
 
 			progress(0, "Fetching " + name + "...");
 			getBinary(target, progress_fn).then(function(data) {
+				progress(100);
 				return loadData(name, data);
 			});
 		});

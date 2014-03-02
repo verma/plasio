@@ -29,5 +29,8 @@ function endsWith(str, s) {
 })(window);
 
 $(function() {
-	setTimeout(start, 500);
+	setTimeout(function() {
+		$(".fullscreen").fadeOut(200);
+		start();
+	}, 1000);
 });
