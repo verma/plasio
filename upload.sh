@@ -1,0 +1,1 @@
+s3cmd sync . s3://plas.io --acl-public --exclude=".git/*" --config=/Users/hobu/plasio-s3-upload.conf 
