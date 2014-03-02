@@ -141,7 +141,7 @@
 				if (!o.header)
 					return rej(new Error("Cannot start reading data till a header request is issued"));
 
-				if (skip === 0) {
+				if (skip <= 1) {
 					count = Math.min(count, o.header.pointsCount - o.readOffset);
 					var start = o.header.pointsOffset + o.readOffset * o.header.pointsStructSize;
 					var end = start + count * o.header.pointsStructSize;
@@ -152,8 +152,31 @@
 						hasMoreData: o.readOffset + count < o.header.pointsCount});
 					o.readOffset += count;
 				}
-				else
-					rej(new Error("skip != 0 implementation is not available"));
+				else {
+					var pointsToRead = Math.min(count * skip, o.header.pointsCount - o.readOffset);
+					var bufferSize = Math.ceil(pointsToRead / skip);
+					var pointsRead = 0;
+
+					var buf = new Uint8Array(bufferSize * o.header.pointsStructSize);
+					console.log("Destination size:", buf.byteLength);
+					for (var i = 0 ; i < pointsToRead ; i ++) {
+						if (i % skip === 0) {
+							var start = o.header.pointsOffset + o.readOffset * o.header.pointsStructSize;
+							var src = new Uint8Array(o.arraybuffer, start, o.header.pointsStructSize);
+
+							buf.set(src, pointsRead * o.header.pointsStructSize);
+							pointsRead ++;
+						}
+
+						o.readOffset ++;
+					}
+
+					res({
+						buffer: buf.buffer,
+						count: pointsRead,
+						hasMoreData: o.readOffset < o.header.pointsCount
+					});
+				}
 			}, 0);
 		});
 	};

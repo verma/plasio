@@ -151,7 +151,7 @@
 
 		$("#blending").noUiSlider({
 			range: [0, 100],
-			start: 50,
+			start: 0,
 			handles: 1,
 			slide: function() {
 				$.event.trigger({

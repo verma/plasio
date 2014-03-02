@@ -207,7 +207,7 @@
 
 		var uniforms = {
 			pointSize: { type: 'f', value: 3.0 },
-			intensityBlend: { type: 'f', value: 0.5 },
+			intensityBlend: { type: 'f', value: 0.0 },
 
 			// colors
 			rgb_f: { type: 'f', value: 1.0 },
