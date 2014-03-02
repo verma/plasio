@@ -30,7 +30,16 @@ function endsWith(str, s) {
 
 $(function() {
 	setTimeout(function() {
-		$(".fullscreen").fadeOut(200);
-		start();
+		var isChromium = window.chrome,
+		vendorName = window.navigator.vendor;
+		console.log(isChromium, vendorName);
+
+		if(isChromium !== undefined && vendorName === "Google Inc.") {
+			$(".fullscreen").fadeOut(200);
+			start();
+		}
+		else {
+			$("#no-support").css("opacity", 1.0);
+		}
 	}, 1000);
 });

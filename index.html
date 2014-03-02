@@ -201,13 +201,10 @@
 			}
 
 			.fullscreen .title .name {
-				position:absolute;
-				top: 200px;
-				left: 0px;
+				margin-top: 200px;
 				width: 100%;
 				text-align: center;
 				font-size: 70px;
-				margin: 0px;
 				font-family: 'Archivo Black', sans-serif;
 				color: rgb(63, 115, 10);
 				text-shadow: 0px 2px 1px #000;
@@ -224,6 +221,13 @@
 				text-align: center;
 			}
 
+			#no-support {
+				font-size: 15px;
+				font-weight: bold;
+				color: rgb(63, 115, 10);
+				opacity: 0;
+			}
+
 		</style>
 	</head>
 	<body data-custom-load="true" data-name="plasio_laszip"
@@ -231,6 +235,7 @@
 		<div class="fullscreen">
 			<div class="title">
 				<div class="name">plas.io</div>
+				<div id="no-support">Sorry, your browser is not supported.  Please use the most recent version of <a href="http://google.com/chrome">Google Chrome</a> to view this page.</div>
 			</div>
 		</div>
 		<div class="ui-layout-center">
