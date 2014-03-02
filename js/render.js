@@ -282,6 +282,8 @@
 			height_f: { type: 'f', value: 0.0 },
 			iheight_f: { type: 'f', value: 0.0 },
 
+			xyScale: { type: 'v2', value: new THREE.Vector2(1, 1) },
+
 			clampLower: { type: 'f', value: iblend[0] },
 			clampHigher: { type: 'f', value: iblend[1] },
 			zrange: { type: 'v2', value: new THREE.Vector2(0, 0) },
@@ -375,6 +377,9 @@
 			var x = p.position[0] * lasBuffer.scale[0] + lasBuffer.offset[0];
 			var y = p.position[1] * lasBuffer.scale[1] + lasBuffer.offset[1];
 			var z = p.position[2] * lasBuffer.scale[2] + lasBuffer.offset[2];
+
+			if (x > -180.0 && x < 180.0) x *= 111000;
+			if (y > -90.0 && x < 90.0) y *= 111000;
 
 			if (cg === null)
 				cg = new THREE.Vector3(x, y, z);

@@ -151,6 +151,7 @@
 		}).catch(function(err) {
 			console.log("Failed to load file!");
 			console.log(err);
+			console.log(err.stack);
 
 			$("#loadError").html(
 				'<div class="alert alert-danger alert-dismissable">' +
@@ -333,16 +334,12 @@
 		});
 
 		scope.currentColorSource = function() {
-			console.log($("#colorsource button"));
 			var source = $("#colorsource button").attr('target');
-			console.log("Source is:", source);
 			return source;
 		};
 
 		scope.currentIntensitySource = function() {
-			console.log($("#intensitysource button"));
 			var source = $("#intensitysource button").attr('target');
-			console.log("Source is:", source);
 			return source;
 		};
 

@@ -434,6 +434,8 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e5e5e5', end
 			uniform float map_f;
 			uniform float imap_f;
 
+			uniform vec2 xyScale;
+
 			uniform float clampLower;
 			uniform float clampHigher;
 			uniform vec2  zrange;
@@ -448,9 +450,9 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e5e5e5', end
 
 
 			void main() {
-				vec3 fpos = vec3(position.x - offsets.x,
+				vec3 fpos = vec3((position.x - offsets.x) * xyScale.x,
 								 position.z - offsets.z,
-								 position.y - offsets.y);
+								 (position.y - offsets.y) * xyScale.y);
 
 				vec4 mvPosition = modelViewMatrix * vec4( fpos, 1.0 );
 				gl_Position = projectionMatrix * mvPosition;
