@@ -207,6 +207,7 @@
 				opacity: 0.7;
 				font-family: 'Archivo Black', sans-serif;
 				color: rgb(63, 115, 10);
+				letter-spacing: -3px;
 			}
 
 			.fullscreen .title .name {
@@ -215,8 +216,9 @@
 				text-align: center;
 				font-size: 70px;
 				font-family: 'Archivo Black', sans-serif;
-				color: rgb(63, 115, 10);
-				text-shadow: 0px 2px 1px #000;
+				color: #777;
+				text-shadow: 0 1px 2px #fff;
+				letter-spacing: -3px;
 			}
 
 			.fullscreen {
@@ -226,14 +228,24 @@
 				width: 100%;
 				top: 0px;
 				height: 100%;
-				background-color: #efefef;
+				background-color: #ddd;
 				text-align: center;
+background: rgb(229,229,229); /* Old browsers */
+background: -moz-linear-gradient(top,  rgba(229,229,229,1) 0%, rgba(255,255,255,1) 100%); /* FF3.6+ */
+background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(229,229,229,1)), color-stop(100%,rgba(255,255,255,1))); /* Chrome,Safari4+ */
+background: -webkit-linear-gradient(top,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* Chrome10+,Safari5.1+ */
+background: -o-linear-gradient(top,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* Opera 11.10+ */
+background: -ms-linear-gradient(top,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* IE10+ */
+background: linear-gradient(to bottom,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* W3C */
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e5e5e5', endColorstr='#ffffff',GradientType=0 ); /* IE6-9 */
+				
+
 			}
 
 			#no-support {
 				font-size: 15px;
 				font-weight: bold;
-				color: rgb(63, 115, 10);
+				color: #733;
 				opacity: 0;
 			}
 
@@ -339,7 +351,7 @@
 							<ul class="dropdown-menu btn-block" role="menu">
 								<li><a href="#rgb">RGB</a></li>
 								<li><a href="#classification">Classification</a></li>
-								<li><a href="#heightmap-color">Heightmap Color</a></li>
+								<li><a class="default-if-no-color" href="#heightmap-color">Heightmap Color</a></li>
 								<li><a href="#heightmap-color-inv">Heightmap Color Inverted</a></li>
 							</ul>
 						</div>
@@ -349,9 +361,10 @@
 						<h5>Color gradient values used for Heightmap Color and Classification color sources</h5>
 						<div class="btn-group btn-block map-picker" id="colormap">
 							<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown">
-								<img src="/colormaps/heat-map.png"> <span class="caret"></span>
+								<img src="/colormaps/blue-red.png"> <span class="caret"></span>
 							</button>
 							<ul class="dropdown-menu btn-block" role="menu" style="text-align: center">
+								<li><a href="#"><img src="/colormaps/blue-red.png"></a></li>
 								<li><a href="#"><img src="/colormaps/blue-hue.png"></a></li>
 								<li><a href="#"><img src="/colormaps/blue-orange.png"></a></li>
 								<li><a href="#"><img src="/colormaps/heat-map.png"></a></li>

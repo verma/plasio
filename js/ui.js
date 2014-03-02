@@ -121,6 +121,10 @@
 							return reader();
 						else {
 							loadBatcher(batcher);
+
+							if (!batcher.hasColor)
+								$(".default-if-no-color").trigger("click");
+
 							header.totalRead = totalRead;
 							return [lf, header];
 						}

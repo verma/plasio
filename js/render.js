@@ -346,6 +346,8 @@
 		this.mn = null;
 		this.cg = null;
 		this.pointsSoFar = 0;
+
+		this.hasColor = false;
 	};
 
 	ParticleSystemBatcher.prototype.push = function(lasBuffer) {
@@ -408,9 +410,11 @@
 				b = p.color[2] / 255.0;
 			}
 			else {
-				var c = (z - mn.z) / (mx.z - mn.z);
+				var c = 0;
 				r = g = b = c;
 			}
+
+			this.hasColor |= (p.color !== undefined && (r > 0 || g > 0 || b > 0));
 
 			colors[ 3*i ] = r;
 			colors[ 3*i + 1 ] = g;
