@@ -43,6 +43,91 @@
 		return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 	};
 
+	var getBinary = function(url, cb) {
+		return new Promise(function(resolve, reject) {
+			var oReq = new XMLHttpRequest();
+			oReq.open("GET", url, true);
+			oReq.responseType = "arraybuffer";
+
+			oReq.onprogress = function(e) {
+				cb(e.loaded / e.totalSize);
+			};
+
+			oReq.onload = function(oEvent) {
+				if (oReq.status == 200) {
+					console.log(oReq.getAllResponseHeaders());
+
+					return resolve(oReq.response);
+				}
+
+				reject(new Error("Could not get binary data"));
+			};
+
+			oReq.send();
+		});
+	};
+	
+
+	var loadData = function(name, buffer) {
+		var lf = new LASFile(buffer);
+
+		progress(0, 'Decoding ' + name + '...');
+
+		console.log('Compressed?', lf.isCompressed);
+		lf.open().then(function() {
+			return lf.getHeader();
+		}).then(function(header) {
+			console.log('Got', header);
+
+			var batcher = new ParticleSystemBatcher(
+				$("#vertexshader").text(),
+				$("#fragmentshader").text());
+
+				var skip = Math.round((10 - currentLoadFidelity()));
+				console.log("Skip value:", skip);
+				var totalRead = 0;
+				var totalToRead = (skip <= 1 ? header.pointsCount : header.pointsCount / skip);
+				var reader = function() {
+					return lf.readData(1000000, 0, skip).then(function(data) {
+						batcher.push(new LASDecoder(data.buffer,
+													header.pointsFormatId,
+													header.pointsStructSize,
+													data.count,
+													header.scale,
+													header.offset));
+
+						totalRead += data.count;
+						progress(Math.round(100 * totalRead / totalToRead));
+
+						console.log('Got data', data.count);
+						if (data.hasMoreData)
+							return reader();
+						else {
+							loadBatcher(batcher);
+							header.totalRead = totalRead;
+							return header;
+						}
+					});
+				};
+				return reader();
+		}).then(function(header) {
+			$("#loaderProgress").hide();
+			$(".props").html(
+				"<tr><td>Name</td><td>" + name + "</td></tr>" +
+				"<tr><td>File Version</td><td>" + lf.versionAsString + "</td></tr>" +
+				"<tr><td>Compressed?</td><td>" + (lf.isCompressed ? "Yes" : "No") + "</td></tr>" +
+				"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
+				numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
+				"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
+				"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>");
+
+				// finally close the file
+				return lf.close();
+		}).then(function() {
+			console.log("Done");
+		});
+	};
+
 	var setupFileOpenHandlers = function() {
 		$("#loaderProgress").hide();
 
@@ -60,65 +145,27 @@
 			};
 			fr.onload = function(e) {
 				var d = e.target.result;
-				var lf = new LASFile(d);
-
-				progress(0, 'Decoding ' + file.name + '...');
-
-				console.log('Compressed?', lf.isCompressed);
-				lf.open().then(function() {
-					return lf.getHeader();
-				}).then(function(header) {
-					console.log('Got', header);
-
-					var batcher = new ParticleSystemBatcher(
-						$("#vertexshader").text(),
-						$("#fragmentshader").text());
-
-					var skip = Math.round((10 - currentLoadFidelity()));
-					console.log("Skip value:", skip);
-					var totalRead = 0;
-					var totalToRead = (skip <= 1 ? header.pointsCount : header.pointsCount / skip);
-					var reader = function() {
-						return lf.readData(1000000, 0, skip).then(function(data) {
-							batcher.push(new LASDecoder(data.buffer,
-														header.pointsFormatId,
-														header.pointsStructSize,
-														data.count,
-														header.scale,
-														header.offset));
-
-							totalRead += data.count;
-							progress(Math.round(100 * totalRead / totalToRead));
-
-							console.log('Got data', data.count);
-							if (data.hasMoreData)
-								return reader();
-							else {
-								loadBatcher(batcher);
-								header.totalRead = totalRead;
-								return header;
-							}
-						});
-					};
-					return reader();
-				}).then(function(header) {
-					$("#loaderProgress").hide();
-					$(".props").html(
-						"<tr><td>Name</td><td>" + file.name + "</td></tr>" +
-						"<tr><td>File Version</td><td>" + lf.versionAsString + "</td></tr>" +
-						"<tr><td>Compressed?</td><td>" + (lf.isCompressed ? "Yes" : "No") + "</td></tr>" +
-						"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
-						numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
-						"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
-						"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>");
-
-					// finally close the file
-					return lf.close();
-				}).then(function() {
-					console.log("Done");
-				});
+				loadData(file.name, d);
 			};
 			fr.readAsArrayBuffer(file);
+		});
+
+		$("#browse").on("click", "a", function(e) {
+			e.preventDefault();
+
+			var target = $(this).attr("href");
+			console.log("Will load", target);
+
+			var name = target.substring(target.lastIndexOf('/')+1)
+
+			var progress_fn = function(pc) {
+				progress(pc * 100);
+			};
+
+			progress(0, "Fetching " + name + "...");
+			getBinary(target, progress_fn).then(function(data) {
+				return loadData(name, data);
+			});
 		});
 	};
 
