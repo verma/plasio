@@ -28,6 +28,7 @@
 		setupSliders();
 		setupComboBoxActions();
 		setupCameraActions();
+		setupNaclErrorHandler();
 	});
 
 	var progress = function(percent, msg) {
@@ -70,14 +71,29 @@
 	
 
 	var loadData = function(name, buffer) {
-		var lf = new LASFile(buffer);
+		var loadBuffer = function() {
+			return new Promise(function(res, rej) {
+				res(new LASFile(buffer));
+			});
+		};
 
-		progress(0, 'Decoding ' + name + '...');
+		loadBuffer().then(function(lf) {
+			progress(0, 'Decoding ' + name + '...');
+			console.log('Compressed?', lf.isCompressed);
 
-		console.log('Compressed?', lf.isCompressed);
-		lf.open().then(function() {
-			return lf.getHeader();
-		}).then(function(header) {
+			return lf.open().then(function() {
+				return lf;
+			});
+		}).then(function(lf) {
+			return lf.getHeader().then(function(h) {
+				return [lf, h];
+			});
+		}).then(function(v) {
+			console.log("Here!");
+			var lf = v[0];
+			var header = v[1];
+
+			console.log('Got', lf);
 			console.log('Got', header);
 
 			var batcher = new ParticleSystemBatcher(
@@ -106,13 +122,15 @@
 						else {
 							loadBatcher(batcher);
 							header.totalRead = totalRead;
-							return header;
+							return [lf, header];
 						}
 					});
 				};
 				return reader();
-		}).then(function(header) {
-			$("#loaderProgress").hide();
+		}).then(function(v) {
+			var lf = v[0];
+			var header = v[1];
+
 			$(".props").html(
 				"<tr><td>Name</td><td>" + name + "</td></tr>" +
 				"<tr><td>File Version</td><td>" + lf.versionAsString + "</td></tr>" +
@@ -120,12 +138,23 @@
 				"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
 				numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
 				"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
-				"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>");
+				"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>").show();
 
 				// finally close the file
 				return lf.close();
 		}).then(function() {
 			console.log("Done");
+		}).catch(function(err) {
+			console.log("Failed to load file!");
+			console.log(err);
+
+			$("#loadError").html(
+				'<div class="alert alert-danger alert-dismissable">' +
+				'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
+				'<strong>Error!</strong> ' + err.message +
+				'</div>');
+		}).finally(function() {
+			$("#loaderProgress").hide();
 		});
 	};
 
@@ -137,6 +166,7 @@
 			var file = input.get(0).files[0];
 
 			e.preventDefault();
+			$("#loadError").html("");
 
 			progress(0, "Fetching " + file.name + "...");
 			var fr = new FileReader();
@@ -156,6 +186,8 @@
 
 			var target = $(this).attr("href");
 			console.log("Will load", target);
+
+			$("#loadError").html("");
 
 			var name = target.substring(target.lastIndexOf('/')+1)
 
@@ -337,6 +369,13 @@
 		
 	};
 
-
+	var setupNaclErrorHandler = function() {
+		$(document).on("plasio.nacl.error", function(err) {
+			console.log(err);
+			$("#naclerror").html("<div class='alert alert-warning'><span class='glyphicon glyphicon-info-sign'></span>&nbsp;" +
+								 "<strong>LASzip not available!</strong><br>" + err.message + "</div>");
+			$("#naclerror").show();
+		});
+	};
 })(window);
 

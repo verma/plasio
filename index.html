@@ -261,6 +261,9 @@
 				</div>
 				<div class="section">
 					<h3>File</h3>
+					<div id="naclerror" style="displa: none">
+					</div>
+
 					<div class="labeled-controls">
     					<h4>Choose data to display</h4>
     					<h5>Pick your own or click the dropdown for some examples</h5>
@@ -278,8 +281,8 @@
     							<li><a href="/data/autzen.laz">Autzen Stadium</a></li>
     						</ul>
     					</div>
-
                     </div>
+
 					<div class="labeled-controls">
 						<h4>Density</h4>
 						<h5>Set the load density. Smaller values load and display faster. 
@@ -294,7 +297,8 @@
 						</div>
 						<p>Loading...</p>
 					</div>
-					<table class="props table">
+					<div id="loadError"></div>
+					<table class="props table" style="display: none">
 					</table>
 				</div>
 

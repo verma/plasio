@@ -203,6 +203,11 @@ var common = (function() {
     // loaded.
     var moduleEl = document.getElementById('nacl_module');
     updateStatus('ERROR [' + moduleEl.lastError + ']');
+
+	$.event.trigger({
+		type: "plasio.nacl.error",
+		message: moduleEl.lastError
+	});
   }
 
   /**
@@ -211,14 +216,23 @@ var common = (function() {
    * This event listener is registered in attachDefaultListeners above.
    */
   function handleCrash(event) {
+	var msg = "Unknown Error";
     if (common.naclModule.exitStatus == -1) {
       updateStatus('CRASHED');
+	  msg = "The module has crashed";
     } else {
       updateStatus('EXITED [' + common.naclModule.exitStatus + ']');
+	  msg = "The module has exited";
     }
     if (typeof window.handleCrash !== 'undefined') {
       window.handleCrash(common.naclModule.lastError);
+	  msg = common.naclModule.lastError;
     }
+
+	$.event.trigger({
+		type: "plasio.nacl.error",
+		message: msg
+	});
   }
 
   /**
@@ -230,9 +244,10 @@ var common = (function() {
     common.naclModule = document.getElementById('nacl_module');
     updateStatus('RUNNING');
 
-    if (typeof window.moduleDidLoad !== 'undefined') {
-      window.moduleDidLoad();
-    }
+	hideModule();
+	$.event.trigger({
+		type: "plasio.nacl.available"
+	});
   }
 
   /**

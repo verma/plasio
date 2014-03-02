@@ -199,7 +199,12 @@
 	LAZLoader.prototype.open = function() {
 		// open the file, using the laz module
 		if (!LASModuleWasLoaded)
-			throw new Error("LAZ Module has not been loaded, LASzip functionality is not available");
+			return new Promise(function(res, rej) {
+				setTimeout(function() {
+					rej(new Error("LAZ Module has not been loaded, LASzip functionality is not available"));
+				}, 0);
+			});
+
 
 		return doDataExchange({
 			command: 'open',
@@ -321,14 +326,18 @@
 				common.attachDefaultListeners();
 				common.createNaClModule(name, tc, config, width, height);
 		},
-		function(e) { alert('Failed to allocate space') });
+		function(e) { 
+			$.event.trigger({
+				type: "plasio.nacl.error",
+				message: "Could not allocate persistant storage"
+			});
+		});
+
+		$(document).on("plasio.nacl.available", function() {
+			scope.LASModuleWasLoaded = true;
+			console.log("NACL Available");
+		});
 	};
-
-	window.moduleDidLoad = function() {
-		common.hideModule();
-		LASModuleWasLoaded = true;
-	}
-
 
 	scope.LASFile = LASFile;
 	scope.LASDecoder = LASDecoder;
