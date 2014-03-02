@@ -207,15 +207,32 @@
 			}
 		});
 
+		$("#pointsize").noUiSlider({
+			range: [1, 15],
+			start: 3,
+			handles: 1,
+			step: 1,
+			slide: function() {
+				$.event.trigger({
+					type: 'plasio.pointSizeChanged'
+				});
+			}
+		});
+
 		scope.currentLoadFidelity = function() {
 			return $("#loadFidelity").val();
 		};
+
 		scope.currentIntensityClamp = function() {
 			return $("#intensity").val();
 		};
 
 		scope.currentIntensityBlend = function() {
 			return $("#blending").val();
+		};
+
+		scope.currentPointSize = function() {
+			return $("#pointsize").val();
 		};
 	};
 

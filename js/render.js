@@ -205,9 +205,11 @@
 			classification: { type: 'f', value: null }
 		};
 
+		var iblend = currentIntensityClamp();
+
 		var uniforms = {
-			pointSize: { type: 'f', value: 3.0 },
-			intensityBlend: { type: 'f', value: 0.0 },
+			pointSize: { type: 'f', value: currentPointSize() },
+			intensityBlend: { type: 'f', value: currentIntensityBlend() / 100.0 },
 
 			// colors
 			rgb_f: { type: 'f', value: 1.0 },
@@ -220,8 +222,8 @@
 			height_f: { type: 'f', value: 0.0 },
 			iheight_f: { type: 'f', value: 0.0 },
 
-			clampLower: { type: 'f', value: 20.0},
-			clampHigher: { type: 'f', value: 150.0},
+			clampLower: { type: 'f', value: iblend[0] },
+			clampHigher: { type: 'f', value: iblend[1] },
 			zrange: { type: 'v2', value: new THREE.Vector2(0, 0) },
 			offsets: { type: 'v3', value: new THREE.Vector3(0, 0, 0) },
 			map: { type: 't', value: THREE.ImageUtils.loadTexture(currentColorMap())}
@@ -261,6 +263,11 @@
 		$(document).on("plasio.intensityBlendChanged", function() {
 			var f = currentIntensityBlend();
 			uniforms.intensityBlend.value = f / 100.0;
+		});
+
+		$(document).on("plasio.pointSizeChanged", function() {
+			var f = currentPointSize();
+			uniforms.pointSize.value = f;
 		});
 
 		shaderMaterial.uniforms = uniforms;
