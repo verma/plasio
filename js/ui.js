@@ -27,6 +27,7 @@
 		setupFileOpenHandlers();
 		setupSliders();
 		setupComboBoxActions();
+		setupCameraActions();
 	});
 
 	var progress = function(percent, msg) {
@@ -180,10 +181,15 @@
 		});
 
 		$("#fov").noUiSlider({
-			range: [10, 110],
+			range: [30, 110],
 			start: 60,
 			handles: 1,
-			connect: "lower"
+			connect: "lower",
+			slide: function() {
+				$.event.trigger({
+					type: 'plasio.cameraFOVChanged'
+				});
+			}
 		});
 
 		$("#intensity").noUiSlider({
@@ -219,6 +225,10 @@
 				});
 			}
 		});
+
+		scope.currentFOV = function() {
+			return $("#fov").val();
+		};
 
 		scope.currentLoadFidelity = function() {
 			return $("#loadFidelity").val();
@@ -304,6 +314,27 @@
 			var $target = $("#colormap").find("button img");
 			return $target.attr("src");
 		};
+	};
+
+	var setupCameraActions = function() {
+		$("#perspective").on("click", function() {
+			$.event.trigger({
+				type: 'plasio.camera.perspective'
+			});
+		});
+
+		$("#ortho").on("click", function() {
+			$.event.trigger({
+				type: 'plasio.camera.ortho'
+			});
+		});
+
+		$("#top-view").on("click", function() {
+			$.event.trigger({
+				type: 'plasio.camera.topView'
+			});
+		});
+		
 	};
 
 

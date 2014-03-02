@@ -9,6 +9,7 @@
 
 	var container, stats;
 	var camera, controls, scene, renderer;
+	var activeCamera, orthoCamera, topViewCamera;
 
 	var cross;
 
@@ -44,11 +45,15 @@
 			maxs.z - mins.z ];
 
 		var farPlaneDist = Math.max(range[0], range[1], range[2]);
+		console.log('mins:', mins);
+		console.log('maxs:', maxs);
 		console.log('Far plane distance', farPlaneDist);
 
 		// TODO: we'd have to check what kind of projection mode we're in
 		//
 		camera.far = farPlaneDist * 4;
+		orthoCamera.far = camera.far * 2;
+		topViewCamera.far = orthoCamera.far;
 
 		// find a spot for our camera
 		// we are switching coords where because the data is switched the 
@@ -62,7 +67,27 @@
 		console.log('Camera position set to:', camera.position);
 
 		camera.lookAt(new THREE.Vector3(0, 0, 0));
+		orthoCamera.lookAt(new THREE.Vector3(0, 0, 0));
+
+		var limits = Math.ceil(Math.sqrt(2*farPlaneDist*farPlaneDist));
+
+		orthoCamera.left = -limits/2;
+		orthoCamera.right = limits/2;
+		orthoCamera.bottom = -limits/2;
+		orthoCamera.top = limits/2
+
+		topViewCamera.left = -limits/2;
+		topViewCamera.right = limits/2;
+		topViewCamera.bottom = -limits/2;
+		topViewCamera.top = limits/2
+
+		topViewCamera.position.set(
+			0, topViewCamera.far / 2, 0);
+		topViewCamera.lookAt(new THREE.Vector3(0, 0, 1));
+		
 		camera.updateProjectionMatrix();
+		orthoCamera.updateProjectionMatrix();
+		topViewCamera.updateProjectionMatrix();
 	}
 
 	var numberWithCommas = function(x) {
@@ -77,6 +102,15 @@
 		camera = new THREE.PerspectiveCamera(60,
 			w / h, 1, 10000);
 		camera.position.z = 500;
+
+		orthoCamera = new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 10000);
+		orthoCamera.position.set(camera.position.x,
+								 camera.position.y,
+								 camera.position.z);
+
+		topViewCamera = new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 100000);
+
+		activeCamera = camera;
 
 		controls = new THREE.TrackballControls( camera, render_container );
 
@@ -114,6 +148,23 @@
 
 		$("#pointCount").html("No Points");
 		$("#stats").show();
+
+		$(document).on("plasio.cameraFOVChanged", function() {
+			camera.fov = currentFOV();
+			camera.updateProjectionMatrix();
+		});
+
+		$(document).on("plasio.camera.perspective", function() {
+			activeCamera = camera;
+		});
+
+		$(document).on("plasio.camera.ortho", function() {
+			activeCamera = orthoCamera;
+		});
+
+		$(document).on("plasio.camera.topView", function() {
+			activeCamera = topViewCamera;
+		});
 	}
 
 	function onWindowResize() {
@@ -134,6 +185,15 @@
 	w.doRenderResize = onWindowResize;
 
 	function animate() {
+		orthoCamera.position.set(
+			camera.position.x,
+			camera.position.y,
+			camera.position.z);
+		orthoCamera.rotation.set(
+			camera.rotation.x,
+			camera.rotation.y,
+			camera.rotation.z);
+
 		requestAnimationFrame(animate);
 		controls.update();
 
@@ -159,7 +219,7 @@
 		}
 		
 		frames ++;
-		renderer.render(scene, camera);
+		renderer.render(scene, activeCamera);
 	}
 
 	function updateColorUniformsForSource(uniforms, source) {
