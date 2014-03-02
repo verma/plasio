@@ -194,6 +194,8 @@
 
 			.title h1{
 				margin: 0px;
+				font-size: 60px;
+				opacity: 0.7;
 				font-family: 'Archivo Black', sans-serif;
 				color: rgb(63, 115, 10);
 			}
@@ -218,7 +220,7 @@
 				width: 100%;
 				top: 0px;
 				height: 100%;
-				background-color: #eee;
+				background-color: #efefef;
 				text-align: center;
 			}
 
@@ -246,24 +248,29 @@
 				<div class="section">
 					<h3>File</h3>
 					<div class="labeled-controls">
-						<h4>Fidelity</h4>
-						<h5>Set the fidelity of the files to load, use lower values to load faster and on lower end hardware. This scale is logrithmic</h5>
-						<div id="loadFidelity"></div>
-					</div>
+    					<h4>Choose data to display</h4>
+    					<h5>Pick your own or click the dropdown for some examples</h5>
+    					<div class="btn-group btn-block" id="browse">
+    						<button type="button" class="btn btn-default btn-sm btn-file dropdown-lead">
+    							Browse <input type="file">
+    						</button>
+    						<button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+    							<span class="caret"></span>
+    							<span class="sr-only">Toggle Dropdown</span>
+    						</button>
+    						<ul class="dropdown-menu btn-block" role="menu">
+    							<li><a href="/data/st-helens.laz">St. Helens</a></li>
+    							<li><a href="/data/half-dome.laz">Half Dome</a></li>
+    							<li><a href="/data/autzen.laz">Autzen Stadium</a></li>
+    						</ul>
+    					</div>
 
-					<div class="btn-group btn-block" id="browse">
-						<button type="button" class="btn btn-default btn-sm btn-file dropdown-lead">
-							Browse <input type="file">
-						</button>
-						<button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
-							<span class="caret"></span>
-							<span class="sr-only">Toggle Dropdown</span>
-						</button>
-						<ul class="dropdown-menu btn-block" role="menu">
-							<li><a href="/data/st-helens.laz">St. Helens</a></li>
-							<li><a href="/data/half-dome.laz">Half Dome</a></li>
-							<li><a href="/data/autzen.laz">Autzen Stadium</a></li>
-						</ul>
+                    </div>
+					<div class="labeled-controls">
+						<h4>Density</h4>
+						<h5>Set the load density. Smaller values load and display faster. 
+                         Reopen the file to load at new density.</h5>
+						<div id="loadFidelity"></div>
 					</div>
 					<div id="loaderProgress">
 						<div class="progress">
@@ -300,13 +307,13 @@
 				<div class="section">
 					<h3>Data</h3>
 					<div class="labeled-controls">
-						<h4>Point Size</h4>
-						<h5>Larger point sizes help cover holes</h5>
+						<h4>Particle Size</h4>
+						<h5>Larger sizes fill in the display</h5>
 						<div id="pointsize"></div>
 					</div>
 					<div class="labeled-controls">
-						<h4>Color Source</h4>
-						<h5>Different color sources provide different perspective of data</h5>
+						<h4>Colorization</h4>
+						<h5>Choose an attribute to colorize</h5>
 						<div class="btn-group btn-block" id="colorsource">
 							<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown" target="rgb">
 								RGB <span class="caret"></span>
