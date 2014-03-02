@@ -10,5 +10,6 @@ http://plas.io contains a demo of the interface and supports both LAS and LAZ.
 
 
 .. _`Mazira`: http://www.mazira.com
-.. _`ASRPS LAS`: http://www.asprs.org/Committee-General/LASer-LAS-File-Format-Exchange-Activities.html
+.. _`ASPRS LAS`: http://www.asprs.org/Committee-General/LASer-LAS-File-Format-Exchange-Activities.html
 .. _`Chrome`: https://www.google.com/intl/en/chrome/browser/
+.. _`LASzip`: http://laszip.org
