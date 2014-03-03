@@ -122,12 +122,6 @@ var common = (function() {
    */
   function createNaClModule(name, tool, path, width, height, attrs) {
     var mimetype = mimeTypeForTool(tool);
-	if (!navigator.mimeTypes || !navigator.mimeTypes[mimetype]) {
-		return $.event.trigger({
-			type: "plasio.nacl.error",
-			message: "NaCl support is not available"
-		});
-	}
 
     var moduleEl = document.createElement('embed');
     moduleEl.setAttribute('name', 'nacl_module');
@@ -419,7 +413,8 @@ var common = (function() {
     hideModule: hideModule,
     removeModule: removeModule,
     logMessage: logMessage,
-    updateStatus: updateStatus
+    updateStatus: updateStatus,
+	browserSupportsNaCl: browserSupportsNaCl
   };
 
 }());

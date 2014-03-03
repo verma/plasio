@@ -29,17 +29,48 @@ function endsWith(str, s) {
 
 $(function() {
 	setTimeout(function() {
-		var isChromium = window.chrome,
-		vendorName = window.navigator.vendor;
+		var isWebGLSupported = function() {
+			if ("WebGLRenderingContext" in window) {
+				// might have support
+				//
+				var e = document.createElement("canvas");
+				var webgl = e.getContext("webgl");
+				var experimental = false;
+				if (webgl === null) {
+					webgl = e.getContext("experimental-webgl");
+					experimental = true;
+				}
+
+				return [webgl !== null, experimental];
+			}
+
+			return false;
+		};
 
 		// if we're good to go, trigger the plasio.start event, all initializers
 		// should be hooked to this event, and not DOMContentLoaded
 		//
-		if(isChromium !== undefined && vendorName === "Google Inc.") {
+		var r = isWebGLSupported();
+		var supported = r[0];
+		var experimental = r[1];
+		if(supported) {
 			$(".fullscreen").fadeOut(200);
+			// we need to intialize the UI first, before we initialize everything else,
+			// since UI has to show results and statuses about things as they initialize
+			//
+			$.event.trigger({
+				type: "plasio.startUI"
+			});
+
 			$.event.trigger({
 				type: "plasio.start"
 			});
+
+			if (experimental) {
+				$.event.trigger({
+					type: "plasio.webglIsExperimental"
+				});
+			}
 		}
 		else {
 			$("#no-support").css("opacity", 1.0);

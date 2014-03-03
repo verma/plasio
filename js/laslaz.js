@@ -318,6 +318,14 @@
 	// Called by the common.js module.
 	//
 	window.startNaCl = function(name, tc, config, width, height) {
+		// check browser support for nacl
+		//
+		if(!common.browserSupportsNaCl()) {
+			return $.event.trigger({
+				type: "plasio.nacl.error",
+				message: "NaCl support is not available"
+			});
+		}
 		console.log("Requesting persistent memory");
 
 		navigator.webkitPersistentStorage.requestQuota(2048 * 2048, function(bytes) {

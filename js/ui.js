@@ -6,7 +6,7 @@
 	"use strict";
 
 	// Start UI
-	$(document).on("plasio.start", function() {
+	$(document).on("plasio.startUI", function() {
 		var layout = $("body").layout({
 			applyDefaultStyles: true,
 			east: {
@@ -29,6 +29,7 @@
 		setupComboBoxActions();
 		setupCameraActions();
 		setupNaclErrorHandler();
+		setupWebGLStateErrorHandler();
 		setupDragHandlers();
 	});
 
@@ -388,6 +389,17 @@
 			$("#naclerror").html("<div class='alert alert-warning'><span class='glyphicon glyphicon-info-sign'></span>&nbsp;" +
 								 "<strong>LASzip not available!</strong><br>" + err.message + "</div>");
 			$("#naclerror").show();
+		});
+	};
+
+	var setupWebGLStateErrorHandler = function() {
+		$(document).on("plasio.webglIsExperimental", function() {
+			$("#webglinfo").html("<div class='alert alert-warning'>" +
+								"<span class='glyphicon glyphicon-info-sign'></span>&nbsp;" +
+								 "<strong>Experimental WebGL!</strong><br>" + 
+								 "Your browser reports that its WebGL support is experimental." +
+								 "  You may experience rendering problems.</div>");
+			$("#webglinfo").show();
 		});
 	};
 
