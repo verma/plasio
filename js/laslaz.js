@@ -327,6 +327,7 @@
 				common.createNaClModule(name, tc, config, width, height);
 		},
 		function(e) { 
+			console.log("Failed!");
 			$.event.trigger({
 				type: "plasio.nacl.error",
 				message: "Could not allocate persistant storage"

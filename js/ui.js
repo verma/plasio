@@ -196,6 +196,12 @@
 			e.preventDefault();
 
 			var target = $(this).attr("href");
+
+			// if we don't have LAZ available, we download the LAS version
+			//
+			if (!scope.LASModuleWasLoaded)
+				target = target.replace(/\.laz$/, ".las");
+
 			console.log("Will load", target);
 
 			$("#loadError").html("");

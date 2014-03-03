@@ -121,6 +121,14 @@ var common = (function() {
    * @param {Object} attrs Dictionary of attributes to set on the module.
    */
   function createNaClModule(name, tool, path, width, height, attrs) {
+    var mimetype = mimeTypeForTool(tool);
+	if (!navigator.mimeTypes || !navigator.mimeTypes[mimetype]) {
+		return $.event.trigger({
+			type: "plasio.nacl.error",
+			message: "NaCl support is not available"
+		});
+	}
+
     var moduleEl = document.createElement('embed');
     moduleEl.setAttribute('name', 'nacl_module');
     moduleEl.setAttribute('id', 'nacl_module');
@@ -129,6 +137,7 @@ var common = (function() {
     moduleEl.setAttribute('path', path);
     moduleEl.setAttribute('src', path + '/' + name + '.nmf');
 
+
     // Add any optional arguments
     if (attrs) {
       for (var key in attrs) {
@@ -136,8 +145,8 @@ var common = (function() {
       }
     }
 
-    var mimetype = mimeTypeForTool(tool);
     moduleEl.setAttribute('type', mimetype);
+
 
     // The <EMBED> element is wrapped inside a <DIV>, which has both a 'load'
     // and a 'message' event listener attached.  This wrapping method is used
@@ -396,13 +405,7 @@ var common = (function() {
    *     updateStatus.
    */
   function updateStatus(opt_message) {
-    if (opt_message) {
-      statusText = opt_message;
-    }
-    var statusField = document.getElementById('statusField');
-    if (statusField) {
-      statusField.innerHTML = statusText;
-    }
+	  console.log(opt_message);
   }
 
   // The symbols to export.
