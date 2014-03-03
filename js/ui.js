@@ -6,7 +6,7 @@
 	"use strict";
 
 	// Start UI
-	$(function() {
+	$(document).on("plasio.start", function() {
 		var layout = $("body").layout({
 			applyDefaultStyles: true,
 			east: {

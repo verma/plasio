@@ -367,7 +367,7 @@ var common = (function() {
    * @param {number} height The height to create the plugin.
    * @param {Object} attrs Optional dictionary of additional attributes.
    */
-  function domContentLoaded(name, tool, path, width, height, attrs) {
+  function startNaCl(name, tool, path, width, height, attrs) {
     // If the page loads before the Native Client module loads, then set the
     // status message indicating that the module is still loading.  Otherwise,
     // do not change the status message.
@@ -414,7 +414,7 @@ var common = (function() {
     naclModule: null,
 
     attachDefaultListeners: attachDefaultListeners,
-    domContentLoaded: domContentLoaded,
+    startNaCl: startNaCl,
     createNaClModule: createNaClModule,
     hideModule: hideModule,
     removeModule: removeModule,
@@ -424,18 +424,18 @@ var common = (function() {
 
 }());
 
-// Listen for the DOM content to be loaded. This event is fired when parsing of
-// the page's document has finished.
-document.addEventListener('DOMContentLoaded', function() {
+// listen to the plasio start notification to trigger NaCl stuff
+//
+$(document).on("plasio.start", function() {
   var body = document.body;
 
   // The data-* attributes on the body can be referenced via body.dataset.
   if (body.dataset) {
     var loadFunction;
     if (!body.dataset.customLoad) {
-      loadFunction = common.domContentLoaded;
-    } else if (typeof window.domContentLoaded !== 'undefined') {
-      loadFunction = window.domContentLoaded;
+      loadFunction = common.startNaCl;
+    } else if (typeof window.startNaCl !== 'undefined') {
+      loadFunction = window.startNaCl;
     }
 
     // From https://developer.mozilla.org/en-US/docs/DOM/window.location

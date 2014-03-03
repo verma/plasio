@@ -317,7 +317,7 @@
 	// NACL Module support
 	// Called by the common.js module.
 	//
-	window.domContentLoaded = function(name, tc, config, width, height) {
+	window.startNaCl = function(name, tc, config, width, height) {
 		console.log("Requesting persistent memory");
 
 		navigator.webkitPersistentStorage.requestQuota(2048 * 2048, function(bytes) {
