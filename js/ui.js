@@ -29,6 +29,7 @@
 		setupComboBoxActions();
 		setupCameraActions();
 		setupNaclErrorHandler();
+		setupDragHandlers();
 	});
 
 	var progress = function(percent, msg) {
@@ -163,6 +164,22 @@
 		});
 	};
 
+	var loadLocalFile = function(file) {
+		$("#loadError").html("");
+
+		progress(0, "Fetching " + file.name + "...");
+		var fr = new FileReader();
+		fr.onprogress = function(e) {
+			console.log('progress', arguments);
+			progress(Math.round(e.loaded * 100 / e.total));
+		};
+		fr.onload = function(e) {
+			var d = e.target.result;
+			loadData(file.name, d);
+		};
+		fr.readAsArrayBuffer(file);
+	};
+
 	var setupFileOpenHandlers = function() {
 		$("#loaderProgress").hide();
 
@@ -171,19 +188,8 @@
 			var file = input.get(0).files[0];
 
 			e.preventDefault();
-			$("#loadError").html("");
 
-			progress(0, "Fetching " + file.name + "...");
-			var fr = new FileReader();
-			fr.onprogress = function(e) {
-				console.log('progress', arguments);
-				progress(Math.round(e.loaded * 100 / e.total));
-			};
-			fr.onload = function(e) {
-				var d = e.target.result;
-				loadData(file.name, d);
-			};
-			fr.readAsArrayBuffer(file);
+			loadLocalFile(file);
 		});
 
 		$("#browse").on("click", "a", function(e) {
@@ -376,6 +382,49 @@
 			$("#naclerror").html("<div class='alert alert-warning'><span class='glyphicon glyphicon-info-sign'></span>&nbsp;" +
 								 "<strong>LASzip not available!</strong><br>" + err.message + "</div>");
 			$("#naclerror").show();
+		});
+	};
+
+	var setupDragHandlers = function() {
+		var ignore = function(e) {
+			e.originalEvent.stopPropagation();
+			e.originalEvent.preventDefault();
+		};
+
+		var dragEnter = function() {
+			$(".drag-and-drop").show();
+		};
+
+		var dragLeave = function() {
+			console.log("Outside");
+			$(".drag-and-drop").hide();
+		};
+
+		var hideto = null;
+		$("body").on("dragover", function(e) {
+			ignore(e);
+
+			if (hideto === null)
+				dragEnter();
+			else
+				clearTimeout(hideto);
+
+			hideto = setTimeout(function() {
+				dragLeave();
+				hideto = null;
+			}, 100);
+		});
+
+		$("body").on("dragenter", ignore);
+		$("body").on("dragleave", ignore);
+
+		$("body").on("drop", function(e) {
+			ignore(e);
+			 var dt = e.originalEvent.dataTransfer;
+			 var droppedFiles = dt.files;
+			console.log(droppedFiles[0]);
+
+			loadLocalFile(droppedFiles[0]);
 		});
 	};
 })(window);

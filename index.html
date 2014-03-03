@@ -230,16 +230,40 @@
 				height: 100%;
 				background-color: #ddd;
 				text-align: center;
-background: rgb(229,229,229); /* Old browsers */
-background: -moz-linear-gradient(top,  rgba(229,229,229,1) 0%, rgba(255,255,255,1) 100%); /* FF3.6+ */
-background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(229,229,229,1)), color-stop(100%,rgba(255,255,255,1))); /* Chrome,Safari4+ */
-background: -webkit-linear-gradient(top,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* Chrome10+,Safari5.1+ */
-background: -o-linear-gradient(top,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* Opera 11.10+ */
-background: -ms-linear-gradient(top,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* IE10+ */
-background: linear-gradient(to bottom,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* W3C */
-filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e5e5e5', endColorstr='#ffffff',GradientType=0 ); /* IE6-9 */
-				
+				background: rgb(229,229,229); /* Old browsers */
+				background: -moz-linear-gradient(top,  rgba(229,229,229,1) 0%, rgba(255,255,255,1) 100%); /* FF3.6+ */
+				background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(229,229,229,1)), color-stop(100%,rgba(255,255,255,1))); /* Chrome,Safari4+ */
+				background: -webkit-linear-gradient(top,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* Chrome10+,Safari5.1+ */
+				background: -o-linear-gradient(top,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* Opera 11.10+ */
+				background: -ms-linear-gradient(top,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* IE10+ */
+				background: linear-gradient(to bottom,  rgba(229,229,229,1) 0%,rgba(255,255,255,1) 100%); /* W3C */
+				filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e5e5e5', endColorstr='#ffffff',GradientType=0 ); /* IE6-9 */
+			}
 
+			.drag-and-drop {
+				position: absolute;
+				left: 0px;
+				top: 0px;
+				width: 100%;
+				height: 100%;
+				z-index: 5000 !important;
+				border: 15px dashed #484;
+				box-sizing: border-box;
+				background:transparent;
+			}
+			.drag-and-drop .title {
+				position: absolute;
+				top: 50%;
+				width: 100%;
+				color: #484;
+				font-size: 50px;
+				height: 60px;
+				margin-top: -30px;
+				font-weight: bold;
+				text-align: center;
+				left: 0px;
+				vertical-align: middle;
+				text-shadow: 1px -1px white, 1px 1px white, -1px 1px white, -1px -1px white;
 			}
 
 			#no-support {
@@ -257,6 +281,12 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e5e5e5', end
 			<div class="title">
 				<div class="name">plas.io</div>
 				<div id="no-support">Sorry, your browser is not supported.  Please use the most recent version of <a href="http://google.com/chrome">Google Chrome</a> to view this page.</div>
+			</div>
+		</div>
+
+		<div class="drag-and-drop" style="display: none">
+			<div class="title">
+				Drop Here!
 			</div>
 		</div>
 		<div class="ui-layout-center">
