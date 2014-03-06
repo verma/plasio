@@ -257,6 +257,9 @@
 			throw new Error("Only file versions <= 1.2 are supported at this time");
 
 		this.determineFormat();
+		if (pointFormatReaders[this.formatId] === undefined)
+			throw new Error("The point format ID is not supported");
+
 		this.loader = this.isCompressed ?
 			new LAZLoader(this.arraybuffer) :
 			new LASLoader(this.arraybuffer);
@@ -270,6 +273,7 @@
 		if (bit_7 === 1 && bit_6 === 1)
 			throw new Error("Old style compression not supported");
 
+		this.formatId = formatId & 0x3f;
 		this.isCompressed = (bit_7 === 1 || bit_6 === 1);
 	};
 
