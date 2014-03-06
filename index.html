@@ -96,11 +96,16 @@
 				color: #666;
 				font-weight: bold;
 				text-transform: uppercase;
-				border-bottom: 1px solid #666;
 				font-size: 18px;
-
 				padding: 0px;
+				margin: 0px;
+			}
+
+			.p-head {
+				border-bottom: 1px solid #666;
+				padding: 5px;
 				margin: 0 0 10px 0;
+				box-sizing: border-box;
 			}
 
 			.props {
@@ -198,12 +203,12 @@
 			}
 
 			.title {
-				margin-bottom: 30px;
+				margin-bottom: 50px;
 			}
 
 			.title h1{
 				margin: 0px;
-				font-size: 60px;
+				font-size: 70px;
 				opacity: 0.7;
 				font-family: 'Archivo Black', sans-serif;
 				color: rgb(63, 115, 10);
@@ -273,6 +278,15 @@
 				opacity: 0;
 			}
 
+			.toggle-control {
+				float: right;
+			}
+
+			.p-collapse-close {
+				background-color: #eee;
+				border: none;
+			}
+
 		</style>
 	</head>
 	<body data-custom-load="true" data-name="plasio_laszip"
@@ -299,138 +313,149 @@
 			<div id="mainActions">
 				<div class="title">
 					<h1>plas.io</h1>
-					<a href="https://github.com/verma/plasio"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://github-camo.global.ssl.fastly.net/e7bbb0521b397edbd5fe43e7f760759336b5e05f/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png"></a>
+					<a href="https://github.com/verma/plasio"><img style="position: absolute; top: 0; right: 0; border: 0; width:128px; height: 128px;" src="https://github-camo.global.ssl.fastly.net/e7bbb0521b397edbd5fe43e7f760759336b5e05f/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png"></a>
 				</div>
 				<div class="section">
-					<div id="webglinfo" style="displa: none"> </div>
-					<h3>File</h3>
-					<div id="naclerror" style="displa: none"> </div>
-
-					<div class="labeled-controls">
-    					<h4>Choose data to display</h4>
-    					<h5>Pick your own or click the dropdown for some examples</h5>
-    					<div class="btn-group btn-block" id="browse">
-    						<button type="button" class="btn btn-default btn-sm btn-file dropdown-lead">
-    							Browse <input type="file">
-    						</button>
-    						<button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
-    							<span class="caret"></span>
-    							<span class="sr-only">Toggle Dropdown</span>
-    						</button>
-    						<ul class="dropdown-menu btn-block" role="menu">
-    							<li><a href="/data/st-helens.laz">St. Helens</a></li>
-    							<li><a href="/data/half-dome.laz">Half Dome</a></li>
-    							<li><a href="/data/autzen.laz">Autzen Stadium</a></li>
-    						</ul>
-    					</div>
-                    </div>
-
-					<div class="labeled-controls">
-						<h4>Density</h4>
-						<h5>Set the load density. Smaller values load and display faster. 
-                         Reopen the file to load at new density.</h5>
-						<div id="loadFidelity"></div>
+					<div id="webglinfo" style="display: none"> </div>
+					<div class="p-head">
+						<h3>File</h3>
 					</div>
-					<div id="loaderProgress">
-						<div class="progress">
-							<div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="20"
-								aria-valuemin="0" aria-valuemax="100" style="width: 20%;">
+					<div class="p-body">
+						<div id="naclerror" style="display: none"> </div>
+						<div class="labeled-controls">
+							<h4>Choose data to display</h4>
+							<h5>Pick your own or click the dropdown for some examples</h5>
+							<div class="btn-group btn-block" id="browse">
+								<button type="button" class="btn btn-default btn-sm btn-file dropdown-lead">
+									Browse <input type="file">
+								</button>
+								<button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+									<span class="caret"></span>
+									<span class="sr-only">Toggle Dropdown</span>
+								</button>
+								<ul class="dropdown-menu btn-block" role="menu">
+									<li><a href="/data/st-helens.laz">St. Helens</a></li>
+									<li><a href="/data/half-dome.laz">Half Dome</a></li>
+									<li><a href="/data/autzen.laz">Autzen Stadium</a></li>
+								</ul>
 							</div>
 						</div>
-						<p>Loading...</p>
+
+						<div class="labeled-controls">
+							<h4>Density</h4>
+							<h5>Set the load density. Smaller values load and display faster. 
+							 Reopen the file to load at new density.</h5>
+							<div id="loadFidelity"></div>
+						</div>
+						<div id="loaderProgress">
+							<div class="progress">
+								<div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="20"
+									aria-valuemin="0" aria-valuemax="100" style="width: 20%;">
+								</div>
+							</div>
+							<p>Loading...</p>
+						</div>
+						<div id="loadError"></div>
+						<table class="props table" style="display: none">
+						</table>
 					</div>
-					<div id="loadError"></div>
-					<table class="props table" style="display: none">
-					</table>
 				</div>
 
 				<div class="section">
-					<h3>Camera</h3>
-					<div class="labeled-controls">
-						<h4>Type</h4>
-						<h5>Perspective camera provides a 3D view, while orthographic and top-view cameras provide an ortho views</h5>
-						<div style="text-align: center;" :class="btn-toolbar" role="toolbar">
-							<div class="btn-group btn-group-sm">
-								<button type="button" class="btn btn-default" id="perspective">Perspective</button>
-								<button type="button" class="btn btn-default" id="ortho">Orthographic</button>
-								<button type="button" class="btn btn-default" id="top-view">Top-View</button>
+					<div class="p-head">
+						<h3>Camera</h3>
+					</div>
+					<div class="p-body">
+						<div class="labeled-controls">
+							<h4>Type</h4>
+							<h5>Perspective camera provides a 3D view, while orthographic and top-view cameras provide an ortho views</h5>
+							<div style="text-align: center;" :class="btn-toolbar" role="toolbar">
+								<div class="btn-group btn-group-sm">
+									<button type="button" class="btn btn-default" id="perspective">Perspective</button>
+									<button type="button" class="btn btn-default" id="ortho">Orthographic</button>
+									<button type="button" class="btn btn-default" id="top-view">Top-View</button>
+								</div>
 							</div>
 						</div>
-					</div>
-					<div class="labeled-controls">
-						<h4>Field of View</h4>
-						<h5>Changing Field of View provides interesting effects, only applies to Perspective Cameras</h5>
-						<div id="fov"></div>
+						<div class="labeled-controls">
+							<h4>Field of View</h4>
+							<h5>Changing Field of View provides interesting effects, only applies to Perspective Cameras</h5>
+							<div id="fov"></div>
+						</div>
 					</div>
 				</div>
 
 				<div class="section">
-					<h3>Data</h3>
-					<div class="labeled-controls">
-						<h4>Particle Size</h4>
-						<h5>Larger sizes fill in the display</h5>
-						<div id="pointsize"></div>
+					<div class="p-head">
+						<h3>Data</h3>
 					</div>
-					<div class="labeled-controls">
-						<h4>Colorization</h4>
-						<h5>Choose an attribute to colorize</h5>
-						<div class="btn-group btn-block" id="colorsource">
-							<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown" target="rgb">
-								RGB <span class="caret"></span>
-							</button>
-							<ul class="dropdown-menu btn-block" role="menu">
-								<li><a href="#rgb">RGB</a></li>
-								<li><a href="#classification">Classification</a></li>
-								<li><a class="default-if-no-color" href="#heightmap-color">Heightmap Color</a></li>
-								<li><a href="#heightmap-color-inv">Heightmap Color Inverted</a></li>
-							</ul>
+					<div class="p-body">
+						<div class="labeled-controls">
+							<h4>Particle Size</h4>
+							<h5>Larger sizes fill in the display</h5>
+							<div id="pointsize"></div>
 						</div>
-					</div>
-					<div class="labeled-controls">
-						<h4>Colormap</h4>
-						<h5>Color gradient values used for Heightmap Color and Classification color sources</h5>
-						<div class="btn-group btn-block map-picker" id="colormap">
-							<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown">
-								<img src="/colormaps/blue-red.png"> <span class="caret"></span>
-							</button>
-							<ul class="dropdown-menu btn-block" role="menu" style="text-align: center">
-								<li><a href="#"><img src="/colormaps/blue-red.png"></a></li>
-								<li><a href="#"><img src="/colormaps/blue-hue.png"></a></li>
-								<li><a href="#"><img src="/colormaps/blue-orange.png"></a></li>
-								<li><a href="#"><img src="/colormaps/heat-map.png"></a></li>
-								<li><a href="#"><img src="/colormaps/awesome-green.png"></a></li>
-								<li><a href="#"><img src="/colormaps/pestel-shades.png"></a></li>
-								<li><a href="#"><img src="/colormaps/black-orange.png"></a></li>
-							</ul>
+						<div class="labeled-controls">
+							<h4>Colorization</h4>
+							<h5>Choose an attribute to colorize</h5>
+							<div class="btn-group btn-block" id="colorsource">
+								<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown" target="rgb">
+									RGB <span class="caret"></span>
+								</button>
+								<ul class="dropdown-menu btn-block" role="menu">
+									<li><a href="#rgb">RGB</a></li>
+									<li><a href="#classification">Classification</a></li>
+									<li><a class="default-if-no-color" href="#heightmap-color">Heightmap Color</a></li>
+									<li><a href="#heightmap-color-inv">Heightmap Color Inverted</a></li>
+								</ul>
+							</div>
 						</div>
-					</div>
-					<div class="labeled-controls">
-						<h4>Intensity Source</h4>
-						<h5>Color modulators, modulation can be played with</h5>
-						<div class="btn-group btn-block" id="intensitysource">
-							<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown" target="intensity">
-								Intensity <span class="caret"></span>
-							</button>
-							<ul class="dropdown-menu btn-block" role="menu">
-								<li><a href="#intensity">Intensity</a></li>
-								<li><a href="#heightmap">Heightmap Grayscale</a></li>
-								<li><a href="#heightmap-inv">Heightmap Grayscale Inverted</a></li>
-							</ul>
+						<div class="labeled-controls">
+							<h4>Colormap</h4>
+							<h5>Color gradient values used for Heightmap Color and Classification color sources</h5>
+							<div class="btn-group btn-block map-picker" id="colormap">
+								<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown">
+									<img src="/colormaps/blue-red.png"> <span class="caret"></span>
+								</button>
+								<ul class="dropdown-menu btn-block" role="menu" style="text-align: center">
+									<li><a href="#"><img src="/colormaps/blue-red.png"></a></li>
+									<li><a href="#"><img src="/colormaps/blue-hue.png"></a></li>
+									<li><a href="#"><img src="/colormaps/blue-orange.png"></a></li>
+									<li><a href="#"><img src="/colormaps/heat-map.png"></a></li>
+									<li><a href="#"><img src="/colormaps/awesome-green.png"></a></li>
+									<li><a href="#"><img src="/colormaps/pestel-shades.png"></a></li>
+									<li><a href="#"><img src="/colormaps/black-orange.png"></a></li>
+								</ul>
+							</div>
 						</div>
-					</div>
-					<div class="labeled-controls">
-						<h4>Intensity Blending</h4>
-						<h5>How much of intensity to blend with color</h5>
-						<div id="blending"></div>
-						<div class="clearfix blend-factor">
-							<div class="pull-left">All Color</div>
-							<div class="pull-right">All Intensity</div>
+						<div class="labeled-controls">
+							<h4>Intensity Source</h4>
+							<h5>Color modulators, modulation can be played with</h5>
+							<div class="btn-group btn-block" id="intensitysource">
+								<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown" target="intensity">
+									Intensity <span class="caret"></span>
+								</button>
+								<ul class="dropdown-menu btn-block" role="menu">
+									<li><a href="#intensity">Intensity</a></li>
+									<li><a href="#heightmap">Heightmap Grayscale</a></li>
+									<li><a href="#heightmap-inv">Heightmap Grayscale Inverted</a></li>
+								</ul>
+							</div>
 						</div>
-					</div>
-					<div class="labeled-controls">
-						<h4>Intensity Scaling</h4>
-						<h5>Narrow down on a range of intensity values, only applies to intensity values fetch from point source</h5>
-						<div id="intensity"></div>
+						<div class="labeled-controls">
+							<h4>Intensity Blending</h4>
+							<h5>How much of intensity to blend with color</h5>
+							<div id="blending"></div>
+							<div class="clearfix blend-factor">
+								<div class="pull-left">All Color</div>
+								<div class="pull-right">All Intensity</div>
+							</div>
+						</div>
+						<div class="labeled-controls">
+							<h4>Intensity Scaling</h4>
+							<h5>Narrow down on a range of intensity values, only applies to intensity values fetch from point source</h5>
+							<div id="intensity"></div>
+						</div>
 					</div>
 				</div>
 			</div>

@@ -31,6 +31,7 @@
 		setupNaclErrorHandler();
 		setupWebGLStateErrorHandler();
 		setupDragHandlers();
+		makePanelsSlidable();
 	});
 
 	var progress = function(percent, msg) {
@@ -443,6 +444,42 @@
 			console.log(droppedFiles[0]);
 
 			loadLocalFile(droppedFiles[0]);
+		});
+	};
+
+	var makePanelsSlidable = function() {
+		// find all panel headers and add make them into slidable widgets
+		//
+		$(".p-head")
+			.addClass("clearfix p-collapse-open")
+			.css("cursor", "pointer")
+			.append("<div class='toggle-control'>" +
+					"<span class='glyphicon glyphicon-chevron-up'></span></div>");
+		$(".p-head h3").css("float", "left");
+
+
+		$("body").on("click", ".p-head", function() {
+			var $control = $(this);
+			var isOpen = $control.hasClass("p-collapse-open");
+			var $scroller = $control.next(".p-body");
+			var $span = $control.find(".toggle-control span");
+			if (isOpen)
+				$scroller.slideUp(200, function() {
+					$control
+						.removeClass("p-collapse-open")
+						.addClass("p-collapse-close");
+
+					$span.attr("class", "glyphicon glyphicon-chevron-down");
+				});
+			else {
+				// when scrolling down appply styles first, for awesomeness effect
+				$control
+					.removeClass("p-collapse-close")
+					.addClass("p-collapse-open");
+
+				$span.attr("class", "glyphicon glyphicon-chevron-up");
+				$scroller.slideDown(200);
+			}
 		});
 	};
 })(window);
