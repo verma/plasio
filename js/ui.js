@@ -5,6 +5,10 @@
 (function(scope) {
 	"use strict";
 
+	// some globals we need
+	//
+	var fileLoadInProgress = false;
+
 	// Start UI
 	$(document).on("plasio.startUI", function() {
 		var layout = $("body").layout({
@@ -111,11 +115,21 @@
 			$("#loaderProgress").show();
 			$("#loadError").html("").hide();
 			showProgress(0);
+
+			$("#browse button").attr("disabled", true);
+
+			fileLoadInProgress = true;
 		});
 
 		$(document).on("plasio.load.progress", function(e) {
 			showProgress(e.percent, e.message);
 		});
+
+		var cleanup = function() {
+			$("#loaderProgress").hide();
+			$("#browse button").attr("disabled", false);
+			fileLoadInProgress = false;
+		}
 
 		$(document).on("plasio.load.completed", function(e) {
 			var batcher = e.batcher;
@@ -137,8 +151,7 @@
 				"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
 				"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>").show();
 
-			// Hide our progress notifiers
-			$("#loaderProgress").hide();
+			cleanup();
 		});
 
 		$(document).on("plasio.load.cancelled", function(e) {
@@ -149,7 +162,7 @@
 				'</div>').show();
 
 			console.log("Operation cancelled!!");
-			$("#loaderProgress").hide();
+			cleanup();
 		});
 
 		$(document).on("plasio.load.failed", function(e) {
@@ -159,7 +172,7 @@
 				'<strong>Error!</strong> ' + e.error +
 				'</div>').show();
 
-			$("#loaderProgress").hide();
+			cleanup();
 		});
 	};
 	
@@ -568,6 +581,10 @@
 		$("body").on("dragover", function(e) {
 			ignore(e);
 
+			// no drag drop indication when file load is in progress
+			if (fileLoadInProgress)
+				return;
+
 			if (hideto === null)
 				dragEnter();
 			else
@@ -584,8 +601,12 @@
 
 		$("body").on("drop", function(e) {
 			ignore(e);
+			if (fileLoadInProgress)
+				return;
+
 			var dt = e.originalEvent.dataTransfer;
 			var droppedFiles = dt.files;
+
 
 			$.event.trigger({
 				type: "plasio.loadfile.local",
