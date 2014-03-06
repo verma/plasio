@@ -5,6 +5,13 @@
 	"use strict";
 
 	var pointFormatReaders = {
+		0: function(dv) {
+			return {
+				"position": [ dv.getInt32(0, true), dv.getInt32(4, true), dv.getInt32(8, true)],
+				"intensity": dv.getUint16(12, true),
+				"classification": dv.getUint8(16, true)
+			};
+		},
 		1: function(dv) {
 			return {
 				"position": [ dv.getInt32(0, true), dv.getInt32(4, true), dv.getInt32(8, true)],
