@@ -82,13 +82,13 @@
 	scope.handleMessage = function(message_event) {
 		var msg = message_event.data;
 		var resolver = waitHandlers[msg.id];
+		delete waitHandlers[msg.id];
 
 		// call the callback in a separate context, make sure we've cleaned our
 		// state out before the callback is invoked since it may queue more doExchanges
 		setTimeout(function() { 
 			if (msg.error)
 				return resolver.reject(new Error(msg.message || "Unknown Error"));
-
 
 			if (msg.hasOwnProperty('count') && msg.hasOwnProperty('hasMoreData')) {
 				return resolver.resolve({
@@ -110,7 +110,7 @@
 
 		nacl_module.postMessage(cmd);
 
-		return resolver.promise;
+		return resolver.promise.cancellable();
 	};
 
 	// LAS Loader

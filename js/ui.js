@@ -32,9 +32,10 @@
 		setupWebGLStateErrorHandler();
 		setupDragHandlers();
 		makePanelsSlidable();
+		setupLoadHandlers();
 	});
 
-	var progress = function(percent, msg) {
+	var showProgress = function(percent, msg) {
 		$("#loaderProgress").show();
 		if (msg)
 			$("#loaderProgress p").html(msg);
@@ -49,8 +50,8 @@
 	};
 
 	var getBinary = function(url, cb) {
+		var oReq = new XMLHttpRequest();
 		return new Promise(function(resolve, reject) {
-			var oReq = new XMLHttpRequest();
 			oReq.open("GET", url, true);
 			oReq.responseType = "arraybuffer";
 
@@ -61,31 +62,123 @@
 			oReq.onload = function(oEvent) {
 				if (oReq.status == 200) {
 					console.log(oReq.getAllResponseHeaders());
-
 					return resolve(oReq.response);
 				}
-
 				reject(new Error("Could not get binary data"));
 			};
 
 			oReq.send();
+		}).cancellable().catch(Promise.CancellationError, function(e) {
+			pReq.abort();
+			throw e;
+		});
+	};
+
+	var getBinaryLocal = function(file, cb) {
+		var fr = new FileReader();
+		return new Promise(function(resolve, reject) {
+			fr.onprogress = function(e) {
+				cb(e.loaded / e.total);
+			};
+			fr.onload = function(e) {
+				resolve(e.target.result);
+			};
+			fr.readAsArrayBuffer(file);
+		}).cancellable().catch(Promise.CancellationError, function(e) {
+			fr.abort();
+			throw e;
+		});
+	};
+
+
+	var setupLoadHandlers = function() {
+		// setup handlers which listens for notifications on how to do things
+		//
+		// Actions to trigger file loading
+		//
+		$(document).on("plasio.loadfile.local", function(e) {
+			cancellableLoad(function(cb) {
+				return getBinaryLocal(e.file, cb);
+			}, e.name);
+		});
+
+		$(document).on("plasio.loadfile.remote", function(e) {
+			cancellableLoad(function(cb) {
+				return getBinary(e.url, cb);
+			}, e.name);
+		});
+
+		$(document).on("plasio.load.started", function() {
+			$("#loaderProgress").show();
+			$("#loadError").html("").hide();
+			showProgress(0);
+		});
+
+		$(document).on("plasio.load.progress", function(e) {
+			console.log("percent", e);
+			showProgress(e.percent, e.message);
+		});
+
+		$(document).on("plasio.load.completed", function(e) {
+			var batcher = e.batcher;
+			var header = e.header;
+
+			// load the batcher
+			loadBatcher(batcher);
+
+			if (!batcher.hasColor)
+				$(".default-if-no-color").trigger("click");
+
+			// Set properties
+			$(".props").html(
+				"<tr><td>Name</td><td>" + name + "</td></tr>" +
+				"<tr><td>File Version</td><td>" + header.versionAsString + "</td></tr>" +
+				"<tr><td>Compressed?</td><td>" + (header.isCompressed ? "Yes" : "No") + "</td></tr>" +
+				"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
+				numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
+				"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
+				"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>").show();
+
+			// Hide our progress notifiers
+			$("#loaderProgress").hide();
+		});
+
+		$(document).on("plasio.load.cancelled", function(e) {
+			$("#loadError").html(
+				'<div class="alert alert-info alert-dismissable">' +
+				'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
+				'The file load operation was cancelled' +
+				'</div>').show();
+
+			$("#loaderProgress").hide();
+		});
+
+		$(document).on("plasio.load.failed", function(e) {
+			$("#loadError").html(
+				'<div class="alert alert-danger alert-dismissable">' +
+				'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
+				'<strong>Error!</strong> ' + e.error +
+				'</div>').show();
+
+			$("#loaderProgress").hide();
 		});
 	};
 	
 
-	var loadData = function(name, buffer) {
-		var loadBuffer = function() {
-			return new Promise(function(res, rej) {
-				res(new LASFile(buffer));
-			});
-		};
+	var loadData = function(buffer, progress) {
+		var lf = new LASFile(buffer);
 
-		loadBuffer().then(function(lf) {
-			progress(0, 'Decoding ' + name + '...');
-			console.log('Compressed?', lf.isCompressed);
-
+		return Promise.resolve(lf).cancellable().then(function(lf) {
 			return lf.open().then(function() {
+				lf.isOpen = true;
 				return lf;
+			})
+			.catch(Promise.CancellationError, function(e) {
+				// open message was sent at this point, but then handler was not called
+				// because the operation was cancelled, explicitly close the file
+				return lf.close().then(function() {
+					throw e;
+				});
 			});
 		}).then(function(lf) {
 			return lf.getHeader().then(function(h) {
@@ -108,7 +201,8 @@
 				var totalRead = 0;
 				var totalToRead = (skip <= 1 ? header.pointsCount : header.pointsCount / skip);
 				var reader = function() {
-					return lf.readData(1000000, 0, skip).then(function(data) {
+					var p = lf.readData(1000000, 0, skip);
+					return p.then(function(data) {
 						batcher.push(new LASDecoder(data.buffer,
 													header.pointsFormatId,
 													header.pointsStructSize,
@@ -117,81 +211,72 @@
 													header.offset));
 
 						totalRead += data.count;
-						progress(Math.round(100 * totalRead / totalToRead));
+						progress(totalRead / totalToRead);
 
 						console.log('Got data', data.count);
 						if (data.hasMoreData)
 							return reader();
 						else {
-							loadBatcher(batcher);
-
-							if (!batcher.hasColor)
-								$(".default-if-no-color").trigger("click");
 
 							header.totalRead = totalRead;
-							return [lf, header];
+							header.versionAsString = lf.versionAsString;
+							header.isCompressed = lf.isCompressed;
+							return [lf, header, batcher];
 						}
 					});
 				};
+
+				// return the lead reader
 				return reader();
 		}).then(function(v) {
 			var lf = v[0];
-			var header = v[1];
+			// we're done loading this file
+			//
+			progress(100);
 
-			$(".props").html(
-				"<tr><td>Name</td><td>" + name + "</td></tr>" +
-				"<tr><td>File Version</td><td>" + lf.versionAsString + "</td></tr>" +
-				"<tr><td>Compressed?</td><td>" + (lf.isCompressed ? "Yes" : "No") + "</td></tr>" +
-				"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
-				numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
-				"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
-				"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>").show();
-
-				// finally close the file
-				return lf.close();
-		}).then(function() {
-			console.log("Done");
-		}).catch(function(err) {
-			console.log("Failed to load file!");
-			console.log(err);
-			console.log(err.stack);
-
-			$("#loadError").html(
-				'<div class="alert alert-danger alert-dismissable">' +
-				'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
-				'<strong>Error!</strong> ' + err.message +
-				'</div>');
-		}).finally(function() {
-			$("#loaderProgress").hide();
+			// Close it
+			return lf.close().then(function() {
+				lf.isOpen = false;
+				// Delay this a bit so that the user sees 100% completion
+				//
+				return Promise.delay(200).cancellable();
+			}).then(function() {
+				// trim off the first element (our LASFile which we don't really want to pass to the user)
+				//
+				return v.slice(1);
+			});
+		}).catch(Promise.CancellationError, function(e) {
+			// If there was a cancellation, make sure the file is closed, if the file is open
+			// close and then fail
+			if (lf.isOpen) 
+				return lf.close().then(function() {
+					lf.isOpen = false;
+					console.log("File was closed");
+					throw e;
+				});
+			throw e;
 		});
-	};
-
-	var loadLocalFile = function(file) {
-		$("#loadError").html("");
-
-		progress(0, "Fetching " + file.name + "...");
-		var fr = new FileReader();
-		fr.onprogress = function(e) {
-			console.log('progress', arguments);
-			progress(Math.round(e.loaded * 100 / e.total));
-		};
-		fr.onload = function(e) {
-			var d = e.target.result;
-			loadData(file.name, d);
-		};
-		fr.readAsArrayBuffer(file);
 	};
 
 	var setupFileOpenHandlers = function() {
 		$("#loaderProgress").hide();
+		$("#loaderProgress button").on("click", function() {
+			$.event.trigger({
+				type: "plasio.load.cancel"
+			});
+		});
 
 		$(document).on('change', '.btn-file :file', function(e) {
+			e.preventDefault();
+
 			var input = $(this);
 			var file = input.get(0).files[0];
 
-			e.preventDefault();
-
-			loadLocalFile(file);
+			$.event.trigger({
+				type: "plasio.loadfile.local",
+				file: file,
+				name: file.name
+			});
 		});
 
 		$("#browse").on("click", "a", function(e) {
@@ -206,20 +291,84 @@
 
 			console.log("Will load", target);
 
-			$("#loadError").html("");
-
 			var name = target.substring(target.lastIndexOf('/')+1)
 
-			var progress_fn = function(pc) {
-				progress(pc * 100);
-			};
-
-			progress(0, "Fetching " + name + "...");
-			getBinary(target, progress_fn).then(function(data) {
-				progress(100);
-				return loadData(name, data);
+			$.event.trigger({
+				type: "plasio.loadfile.remote",
+				url: target,
+				name: name
 			});
 		});
+	};
+
+	var cancellableLoad = function(fDataLoader, name) {
+		//  fDataLoader should be a function that when called returns a promise which
+		//  can be cancelled, the fDataLoader should resolve to an array buffer of loaded file
+		//  and should correctly handle cancel requets.
+		//
+		var progress = function(pc, msg) {
+			var obj = {
+				type: "plasio.load.progress",
+				percent: Math.round(pc * 100)
+			};
+
+			if (msg !== undefined) obj["message"] = msg;
+			$.event.trigger(obj);
+		};
+		
+		var loaderPromise = null;
+		$(document).on("plasio.load.cancel", function() {
+			if (loaderPromise === null) return;
+
+			progress(100, "Cancelling...");
+
+			loaderPromise.cancel();
+			loaderPromise = null;
+		});
+
+		$.event.trigger({
+			type: "plasio.load.started"
+		});
+
+		progress(0, "Fetching " + name + "...");
+		loaderPromise = fDataLoader(progress)
+			.then(function(data) {
+				progress(100);
+				return Promise.delay(200).cancellable().then(function() {
+					progress(0, "Decoding...");
+					return loadData(data, progress);
+				});
+			})
+			.then(function(v) {
+				var header = v[0];
+				var batcher = v[1];
+
+				$.event.trigger({
+					type: "plasio.load.completed",
+					batcher: batcher,
+					header: header
+				});
+			})
+			.catch(Promise.CancellationError, function(e) {
+				console.log("Cancel", e);
+				console.log(e.stack);
+
+				$.event.trigger({
+					type: "plasio.load.cancelled",
+				});
+			})
+			.catch(function(e) {
+				console.log("Error", e);
+				console.log(e.stack);
+
+				$.event.trigger({
+					type: "plasio.load.failed",
+					error: e.message
+				});
+			})
+			.finally(function() {
+				loaderPromise = null;
+			});
 	};
 
 	var setupSliders = function() {
@@ -439,11 +588,14 @@
 
 		$("body").on("drop", function(e) {
 			ignore(e);
-			 var dt = e.originalEvent.dataTransfer;
-			 var droppedFiles = dt.files;
-			console.log(droppedFiles[0]);
+			var dt = e.originalEvent.dataTransfer;
+			var droppedFiles = dt.files;
 
-			loadLocalFile(droppedFiles[0]);
+			$.event.trigger({
+				type: "plasio.loadfile.local",
+				file: droppedFiles[0],
+				name: droppedFiles[0].name
+			});
 		});
 	};
 
