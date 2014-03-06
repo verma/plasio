@@ -36,7 +36,6 @@
 	});
 
 	var showProgress = function(percent, msg) {
-		$("#loaderProgress").show();
 		if (msg)
 			$("#loaderProgress p").html(msg);
 
@@ -69,7 +68,7 @@
 
 			oReq.send();
 		}).cancellable().catch(Promise.CancellationError, function(e) {
-			pReq.abort();
+			oReq.abort();
 			throw e;
 		});
 	};
@@ -115,7 +114,6 @@
 		});
 
 		$(document).on("plasio.load.progress", function(e) {
-			console.log("percent", e);
 			showProgress(e.percent, e.message);
 		});
 
@@ -150,6 +148,7 @@
 				'The file load operation was cancelled' +
 				'</div>').show();
 
+			console.log("Operation cancelled!!");
 			$("#loaderProgress").hide();
 		});
 
@@ -185,19 +184,14 @@
 				return [lf, h];
 			});
 		}).then(function(v) {
-			console.log("Here!");
 			var lf = v[0];
 			var header = v[1];
-
-			console.log('Got', lf);
-			console.log('Got', header);
 
 			var batcher = new ParticleSystemBatcher(
 				$("#vertexshader").text(),
 				$("#fragmentshader").text());
 
 				var skip = Math.round((10 - currentLoadFidelity()));
-				console.log("Skip value:", skip);
 				var totalRead = 0;
 				var totalToRead = (skip <= 1 ? header.pointsCount : header.pointsCount / skip);
 				var reader = function() {
@@ -213,7 +207,6 @@
 						totalRead += data.count;
 						progress(totalRead / totalToRead);
 
-						console.log('Got data', data.count);
 						if (data.hasMoreData)
 							return reader();
 						else {
@@ -320,10 +313,13 @@
 		$(document).on("plasio.load.cancel", function() {
 			if (loaderPromise === null) return;
 
-			progress(100, "Cancelling...");
-
-			loaderPromise.cancel();
+			var a = loaderPromise;
 			loaderPromise = null;
+
+			progress(100, "Cancelling...");
+			setTimeout(function() {
+				a.cancel();
+			}, 0);
 		});
 
 		$.event.trigger({
