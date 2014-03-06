@@ -318,8 +318,12 @@
 
 		$(document).on("plasio.intensityClampChanged", function() {
 			var range = currentIntensityClamp();
-			uniforms.clampLower.value = range[0];
-			uniforms.clampHigher.value = range[1];
+
+			var lower = parseFloat(range[0]);
+			var higher = parseFloat(range[1]);
+
+			uniforms.clampLower.value = lower;
+			uniforms.clampHigher.value = Math.max(higher, lower + 0.001); // make sure higher value always greater than lower.
 		});
 
 		$(document).on("plasio.intensityBlendChanged", function() {
