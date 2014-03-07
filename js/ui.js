@@ -43,9 +43,7 @@
 		if (msg)
 			$("#loaderProgress p").html(msg);
 
-		$("#loaderProgress .progress-bar")
-			.attr("aria-valuenow", percent)
-			.css("width", percent + "%");
+		$("#loaderProgress .progress-bar").attr('aria-valuenow', percent).width(percent);
 	};
 
 	var numberWithCommas = function(x) {
