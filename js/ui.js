@@ -110,9 +110,10 @@
 		});
 
 		$(document).on("plasio.load.started", function() {
+			showProgress(0);
+
 			$("#loaderProgress").show();
 			$("#loadError").html("").hide();
-			showProgress(0);
 
 			$("#browse button").attr("disabled", true);
 
