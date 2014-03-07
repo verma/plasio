@@ -26,6 +26,7 @@
 	};
 
 	var oldBatcher = null; // the particle system which is already loaded
+	var restorePoint = [];
 	w.loadBatcher = function(batcher) {
 		if (oldBatcher !== null)
 			oldBatcher.removeFromScene(scene);
@@ -34,9 +35,13 @@
 		oldBatcher = batcher;
 
 		setupView(batcher.mn, batcher.mx);
+
+		restorePoint = [batcher.mn.clone(), batcher.mx.clone()];
 	}
 
 	var setupView = function(mins, maxs) {
+		controls.reset();
+
 		// make sure the projection and camera is setup correctly to view the loaded data
 		//
 		var range = [
@@ -88,7 +93,7 @@
 		camera.updateProjectionMatrix();
 		orthoCamera.updateProjectionMatrix();
 		topViewCamera.updateProjectionMatrix();
-	}
+	};
 
 	var numberWithCommas = function(x) {
 		return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -164,6 +169,13 @@
 
 		$(document).on("plasio.camera.topView", function() {
 			activeCamera = topViewCamera;
+		});
+
+		$(document).on("plasio.camera.reset", function() {
+			// reset the perspective camera controls
+			controls.reset();
+			if (restorePoint.length > 0)
+				setupView(restorePoint[0], restorePoint[1]);
 		});
 	}
 

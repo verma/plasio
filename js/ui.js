@@ -538,6 +538,12 @@
 				type: 'plasio.camera.topView'
 			});
 		});
+
+		$("#camera-reset").on("click", function() {
+			$.event.trigger({
+				type: 'plasio.camera.reset'
+			});
+		});
 		
 	};
 
