@@ -35,7 +35,7 @@ var Promise = require("bluebird"),
 			},
 
 			onresize: function() {
-				doRenderResize();
+				render.doRenderResize();
 			}});
 
 

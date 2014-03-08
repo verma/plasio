@@ -12,7 +12,13 @@
     "gulp-less": "~1.2.2",
     "gulp-browserify": "~0.5.0",
     "browserify": "~3.32.0",
-    "browserify-shim": "~3.3.1"
+    "browserify-shim": "~3.3.1",
+    "gulp-nodemon": "~1.0.0",
+    "gulp-util": "~2.2.14",
+    "connect": "~2.14.1",
+    "open": "0.0.4",
+    "gulp-watch": "~0.5.2",
+    "gulp-livereload": "~1.2.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -31,15 +37,15 @@
   "browser": {
     "jquery": "./vendor/jquery.js",
     "three": "./vendor/three.js",
-	"bluebird": "./vendor/bluebird.js",
-	"jqueryui": "./vendor/jquery.ui.js",
-	"jquery-nouislider": "./vendor/jquery.nouislider.min.js",
-	"jquery-layout": "./vendor/jquery.layout.js",
-	"bootstrap": "./vendor/bootstrap.min.js",
-	"trackball-controls": "./vendor/controls/TrackballControls.js"
+    "bluebird": "./vendor/bluebird.js",
+    "jqueryui": "./vendor/jquery.ui.js",
+    "jquery-nouislider": "./vendor/jquery.nouislider.min.js",
+    "jquery-layout": "./vendor/jquery.layout.js",
+    "bootstrap": "./vendor/bootstrap.min.js",
+    "trackball-controls": "./vendor/controls/TrackballControls.js"
   },
   "browserify-shim": {
-	"bluebird": "global:Promise",
+    "bluebird": "global:Promise",
     "jquery": "$",
     "jqueryui": {
       "depends": "jquery:$"

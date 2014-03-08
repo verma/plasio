@@ -7,6 +7,15 @@ var concat = require('gulp-concat');
 var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var browserify = require('gulp-browserify');
+var nodemon = require('gulp-nodemon');
+var gutil = require('gulp-util');
+var watch = require('gulp-watch');
+var livereload = require('gulp-livereload');
+
+var connect = require('connect');
+var http = require('http');
+var open = require('open');
+var path = require('path');
 
 /**
  * Tasks:
@@ -29,6 +38,7 @@ var browserify = require('gulp-browserify');
  
 gulp.task('default', ['build']);
 gulp.task('build', ['css', 'less', 'bad-scripts', 'scripts', 'resources', 'html']);
+gulp.task('develop', ['build', 'serve', 'livereload']);
  
  
 /**
@@ -37,12 +47,12 @@ gulp.task('build', ['css', 'less', 'bad-scripts', 'scripts', 'resources', 'html'
  
 var paths = {
 	main	 : 'js/client.js',
+	sources  : 'js/**/*.js',
 	badScripts: ['vendor/bluebird.js'],
 	resources: 'resources/**',
 	css      : 'less/**/*.css',
 	less     : 'less/style.less',
 	jade     : 'client/**/*.jade',
-	assets   : ['client/**/*', '!**/*.js', '!**/*.styl', '!**/*.jade'],
 	html	 : ['index.html'],
 	build    : './build/'
 };
@@ -64,6 +74,47 @@ gulp.task('lint', function (){
   return gulp.src(paths.sources)
     .pipe(jshint())
     .pipe(jshint.reporter('default'));
+});
+
+var startServer = function(cb) {
+	var devApp, devServer, devAddress, devHost, url, log=gutil.log, colors=gutil.colors;
+	devApp = connect();
+	devApp.use(connect.logger('dev'));
+	devApp.use(connect.static(paths.build));
+	devServer = http.createServer(devApp).listen(8000);
+	devServer.on('error', function(error) {
+		log(colors.underline(colors.red('ERROR'))+' Unable to start server!');
+		cb(error);
+	});
+
+	devServer.on('listening', function() {
+		devAddress = devServer.address();
+		devHost = devAddress.address === '0.0.0.0' ? 'localhost' : devAddress.address;
+		url = 'http://' + devHost + ':' + devAddress.port + '/index.html';
+
+		log('');
+		log('Started dev server at '+colors.magenta(url));
+		open(url);
+		cb();
+	});
+};
+
+gulp.task('serve', ['build'], function(cb) {
+	startServer(cb);
+});
+
+gulp.task('livereload', function() {
+	// watch all our dirs and reload if any build stuff changes
+	//
+	gulp.watch(paths.sources, ['scripts']);
+	gulp.watch(paths.http, ['html']);
+	gulp.watch(paths.less, ['less']);
+	gulp.watch(paths.resources, ['resources']);
+
+	var server = livereload();
+	return gulp.watch(path.join(paths.build, "/**/*"), function(evt) {
+		server.changed(evt.path);
+	});
 });
 
 gulp.task('bad-scripts', function() {
