@@ -1,0 +1,63 @@
+{
+  "name": "plasio",
+  "version": "0.0.1",
+  "description": "Online LAZ/LAS file viewer",
+  "dependencies": {},
+  "devDependencies": {
+    "gulp": "~3.5.5",
+    "gulp-rename": "~1.2.0",
+    "gulp-concat": "~2.1.7",
+    "gulp-uglify": "~0.2.1",
+    "gulp-jshint": "~1.5.0",
+    "gulp-less": "~1.2.2",
+    "gulp-browserify": "~0.5.0",
+    "browserify": "~3.32.0",
+    "browserify-shim": "~3.3.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:verma/plasio.git"
+  },
+  "author": "Uday Verma & Howard Butler",
+  "license": "MIT",
+  "browserify": {
+    "transform": [
+      "browserify-shim"
+    ]
+  },
+  "browser": {
+    "jquery": "./vendor/jquery.js",
+    "three": "./vendor/three.js",
+	"bluebird": "./vendor/bluebird.js",
+	"jqueryui": "./vendor/jquery.ui.js",
+	"jquery-nouislider": "./vendor/jquery.nouislider.min.js",
+	"jquery-layout": "./vendor/jquery.layout.js",
+	"bootstrap": "./vendor/bootstrap.min.js",
+	"trackball-controls": "./vendor/controls/TrackballControls.js"
+  },
+  "browserify-shim": {
+	"bluebird": "global:Promise",
+    "jquery": "$",
+    "jqueryui": {
+      "depends": "jquery:$"
+    },
+    "jquery-layout": {
+      "depends": "jquery:$"
+    },
+    "jquery-nouislider": {
+      "depends": "jquery:$"
+    },
+    "three": "THREE",
+    "trackball-controls": {
+      "depends": [
+        "three:THREE"
+      ]
+    },
+    "bootstrap": {
+      "depends": "jquery:$"
+    }
+  }
+}

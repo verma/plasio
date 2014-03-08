@@ -1,12 +1,26 @@
 // client.js
 // Client side stuffs for greyhound web viewer
 //
+
+// Import all modules here even if we don't want to use them
+// so that browserify can pick them up
+var $ = require('jquery'),
+	render = require('./render'),
+	ui = require('./ui'),
+	laslaz = require('./laslaz');
+
+
 function endsWith(str, s) {
 	return str.indexOf(s) === (str.length - s.length);
 }
 
 (function(w) {
 	"use strict";
+
+	// The NACL module calls method on the window, make sure the laslaz module
+	// can see messages sent by NACL
+	//
+	window.handleMessage = laslaz.handleMessage;
 
 	// show an error message to the user
 	//
@@ -22,7 +36,7 @@ function endsWith(str, s) {
 	};
 
 	$(document).on("plasio.start", function() {
-		startRenderer($("#container").get(0), message);
+		render.startRenderer($("#container").get(0), message);
 	});
 
 })(window);

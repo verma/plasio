@@ -2,10 +2,13 @@
 // Rendering functions
 //
 
+var THREE = require("three"),
+	$ = require('jquery');
+
+	require("trackball-controls");
+
 (function(w) {
 	"use strict";
-
-	if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
 	var container, stats;
 	var camera, controls, scene, renderer;
@@ -492,4 +495,4 @@
 	};
 
 	w.ParticleSystemBatcher = ParticleSystemBatcher;
-})(window);
+})(module.exports);

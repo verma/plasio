@@ -1,5 +1,9 @@
 // laslaz.js
 // LAS/LAZ loading
+//
+
+var common = require("./common"),
+	Promise = require("bluebird");
 
 (function(scope) {
 	"use strict";
@@ -205,7 +209,7 @@
 
 	LAZLoader.prototype.open = function() {
 		// open the file, using the laz module
-		if (!LASModuleWasLoaded)
+		if (!scope.LASModuleWasLoaded)
 			return new Promise(function(res, rej) {
 				setTimeout(function() {
 					rej(new Error("LAZ Module has not been loaded, LASzip functionality is not available"));
@@ -362,5 +366,5 @@
 	scope.LASFile = LASFile;
 	scope.LASDecoder = LASDecoder;
 	scope.LASModuleWasLoaded = false;
-})(window);
+})(module.exports);
 

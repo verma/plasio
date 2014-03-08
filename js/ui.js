@@ -2,6 +2,17 @@
 // All UI stuff goes here
 //
 
+var Promise = require("bluebird"),
+	$ = require('jquery');
+
+	require("jqueryui"),
+	require("jquery-layout"),
+	require("jquery-nouislider"),
+	require("bootstrap");
+
+	render = require("./render"),
+	laslaz = require('./laslaz');
+
 (function(scope) {
 	"use strict";
 
@@ -135,7 +146,7 @@
 			var header = e.header;
 
 			// load the batcher
-			loadBatcher(batcher);
+			render.loadBatcher(batcher);
 
 			if (!batcher.hasColor)
 				$(".default-if-no-color").trigger("click");
@@ -177,7 +188,7 @@
 	
 
 	var loadData = function(buffer, progress) {
-		var lf = new LASFile(buffer);
+		var lf = new laslaz.LASFile(buffer);
 
 		return Promise.resolve(lf).cancellable().then(function(lf) {
 			return lf.open().then(function() {
@@ -199,7 +210,7 @@
 			var lf = v[0];
 			var header = v[1];
 
-			var batcher = new ParticleSystemBatcher(
+			var batcher = new render.ParticleSystemBatcher(
 				$("#vertexshader").text(),
 				$("#fragmentshader").text());
 
@@ -209,12 +220,12 @@
 				var reader = function() {
 					var p = lf.readData(1000000, 0, skip);
 					return p.then(function(data) {
-						batcher.push(new LASDecoder(data.buffer,
-													header.pointsFormatId,
-													header.pointsStructSize,
-													data.count,
-													header.scale,
-													header.offset));
+						batcher.push(new laslaz.LASDecoder(data.buffer,
+														   header.pointsFormatId,
+														   header.pointsStructSize,
+														   data.count,
+														   header.scale,
+														   header.offset));
 
 						totalRead += data.count;
 						progress(totalRead / totalToRead);
@@ -291,7 +302,7 @@
 
 			// if we don't have LAZ available, we download the LAS version
 			//
-			if (!scope.LASModuleWasLoaded)
+			if (!laslaz.LASModuleWasLoaded)
 				target = target.replace(/\.laz$/, ".las");
 
 			console.log("Will load", target);

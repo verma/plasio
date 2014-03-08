@@ -419,6 +419,8 @@ var common = (function() {
 
 }());
 
+module.exports = common;
+
 // listen to the plasio start notification to trigger NaCl stuff
 //
 $(document).on("plasio.start", function() {
@@ -483,3 +485,4 @@ $(document).on("plasio.start", function() {
     }
   }
 });
+
