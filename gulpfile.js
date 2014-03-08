@@ -37,7 +37,7 @@ var path = require('path');
  */
  
 gulp.task('default', ['build']);
-gulp.task('build', ['css', 'less', 'bad-scripts', 'scripts', 'resources', 'html']);
+gulp.task('build', ['css', 'less', 'bad-scripts', 'lint', 'scripts', 'resources', 'html']);
 gulp.task('develop', ['build', 'serve', 'livereload']);
  
  
@@ -72,7 +72,9 @@ gulp.task('resources', function() {
 // lint all of our js source files
 gulp.task('lint', function (){
   return gulp.src(paths.sources)
-    .pipe(jshint())
+    .pipe(jshint({
+		"smarttabs": true
+	}))
     .pipe(jshint.reporter('default'));
 });
 
@@ -106,7 +108,7 @@ gulp.task('serve', ['build'], function(cb) {
 gulp.task('livereload', function() {
 	// watch all our dirs and reload if any build stuff changes
 	//
-	gulp.watch(paths.sources, ['scripts']);
+	gulp.watch(paths.sources, ['lint', 'scripts']);
 	gulp.watch(paths.http, ['html']);
 	gulp.watch(paths.less, ['less']);
 	gulp.watch(paths.resources, ['resources']);

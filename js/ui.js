@@ -3,15 +3,15 @@
 //
 
 var Promise = require("bluebird"),
-	$ = require('jquery');
-
-	require("jqueryui"),
-	require("jquery-layout"),
-	require("jquery-nouislider"),
-	require("bootstrap");
-
+	$ = require('jquery'),
 	render = require("./render"),
 	laslaz = require('./laslaz');
+
+
+	require("jqueryui");
+	require("jquery-layout");
+	require("jquery-nouislider");
+	require("bootstrap");
 
 (function(scope) {
 	"use strict";
@@ -139,7 +139,7 @@ var Promise = require("bluebird"),
 			$("#loaderProgress").hide();
 			$("#browse button").attr("disabled", false);
 			fileLoadInProgress = false;
-		}
+		};
 
 		$(document).on("plasio.load.completed", function(e) {
 			var batcher = e.batcher;
@@ -307,7 +307,7 @@ var Promise = require("bluebird"),
 
 			console.log("Will load", target);
 
-			var name = target.substring(target.lastIndexOf('/')+1)
+			var name = target.substring(target.lastIndexOf('/')+1);
 
 			$.event.trigger({
 				type: "plasio.loadfile.remote",
@@ -328,7 +328,7 @@ var Promise = require("bluebird"),
 				percent: Math.round(pc * 100)
 			};
 
-			if (msg !== undefined) obj["message"] = msg;
+			if (msg !== undefined) obj.message = msg;
 			$.event.trigger(obj);
 		};
 		

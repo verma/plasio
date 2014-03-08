@@ -49,13 +49,13 @@ var common = require("./common"),
 		if (count === undefined || count === 1)
 			return r[0];
 
-		var ret = []
+		var ret = [];
 		for (var i = 0 ; i < count ; i ++) {
 			ret.push(r[i]);
 		}
 
 		return ret;
-	};
+	}
 
 	function parseLASHeader(arraybuffer) {
 		var o = {};
@@ -76,7 +76,7 @@ var common = require("./common"),
 		o.mins = [bounds[1], bounds[3], bounds[5]];
 
 		return o;
-	};
+	}
 
 	var msgIndex = 0;
 	var waitHandlers = {};
@@ -144,7 +144,7 @@ var common = require("./common"),
 		});
 	};
 
-	LASLoader.prototype.readData = function(count, start, skip) {
+	LASLoader.prototype.readData = function(count, offset, skip) {
 		var o = this;
 
 		return new Promise(function(res, rej) {
@@ -152,9 +152,10 @@ var common = require("./common"),
 				if (!o.header)
 					return rej(new Error("Cannot start reading data till a header request is issued"));
 
+				var start;
 				if (skip <= 1) {
 					count = Math.min(count, o.header.pointsCount - o.readOffset);
-					var start = o.header.pointsOffset + o.readOffset * o.header.pointsStructSize;
+					start = o.header.pointsOffset + o.readOffset * o.header.pointsStructSize;
 					var end = start + count * o.header.pointsStructSize;
 					console.log(start, end);
 					res({
@@ -172,7 +173,7 @@ var common = require("./common"),
 					console.log("Destination size:", buf.byteLength);
 					for (var i = 0 ; i < pointsToRead ; i ++) {
 						if (i % skip === 0) {
-							var start = o.header.pointsOffset + o.readOffset * o.header.pointsStructSize;
+							start = o.header.pointsOffset + o.readOffset * o.header.pointsStructSize;
 							var src = new Uint8Array(o.arraybuffer, start, o.header.pointsStructSize);
 
 							buf.set(src, pointsRead * o.header.pointsStructSize);

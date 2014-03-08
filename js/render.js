@@ -40,7 +40,7 @@ var THREE = require("three"),
 		setupView(batcher.mn, batcher.mx);
 
 		restorePoint = [batcher.mn.clone(), batcher.mx.clone()];
-	}
+	};
 
 	var setupView = function(mins, maxs) {
 		controls.reset();
@@ -82,12 +82,12 @@ var THREE = require("three"),
 		orthoCamera.left = -limits/2;
 		orthoCamera.right = limits/2;
 		orthoCamera.bottom = -limits/2;
-		orthoCamera.top = limits/2
+		orthoCamera.top = limits/2;
 
 		topViewCamera.left = -limits/2;
 		topViewCamera.right = limits/2;
 		topViewCamera.bottom = -limits/2;
-		topViewCamera.top = limits/2
+		topViewCamera.top = limits/2;
 
 		topViewCamera.position.set(
 			0, topViewCamera.far / 2, 0);
@@ -103,7 +103,7 @@ var THREE = require("three"),
 	};
 
 	function init(render_container) {
-		var container = $(render_container)
+		var container = $(render_container);
 		var w = container.width(),
 			h = container.height();
 
@@ -137,12 +137,6 @@ var THREE = require("three"),
 
 		// world
 		scene = new THREE.Scene();
-
-		// setup material to use vertex colors
-		// renderer
-		//
-		var w = container.width(),
-			h = container.height();
 
 		console.log("Setting render size to: ", w, h);
 
@@ -217,7 +211,7 @@ var THREE = require("three"),
 
 	var t = function() {
 		return (new Date()).getTime();
-	}
+	};
 
 	var timeSinceLast = null;
 	var frames = 0;
@@ -261,7 +255,7 @@ var THREE = require("three"),
 		console.log('updating', source);
 
 		switch(source) {
-			case "intensity": uniforms.intensity_f.value = 1.0; break
+			case "intensity": uniforms.intensity_f.value = 1.0; break;
 			case "heightmap": uniforms.height_f.value = 1.0; break;
 			case "heightmap-inv": uniforms.iheight_f.value = 1.0; break;
 		}
