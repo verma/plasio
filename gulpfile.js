@@ -11,7 +11,10 @@ var nodemon = require('gulp-nodemon');
 var gutil = require('gulp-util');
 var watch = require('gulp-watch');
 var livereload = require('gulp-livereload');
+var clean = require('gulp-clean');
+var awspublish = require('gulp-awspublish');
 
+var through = require('through2');
 var connect = require('connect');
 var http = require('http');
 var open = require('open');
@@ -75,7 +78,8 @@ gulp.task('lint', function (){
     .pipe(jshint({
 		"smarttabs": true
 	}))
-    .pipe(jshint.reporter('default'));
+    .pipe(jshint.reporter('default'))
+	.pipe(jshint.reporter('fail'));
 });
 
 var startServer = function(cb) {
@@ -151,5 +155,25 @@ gulp.task('less', function() {
 gulp.task('html', function() {
 	return gulp.src(paths.html).
 		pipe(gulp.dest(paths.build));
+});
+
+gulp.task('clean', function() {
+	return gulp.src(paths.build, { read: false })
+		.pipe(clean());
+});
+
+
+gulp.task('publish', ['build'], function() {
+	var homeDir = process.env['HOME'];
+	var settings = require(path.join(homeDir, ".aws.json"));
+
+	settings.bucket = "plas.io";
+
+	var publisher = awspublish.create(settings);
+
+	return gulp.src(paths.build + "/**/*")
+		.pipe(publisher.publish())
+		.pipe(publisher.sync())
+		.pipe(awspublish.reporter());
 });
  
