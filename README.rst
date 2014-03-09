@@ -36,6 +36,34 @@ When will it support X, Y, or Z?
     are going to be the most persuasive way to impact its future 
     development.
 
+Developers
+...............................................................................
+Plasio uses the Gulp_ build system::
+
+    npm install -g gulp
+    
+You can build and stage files under the ``build`` directory by running::
+
+    gulp
+    
+While developing, you may run::
+    
+    gulp develop
+    
+This will serve built files locally and open your default browser pointing to the index page.  Any changes you make to
+source files will fire gulp tasks that will keep the ``build`` directory up to date. The build system also uses
+gulp's live-reload plugin, which works great with `Google Chrome's Live Reload`_ extension.
+
+The gulp file includes a task to publish directly to plas.io, however, you need AWS Access for that to work. You may direct plasio
+to your own AWS buckets, in which case you will have to edit ``gulpfile.js`` to direct it likewise.
+
+The publish task looks for ``~/.aws.json`` which should include two fields, ``key`` and ``secret``.
+
+To publish to AWS simply run::
+
+    gulp publish
+
+
 License
 ...............................................................................
 
@@ -50,3 +78,5 @@ The software is licensed under the permissive `MIT`_ license.
 .. _`NaCl`: https://developers.google.com/native-client/dev/
 .. _`MIT`: http://opensource.org/licenses/MIT
 .. _`Mac and Windows Chrome Canary`: https://www.google.com/intl/en/chrome/browser/canary.html
+.. _`Gulp`: http://gulpjs.com/
+.. _`Google Chrome's Live Reload`: https://chrome.google.com/webstore/detail/livereload/jnihajbhpnppcggbcgedagnkighmdlei?hl=en
