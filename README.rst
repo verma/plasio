@@ -41,8 +41,14 @@ Developers
 Plasio uses the Gulp_ build system::
 
     npm install -g gulp
+
+To setup the development environment, you can run::
+
+    npm install
     
-You can build and stage files under the ``build`` directory by running::
+This will download all dependencies required to setup the build system.
+    
+You can then build and stage files under the ``build`` directory by running::
 
     gulp
     
