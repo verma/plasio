@@ -78,8 +78,7 @@ gulp.task('lint', function (){
     .pipe(jshint({
 		"smarttabs": true
 	}))
-    .pipe(jshint.reporter('default'))
-	.pipe(jshint.reporter('fail'));
+    .pipe(jshint.reporter('default'));
 });
 
 var startServer = function(cb) {
