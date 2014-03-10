@@ -59,6 +59,9 @@
 									<li><a href="/data/autzen.laz">Autzen Stadium</a></li>
 								</ul>
 							</div>
+							<div id="creditsLink">
+								<a data-toggle="modal" href="#" data-target="#creditsPage">Data Credits</a>
+							</div>
 						</div>
 
 						<div class="labeled-controls">
@@ -187,6 +190,41 @@
 
 		<div id="listener"></div>
 
+		<!-- Modal -->
+		<div class="modal fade" id="creditsPage" tabindex="-1" role="dialog" aria-labelledby="creditsPageModal" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+						 <h4 class="modal-title">plas.io Data Credits</h4>
+
+					</div>
+					<div class="modal-body">
+						<h4>The following data files are to be credited by their original source</h4>
+						<ul>
+							<li>Autzen Stadium -- <a href="http://www.linkedin.com/pub/aaron-reyna/82/619/894">Aaron Reyna</a>, <a href="http://www.watershedsciences.com/">Watershed Sciences, Inc.</a>
+							</li>
+							<li>St. Helens -- <a href="http://www.linkedin.com/in/howardbutler">Howard Butler</a>, <a href="http://hobu.co">Hobu, Inc.</a>. USGS LiDAR + NAIP.
+							</li>
+							<li>Half Dome -- <a href="http://www.linkedin.com/in/howardbutler">Howard Butler</a>, <a href="http://hobu.co">Hobu, Inc.</a> USGS LiDAR + NAIP.
+							</li>
+
+							<li>SR71 -- <a href="http://www.linkedin.com/pub/lesley-pearson/16/a7b/985">Lesley Pearson</a>, <a href="http://www.aerospace.org">Aerospace</a>
+							</li>
+							<li>Space Shuttle -- <a href="http://www.linkedin.com/pub/david-finnegan/b/336/51b">David Finnegan</a>, <a href="http://www.crrel.usace.army.mil/">USACE CRREL</a>
+							</li>
+						</ul>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					</div>
+				</div>
+				<!-- /.modal-content -->
+			</div>
+			<!-- /.modal-dialog -->
+		</div>
+
+		
 		<script src="bad.js"></script>
 		<script src="client.js"></script>
 		<script type="x-shader/x-vertex" id="vertexshader">

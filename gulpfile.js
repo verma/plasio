@@ -112,7 +112,7 @@ gulp.task('livereload', function() {
 	// watch all our dirs and reload if any build stuff changes
 	//
 	gulp.watch(paths.sources, ['lint', 'scripts']);
-	gulp.watch(paths.http, ['html']);
+	gulp.watch(paths.html, ['html']);
 	gulp.watch(paths.less, ['less']);
 	gulp.watch(paths.resources, ['resources']);
 
