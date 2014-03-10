@@ -56,7 +56,7 @@ var paths = {
 	css      : 'less/**/*.css',
 	less     : 'less/style.less',
 	jade     : 'client/**/*.jade',
-	html	 : ['index.html'],
+	html	 : '*.html',
 	build    : './build/'
 };
  
