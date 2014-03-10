@@ -147,13 +147,49 @@ var Promise = require("bluebird"),
 
 			// load the batcher
 			render.loadBatcher(batcher);
+			console.log(batcher);
 
-			if (!batcher.hasColor)
+			var batcherHasColor =
+				(batcher.cx.r - batcher.cn.r) > 0.0 ||
+				(batcher.cx.g - batcher.cn.g) > 0.0 ||
+				(batcher.cx.b - batcher.cn.b) > 0.0;
+
+			var batcherHasIntensity =
+				(batcher.in_x - batcher.in_y) > 0.0;
+
+			console.log('Has color:', batcherHasColor);
+			console.log('Has intensity:', batcherHasIntensity);
+
+			if (batcherHasColor && batcherHasIntensity) {
+				// enable both intensity and color, and set blend to 50
+				$("#rgb").trigger("click");
+				$("#intensity").trigger("click");
+				$("#blending").val(50, true);
+			}
+			else if (batcherHasColor && !batcherHasIntensity) {
+				$("#rgb").trigger("click");
+				$("#blending").val(0, true);
+			}
+			else if (!batcherHasColor && batcherHasIntensity) {
+				$("#intensity").click();
+				$("#blending").val(100, true);
+			}
+			else {
+				// no color, no intensity
 				$(".default-if-no-color").trigger("click");
+				$("#blending").val(0, true);
+			}
+
+			var maxColorComponent = Math.max(batcher.cx.r, batcher.cx.g, batcher.cx.b);
+			console.log('Max color component', maxColorComponent);
+			$.event.trigger({
+				type: "plasio.maxColorComponent",
+				maxColorComponent: maxColorComponent
+			});
 
 			// Set properties
 			$(".props").html(
-				"<tr><td>Name</td><td>" + name + "</td></tr>" +
+				"<tr><td>Name</td><td>" + header.name + "</td></tr>" +
 				"<tr><td>File Version</td><td>" + header.versionAsString + "</td></tr>" +
 				"<tr><td>Compressed?</td><td>" + (header.isCompressed ? "Yes" : "No") + "</td></tr>" +
 				"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
@@ -362,6 +398,9 @@ var Promise = require("bluebird"),
 				var header = v[0];
 				var batcher = v[1];
 
+				// add name to header
+				header.name = name;
+
 				$.event.trigger({
 					type: "plasio.load.completed",
 					batcher: batcher,
@@ -412,8 +451,8 @@ var Promise = require("bluebird"),
 		});
 
 		$("#intensity").noUiSlider({
-			range: [0, 255],
-			start: [20, 150],
+			range: [0, 100],
+			start: [0, 100],
 			connect: true,
 			slide: function() {
 				$.event.trigger({
@@ -422,15 +461,18 @@ var Promise = require("bluebird"),
 			}
 		});
 
+		var blendUpdate = function() {
+			$.event.trigger({
+				type: 'plasio.intensityBlendChanged'
+			});
+		};
+
 		$("#blending").noUiSlider({
 			range: [0, 100],
 			start: 0,
 			handles: 1,
-			slide: function() {
-				$.event.trigger({
-					type: 'plasio.intensityBlendChanged'
-				});
-			}
+			slide: blendUpdate,
+			set: blendUpdate
 		});
 
 		$("#pointsize").noUiSlider({

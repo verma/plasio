@@ -38,8 +38,12 @@ var THREE = require("three"),
 		oldBatcher = batcher;
 
 		setupView(batcher.mn, batcher.mx);
-
 		restorePoint = [batcher.mn.clone(), batcher.mx.clone()];
+
+		// trigger a signal which will cause the intenisty range to update
+		$.event.trigger({
+			type: 'plasio.intensityClampChanged'
+		});
 	};
 
 	var setupView = function(mins, maxs) {
@@ -69,7 +73,7 @@ var THREE = require("three"),
 		//
 		camera.position.set(
 			-range[0]/2,
-			2000,
+			maxs.z * 1.5,
 			-range[1]/2);
 
 		console.log('Camera position set to:', camera.position);
@@ -252,8 +256,6 @@ var THREE = require("three"),
 		uniforms.height_f.value = 0.0;
 		uniforms.iheight_f.value = 0.0;
 
-		console.log('updating', source);
-
 		switch(source) {
 			case "intensity": uniforms.intensity_f.value = 1.0; break;
 			case "heightmap": uniforms.height_f.value = 1.0; break;
@@ -261,6 +263,21 @@ var THREE = require("three"),
 		}
 
 		console.log(uniforms);
+	}
+
+	function updateIntensityClampingForBatcher(uniforms, batcher) {
+		var range = currentIntensityClamp();
+
+		var f = function(v) {
+			var vf = v  / 100.0;
+			return batcher.in_n + (batcher.in_x - batcher.in_n) * vf;
+		};
+
+		var lower = f(parseFloat(range[0]));
+		var higher = f(parseFloat(range[1]));
+
+		uniforms.clampLower.value = lower;
+		uniforms.clampHigher.value = Math.max(higher, lower + 0.001);
 	}
 
 	var shaderMaterial = null;
@@ -279,6 +296,7 @@ var THREE = require("three"),
 		var uniforms = {
 			pointSize: { type: 'f', value: currentPointSize() },
 			intensityBlend: { type: 'f', value: currentIntensityBlend() / 100.0 },
+			maxColorComponent: { type: 'f', value: 1.0 },
 
 			// colors
 			rgb_f: { type: 'f', value: 1.0 },
@@ -302,6 +320,8 @@ var THREE = require("three"),
 
 		updateColorUniformsForSource(uniforms, currentColorSource());
 		updateIntensityUniformsForSource(uniforms, currentIntensitySource());
+		if (oldBatcher !== null)
+			updateIntensityClampingForBatcher(uniforms, oldBatcher);
 
 		shaderMaterial = new THREE.ShaderMaterial({
 			vertexShader: vs,
@@ -326,23 +346,23 @@ var THREE = require("three"),
 		});
 
 		$(document).on("plasio.intensityClampChanged", function() {
-			var range = currentIntensityClamp();
-
-			var lower = parseFloat(range[0]);
-			var higher = parseFloat(range[1]);
-
-			uniforms.clampLower.value = lower;
-			uniforms.clampHigher.value = Math.max(higher, lower + 0.001); // make sure higher value always greater than lower.
+			if (oldBatcher !== null)
+				updateIntensityClampingForBatcher(uniforms, oldBatcher);
 		});
 
 		$(document).on("plasio.intensityBlendChanged", function() {
 			var f = currentIntensityBlend();
 			uniforms.intensityBlend.value = f / 100.0;
+
 		});
 
 		$(document).on("plasio.pointSizeChanged", function() {
 			var f = currentPointSize();
 			uniforms.pointSize.value = f;
+		});
+
+		$(document).on("plasio.maxColorComponent", function(e) {
+			uniforms.maxColorComponent.value = Math.max(0.0001, e.maxColorComponent);
 		});
 
 		shaderMaterial.uniforms = uniforms;
@@ -360,9 +380,11 @@ var THREE = require("three"),
 		this.mx = null;
 		this.mn = null;
 		this.cg = null;
+		this.cn = null;
+		this.cx = null;
+		this.in_x = null;
+		this.in_y = null;
 		this.pointsSoFar = 0;
-
-		this.hasColor = false;
 	};
 
 	ParticleSystemBatcher.prototype.push = function(lasBuffer) {
@@ -383,6 +405,8 @@ var THREE = require("three"),
 		var cg = null;
 		var mx = null;
 		var mn = null;
+		var cn = null, cx = null;
+		var in_x = null, in_n = null;
 
 		for ( var i = 0; i < count; i ++) {
 			var p = lasBuffer.getPoint(i);
@@ -390,9 +414,6 @@ var THREE = require("three"),
 			var x = p.position[0] * lasBuffer.scale[0] + lasBuffer.offset[0];
 			var y = p.position[1] * lasBuffer.scale[1] + lasBuffer.offset[1];
 			var z = p.position[2] * lasBuffer.scale[2] + lasBuffer.offset[2];
-
-			if (x > -180.0 && x < 180.0) x *= 111000;
-			if (y > -90.0 && x < 90.0) y *= 111000;
 
 			if (cg === null)
 				cg = new THREE.Vector3(x, y, z);
@@ -415,24 +436,43 @@ var THREE = require("three"),
 					   Math.min(mn.y, y),
 					   Math.min(mn.z, z));
 
-
-			positions[ 3*i ]     = x;
-			positions[ 3*i + 1 ] = y;
-			positions[ 3*i + 2 ] = z;
-
+			// get the color component out
 			var r, g, b;
-
 			if (p.color) {
 				r = p.color[0] / 255.0;
 				g = p.color[1] / 255.0;
 				b = p.color[2] / 255.0;
 			}
 			else {
-				var c = 0;
-				r = g = b = c;
+				r = g = b = 0;
 			}
 
-			this.hasColor |= (p.color !== undefined && (r > 0 || g > 0 || b > 0));
+			if (cn === null) {
+				cn = new THREE.Color();
+				cn.r = r; cn.g = g; cn.b = b;
+			}
+			else {
+				cn.r = Math.max(cn.r, r);
+				cn.g = Math.max(cn.g, g);
+				cn.r = Math.max(cn.b, b);
+			}
+
+			if (cx === null) {
+				cx = new THREE.Color();
+				cx.r = r; cx.g = g; cx.b = b;
+			}
+			else {
+				cx.r = Math.max(cx.r, r);
+				cx.g = Math.max(cx.g, g);
+				cx.r = Math.max(cx.b, b);
+			}
+
+			in_n = (in_n === null)? p.intensity : Math.min(in_n, p.intensity);
+			in_x = (in_x === null)? p.intensity : Math.max(in_x, p.intensity);
+
+			positions[ 3*i ]     = x;
+			positions[ 3*i + 1 ] = y;
+			positions[ 3*i + 2 ] = z;
 
 			colors[ 3*i ] = r;
 			colors[ 3*i + 1 ] = g;
@@ -459,6 +499,23 @@ var THREE = require("three"),
 			Math.min(mn.x, this.mn.x),
 			Math.min(mn.y, this.mn.y),
 			Math.min(mn.z, this.mn.z));
+
+		if (this.cn === null) this.cn = cn;
+		else {
+			this.cn.r = Math.min(this.cn.r, cn.r);
+			this.cn.g = Math.min(this.cn.g, cn.g);
+			this.cn.b = Math.min(this.cn.b, cn.b);
+		}
+
+		if (this.cx === null) this.cx = cx;
+		else {
+			this.cx.r = Math.max(this.cx.r, cx.r);
+			this.cx.g = Math.max(this.cx.g, cx.g);
+			this.cx.b = Math.max(this.cx.b, cx.b);
+		}
+
+		this.in_n = (this.in_n === null)? in_n : Math.min(in_n, this.in_y);
+		this.in_x = (this.in_x === null)? in_x : Math.max(in_x, this.in_x);
 
 		var ps = new THREE.ParticleSystem(geometry, this.material);
 		this.pss.push(ps);
