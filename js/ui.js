@@ -5,7 +5,8 @@
 var Promise = require("bluebird"),
 	$ = require('jquery'),
 	render = require("./render"),
-	laslaz = require('./laslaz');
+	laslaz = require('./laslaz'),
+	Nanobar = require('nanobar');
 
 
 	require("jqueryui");
@@ -51,11 +52,24 @@ var Promise = require("bluebird"),
 		setupProjectionHandlers();
 	});
 
+	var neobar = null;
 	var showProgress = function(percent, msg) {
-		if (msg)
-			$("#loaderProgress p").html(msg);
+		if (neobar === null) {
+			neobar = new Nanobar({
+				bg: '#3FB8AF',
+				target: document.getElementById('body'),
+				id: 'loaderNano'
+			});
+		}
 
-		$("#loaderProgress .progress-bar").attr('aria-valuenow', percent).width(percent);
+		if (msg)
+			$("#loadingStatus").html(msg);
+
+		neobar.go (percent); // don't finish to 100
+		if (percent === 100.0) {
+			$("#loadingStatus").html("");
+			neobar = null; 
+		}
 	};
 
 	var numberWithCommas = function(x) {
@@ -124,10 +138,10 @@ var Promise = require("bluebird"),
 		$(document).on("plasio.load.started", function() {
 			showProgress(0);
 
-			$("#loaderProgress").show();
 			$("#loadError").html("").hide();
-
 			$("#browse button").attr("disabled", true);
+			$("#browse").hide();
+			$("#browseCancel").show();
 
 			fileLoadInProgress = true;
 		});
@@ -137,8 +151,10 @@ var Promise = require("bluebird"),
 		});
 
 		var cleanup = function() {
-			$("#loaderProgress").hide();
+			showProgress(100);
+			$("#browseCancel").hide();
 			$("#browse button").attr("disabled", false);
+			$("#browse").show();
 			fileLoadInProgress = false;
 		};
 
@@ -346,12 +362,14 @@ var Promise = require("bluebird"),
 	};
 
 	var setupFileOpenHandlers = function() {
+		/*
 		$("#loaderProgress").hide();
 		$("#loaderProgress button").on("click", function() {
 			$.event.trigger({
 				type: "plasio.load.cancel"
 			});
 		});
+		*/
 
 		$(document).on('change', '.btn-file :file', function(e) {
 			e.preventDefault();
@@ -421,47 +439,49 @@ var Promise = require("bluebird"),
 		});
 
 		progress(0, "Fetching " + name + "...");
-		loaderPromise = fDataLoader(progress)
-			.then(function(data) {
-				progress(100);
-				return Promise.delay(200).cancellable().then(function() {
-					progress(0, "Decoding...");
-					return loadData(data, progress);
+		loaderPromise = fDataLoader(function(pc, msg) {
+			progress(pc * 0.5, msg);
+		}).then(function(data) {
+			return Promise.delay(200).cancellable().then(function() {
+				progress(0.5, "Decoding...");
+				return loadData(data, function(pc, msg) {
+					progress(0.5 + pc * 0.5, msg);
 				});
-			})
-			.then(function(v) {
-				var header = v[0];
-				var batcher = v[1];
-
-				// add name to header
-				header.name = name;
-
-				$.event.trigger({
-					type: "plasio.load.completed",
-					batcher: batcher,
-					header: header
-				});
-			})
-			.catch(Promise.CancellationError, function(e) {
-				console.log("Cancel", e);
-				console.log(e.stack);
-
-				$.event.trigger({
-					type: "plasio.load.cancelled",
-				});
-			})
-			.catch(function(e) {
-				console.log("Error", e);
-				console.log(e.stack);
-
-				$.event.trigger({
-					type: "plasio.load.failed",
-					error: e.message
-				});
-			})
-			.finally(function() {
-				loaderPromise = null;
 			});
+		})
+		.then(function(v) {
+			var header = v[0];
+			var batcher = v[1];
+
+			// add name to header
+			header.name = name;
+
+			$.event.trigger({
+				type: "plasio.load.completed",
+				batcher: batcher,
+				header: header
+			});
+		})
+		.catch(Promise.CancellationError, function(e) {
+			console.log("Cancel", e);
+			console.log(e.stack);
+
+			$.event.trigger({
+				type: "plasio.load.cancelled",
+			});
+		})
+		.catch(function(e) {
+			console.log("Error", e);
+			console.log(e.stack);
+
+			$.event.trigger({
+				type: "plasio.load.failed",
+				error: e.message
+			});
+		})
+		.finally(function() {
+			loaderPromise = null;
+		});
 	};
 
 	var setupSliders = function() {

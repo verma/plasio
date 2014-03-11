@@ -108,21 +108,6 @@ body {
 	font-weight: bold;
 }
 
-#loaderProgress {
-	padding: 10px 0px;
-	box-sizing: border-box;
-}
-#loaderProgress p {
-	color: #999;
-	font-size: 12px;
-	padding: 0px;
-	margin: 5px 0px 0px 0px;
-}
-
-#loaderProgress .progress {
-	margin: 0px;
-}
-
 .btn-file {
 	position: relative;
 	overflow: hidden;
@@ -180,6 +165,14 @@ body {
 #browse .dropdown-toggle{
 	width: 8%;
 	box-sizing: border-box;
+}
+
+#browseCancel {
+	margin-top: 5px;
+	button {
+		width: 100%;
+		box-sizing: border-box;
+	}
 }
 
 .blend-factor {
@@ -284,12 +277,20 @@ body {
 	width: 100%;
 	text-transform: uppercase;
 	padding-top: 5px;
-	text-align: right;
 	font-size: 12px;
+	text-align: right;
 
 	a {
 		color: #999;
 	}
+}
+
+#loadingStatus {
+	text-align: center;
+	width: 100%;
+	color: #aaa;
+	text-transform: uppercase;
+	font-size: 12px;
 }
 
 .modal-title {
