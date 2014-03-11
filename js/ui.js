@@ -65,7 +65,7 @@ var Promise = require("bluebird"),
 		if (msg)
 			$("#loadingStatus").html(msg);
 
-		neobar.go (percent); // don't finish to 100
+		neobar.go(percent);
 		if (percent === 100.0) {
 			$("#loadingStatus").html("");
 			neobar = null; 
@@ -249,27 +249,27 @@ var Promise = require("bluebird"),
 
 				cleanup();
 			});
+		});
 
-			$(document).on("plasio.load.cancelled", function(e) {
-				$("#loadError").html(
-					'<div class="alert alert-info alert-dismissable">' +
-					'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
-					'The file load operation was cancelled' +
-					'</div>').show();
+		$(document).on("plasio.load.cancelled", function(e) {
+			$("#loadError").html(
+				'<div class="alert alert-info alert-dismissable">' +
+				'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
+				'The file load operation was cancelled' +
+				'</div>').show();
 
-				console.log("Operation cancelled!!");
-				cleanup();
-			});
+			console.log("Operation cancelled!!");
+			cleanup();
+		});
 
-			$(document).on("plasio.load.failed", function(e) {
-				$("#loadError").html(
-					'<div class="alert alert-danger alert-dismissable">' +
-					'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
-					'<strong>Error!</strong> ' + e.error +
-					'</div>').show();
+		$(document).on("plasio.load.failed", function(e) {
+			$("#loadError").html(
+				'<div class="alert alert-danger alert-dismissable">' +
+				'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
+				'<strong>Error!</strong> ' + e.error +
+				'</div>').show();
 
-				cleanup();
-			});
+			cleanup();
 		});
 	};
 	
@@ -362,14 +362,11 @@ var Promise = require("bluebird"),
 	};
 
 	var setupFileOpenHandlers = function() {
-		/*
-		$("#loaderProgress").hide();
-		$("#loaderProgress button").on("click", function() {
+		$("#browseCancel button").on("click", function() {
 			$.event.trigger({
 				type: "plasio.load.cancel"
 			});
 		});
-		*/
 
 		$(document).on('change', '.btn-file :file', function(e) {
 			e.preventDefault();
