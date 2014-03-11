@@ -53,7 +53,8 @@ var Promise = require("bluebird"),
 	});
 
 	var neobar = null;
-	var showProgress = function(percent, msg) {
+
+	var startProgress = function() {
 		if (neobar === null) {
 			neobar = new Nanobar({
 				bg: '#3FB8AF',
@@ -61,15 +62,23 @@ var Promise = require("bluebird"),
 				id: 'loaderNano'
 			});
 		}
+	};
 
-		if (msg)
-			$("#loadingStatus").html(msg);
-
-		neobar.go(percent);
-		if (percent === 100.0) {
-			$("#loadingStatus").html("");
-			neobar = null; 
+	var showProgress = function(percent, msg) {
+		if (neobar !== null) {
+			neobar.go(percent);
+			if (msg)
+				$("#loadingStatus").html(msg);
 		}
+	};
+
+	var hideProgress = function() {
+		if (neobar !== null) {
+			neobar.go(100);
+			neobar = null;
+		}
+
+		$("#loadingStatus").html("");
 	};
 
 	var numberWithCommas = function(x) {
@@ -136,6 +145,7 @@ var Promise = require("bluebird"),
 		});
 
 		$(document).on("plasio.load.started", function() {
+			startProgress();
 			showProgress(0);
 
 			$("#loadError").html("").hide();
@@ -151,7 +161,7 @@ var Promise = require("bluebird"),
 		});
 
 		var cleanup = function() {
-			showProgress(100);
+			hideProgress();
 			$("#browseCancel").hide();
 			$("#browse button").attr("disabled", false);
 			$("#browse").show();
