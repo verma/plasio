@@ -224,12 +224,38 @@
 			<!-- /.modal-dialog -->
 		</div>
 
+		<!-- Modal -->
+		<div class="modal fade" id="scalesPage" data-keyboard="false" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="scalesPageLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						 <h4 class="modal-title">Specify Projection</h4>
+					</div>
+					<div class="modal-body">
+						<div style='text-align: center;padding-bottom: 10px;'>
+							<h4 style="font-weight: bold">The data doesn't appear to be in UTM coordinate space.</h4>
+							<h4 style="color:#999">Please indicate what you'd like to do:</h4>
+						</div>
+						<button type="button" class="btn btn-primary btn-lg btn-block" data-value="0">Leave as is</button>
+						<button type="button" class="btn btn-success btn-lg btn-block" data-value="1">Scale X/Y to Meters, Z is in Meters</button>
+						<button type="button" class="btn btn-info btn-lg btn-block" data-value="2">Scale X/Y to Meters, Z is in Feet</button>
+					</div>
+					<div class="modal-footer">
+						<!-- <button type="button" class="btn btn-default" data-dismiss="modal">Close</button> -->
+					</div>
+				</div>
+				<!-- /.modal-content -->
+			</div>
+			<!-- /.modal-dialog -->
+		</div>
+
 		
 		<script src="bad.js"></script>
 		<script src="client.js"></script>
 		<script type="x-shader/x-vertex" id="vertexshader">
 			uniform float pointSize;
 			uniform float intensityBlend;
+			uniform float maxColorComponent;
 
 			uniform float rgb_f;
 			uniform float intensity_f;
@@ -239,7 +265,7 @@
 			uniform float map_f;
 			uniform float imap_f;
 
-			uniform vec2 xyScale;
+			uniform vec3 xyzScale;
 
 			uniform float clampLower;
 			uniform float clampHigher;
@@ -255,9 +281,7 @@
 
 
 			void main() {
-				vec3 fpos = vec3((position.x - offsets.x) * xyScale.x,
-								 position.z - offsets.z,
-								 (position.y - offsets.y) * xyScale.y);
+				vec3 fpos = ((position.xyz - offsets) * xyzScale).xzy;
 
 				vec4 mvPosition = modelViewMatrix * vec4( fpos, 1.0 );
 				gl_Position = projectionMatrix * mvPosition;
@@ -265,6 +289,7 @@
 
 				// compute color channels
 				//
+				vec3 norm_color = color / maxColorComponent;
 				vec3 map_color = texture2D(map, vec2(nheight, 0.5)).rgb;
 				vec3 inv_map_color = texture2D(map, vec2(1.0 - nheight, 0.5)).rgb;
 				vec3 class_color = texture2D(map, vec2(classification / 12.0, 0.5)).rgb;
@@ -279,7 +304,7 @@
 
 				// turn the appropriate channels on
 				//
-				vec3 color_source = color * rgb_f +
+				vec3 color_source = norm_color * rgb_f +
 									class_color * class_f +
 									map_color * map_f +
 									inv_map_color * imap_f;

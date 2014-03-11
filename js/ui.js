@@ -48,6 +48,7 @@ var Promise = require("bluebird"),
 		setupDragHandlers();
 		makePanelsSlidable();
 		setupLoadHandlers();
+		setupProjectionHandlers();
 	});
 
 	var showProgress = function(percent, msg) {
@@ -141,13 +142,29 @@ var Promise = require("bluebird"),
 			fileLoadInProgress = false;
 		};
 
+		var getScaleFromUser = function() {
+			var p = Promise.defer();
+			var $modal = $("#scalesPage");
+
+			$modal.modal();
+			$modal.on('hidden.bs.modal', function (e) {
+				var chosen = $modal.attr("data-selection");
+				var proj = null;
+				switch(chosen) {
+					case "0": proj = new THREE.Vector3(1, 1, 1); break;
+					case "1": proj = new THREE.Vector3(111000, 111000, 1); break;
+					case "2": proj = new THREE.Vector3(111000, 111000, 3.28084); break;
+				}
+
+				return p.resolve(proj);
+			});
+
+			return p.promise;
+		};
+
 		$(document).on("plasio.load.completed", function(e) {
 			var batcher = e.batcher;
 			var header = e.header;
-
-			// load the batcher
-			render.loadBatcher(batcher);
-			console.log(batcher);
 
 			var batcherHasColor =
 				(batcher.cx.r - batcher.cn.r) > 0.0 ||
@@ -157,68 +174,86 @@ var Promise = require("bluebird"),
 			var batcherHasIntensity =
 				(batcher.in_x - batcher.in_y) > 0.0;
 
+			var inSmallRange =
+				(batcher.mn.x > -180.0 && batcher.mx.x < 180.0) &&
+				(batcher.mn.y > -180.0 && batcher.mx.y < 180.0);
+
 			console.log('Has color:', batcherHasColor);
 			console.log('Has intensity:', batcherHasIntensity);
+			console.log('Has in range:', inSmallRange);
 
-			if (batcherHasColor && batcherHasIntensity) {
-				// enable both intensity and color, and set blend to 50
-				$("#rgb").trigger("click");
-				$("#intensity").trigger("click");
-				$("#blending").val(50, true);
-			}
-			else if (batcherHasColor && !batcherHasIntensity) {
-				$("#rgb").trigger("click");
-				$("#blending").val(0, true);
-			}
-			else if (!batcherHasColor && batcherHasIntensity) {
-				$("#intensity").click();
-				$("#blending").val(100, true);
-			}
-			else {
-				// no color, no intensity
-				$(".default-if-no-color").trigger("click");
-				$("#blending").val(0, true);
-			}
+			var p = inSmallRange ? getScaleFromUser() : Promise.resolve(new THREE.Vector3(1, 1, 1));
 
-			var maxColorComponent = Math.max(batcher.cx.r, batcher.cx.g, batcher.cx.b);
-			console.log('Max color component', maxColorComponent);
-			$.event.trigger({
-				type: "plasio.maxColorComponent",
-				maxColorComponent: maxColorComponent
+			p.then(function(scale) {
+				// load the batcher
+				batcher.scale = scale;
+				render.loadBatcher(batcher);
+
+				console.log(batcher);
+
+				if (batcherHasColor && batcherHasIntensity) {
+					// enable both intensity and color, and set blend to 50
+					$("#rgb").trigger("click");
+					$("#intensity").trigger("click");
+					$("#blending").val(50, true);
+				}
+				else if (batcherHasColor && !batcherHasIntensity) {
+					$("#rgb").trigger("click");
+					$("#blending").val(0, true);
+				}
+				else if (!batcherHasColor && batcherHasIntensity) {
+					$("#intensity").click();
+					$("#blending").val(100, true);
+				}
+				else {
+					// no color, no intensity
+					$(".default-if-no-color").trigger("click");
+					$("#blending").val(0, true);
+				}
+
+				var maxColorComponent = Math.max(batcher.cx.r, batcher.cx.g, batcher.cx.b);
+				console.log('Max color component', maxColorComponent);
+
+				$.event.trigger({
+					type: "plasio.maxColorComponent",
+					maxColorComponent: maxColorComponent
+				});
+
+				// Set properties
+				$(".props").html(
+					"<tr><td>Name</td><td>" + header.name + "</td></tr>" +
+					"<tr><td>File Version</td><td>" + header.versionAsString + "</td></tr>" +
+					"<tr><td>Compressed?</td><td>" + (header.isCompressed ? "Yes" : "No") + "</td></tr>" +
+					"<tr><td>Color?</td><td>" + (batcherHasColor ? "Yes" : "No") + "</td></tr>" +
+					"<tr><td>Intensity?</td><td>" + (batcherHasIntensity ? "Yes" : "No") + "</td></tr>" +
+					"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
+					numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
+					"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
+					"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>").show();
+
+				cleanup();
 			});
 
-			// Set properties
-			$(".props").html(
-				"<tr><td>Name</td><td>" + header.name + "</td></tr>" +
-				"<tr><td>File Version</td><td>" + header.versionAsString + "</td></tr>" +
-				"<tr><td>Compressed?</td><td>" + (header.isCompressed ? "Yes" : "No") + "</td></tr>" +
-				"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
-				numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
-				"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
-				"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>").show();
+			$(document).on("plasio.load.cancelled", function(e) {
+				$("#loadError").html(
+					'<div class="alert alert-info alert-dismissable">' +
+					'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
+					'The file load operation was cancelled' +
+					'</div>').show();
 
-			cleanup();
-		});
+				console.log("Operation cancelled!!");
+				cleanup();
+			});
 
-		$(document).on("plasio.load.cancelled", function(e) {
-			$("#loadError").html(
-				'<div class="alert alert-info alert-dismissable">' +
-				'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
-				'The file load operation was cancelled' +
-				'</div>').show();
+			$(document).on("plasio.load.failed", function(e) {
+				$("#loadError").html(
+					'<div class="alert alert-danger alert-dismissable">' +
+					'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
+					'<strong>Error!</strong> ' + e.error +
+					'</div>').show();
 
-			console.log("Operation cancelled!!");
-			cleanup();
-		});
-
-		$(document).on("plasio.load.failed", function(e) {
-			$("#loadError").html(
-				'<div class="alert alert-danger alert-dismissable">' +
-				'<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
-				'<strong>Error!</strong> ' + e.error +
-				'</div>').show();
-
-			cleanup();
+				cleanup();
+			});
 		});
 	};
 	
@@ -707,6 +742,18 @@ var Promise = require("bluebird"),
 				$span.attr("class", "glyphicon glyphicon-chevron-up");
 				$scroller.slideDown(200);
 			}
+		});
+	};
+
+	var setupProjectionHandlers = function() {
+		$("#scalesPage").on("click", "button", function(e) {
+			e.preventDefault();
+
+			var $button = $(this);
+			var $modal = $(this).closest(".modal");
+
+			$modal.attr("data-selection", $button.attr("data-value"));
+			$modal.modal('hide');
 		});
 	};
 })(window);

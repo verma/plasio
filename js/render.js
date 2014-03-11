@@ -37,24 +37,31 @@ var THREE = require("three"),
 		batcher.addToScene(scene);
 		oldBatcher = batcher;
 
-		setupView(batcher.mn, batcher.mx);
-		restorePoint = [batcher.mn.clone(), batcher.mx.clone()];
+		setupView(batcher.mn, batcher.mx, batcher.cg, batcher.scale);
+		restorePoint = [batcher.mn.clone(), batcher.mx.clone(),
+			batcher.cg.clone(), batcher.scale.clone()];
 
 		// trigger a signal which will cause the intenisty range to update
 		$.event.trigger({
 			type: 'plasio.intensityClampChanged'
 		});
+
+		$.event.trigger({
+			type: 'plasio.scaleChanged',
+			scale: batcher.scale
+		});
 	};
 
-	var setupView = function(mins, maxs) {
+	var setupView = function(mins, maxs, cg, scale) {
 		controls.reset();
 
 		// make sure the projection and camera is setup correctly to view the loaded data
 		//
 		var range = [
-			maxs.x - mins.x,
-			maxs.y - mins.y,
-			maxs.z - mins.z ];
+			(maxs.x - mins.x) * scale.x,
+			(maxs.y - mins.y) * scale.y,
+			(maxs.z - mins.z) * scale.z
+		];
 
 		var farPlaneDist = Math.max(range[0], range[1], range[2]);
 		console.log('mins:', mins);
@@ -73,7 +80,7 @@ var THREE = require("three"),
 		//
 		camera.position.set(
 			-range[0]/2,
-			maxs.z * 1.5,
+			cg.z + range[2],
 			-range[1]/2);
 
 		console.log('Camera position set to:', camera.position);
@@ -176,7 +183,7 @@ var THREE = require("three"),
 			// reset the perspective camera controls
 			controls.reset();
 			if (restorePoint.length > 0)
-				setupView(restorePoint[0], restorePoint[1]);
+				setupView(restorePoint[0], restorePoint[1], restorePoint[2], restorePoint[3]);
 		});
 	}
 
@@ -309,7 +316,7 @@ var THREE = require("three"),
 			height_f: { type: 'f', value: 0.0 },
 			iheight_f: { type: 'f', value: 0.0 },
 
-			xyScale: { type: 'v2', value: new THREE.Vector2(1, 1) },
+			xyzScale: { type: 'v3', value: new THREE.Vector3(1, 1, 1) },
 
 			clampLower: { type: 'f', value: iblend[0] },
 			clampHigher: { type: 'f', value: iblend[1] },
@@ -364,6 +371,12 @@ var THREE = require("three"),
 		$(document).on("plasio.maxColorComponent", function(e) {
 			uniforms.maxColorComponent.value = Math.max(0.0001, e.maxColorComponent);
 		});
+
+		$(document).on("plasio.scaleChanged", function(e) {
+			uniforms.xyzScale.value = e.scale;
+			console.log('Scale is', uniforms.xyzScale.value);
+		});
+
 
 		shaderMaterial.uniforms = uniforms;
 		shaderMaterial.attributes = attributes;
