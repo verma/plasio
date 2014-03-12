@@ -17,6 +17,18 @@ var Promise = require("bluebird"),
 (function(scope) {
 	"use strict";
 
+	var withRefresh = function(f) {
+		// return f wrapped around with a call to renderer.needRefresh
+		return function() {
+			var r = f.apply(this, arguments);
+			$.event.trigger({
+				type: 'plasio.renderer.needRefresh'
+			});
+
+			return r;
+		};
+	};
+
 	// some globals we need
 	//
 	var fileLoadInProgress = false;
@@ -372,13 +384,13 @@ var Promise = require("bluebird"),
 	};
 
 	var setupFileOpenHandlers = function() {
-		$("#browseCancel button").on("click", function() {
+		$("#browseCancel button").on("click", withRefresh(function() {
 			$.event.trigger({
 				type: "plasio.load.cancel"
 			});
-		});
+		}));
 
-		$(document).on('change', '.btn-file :file', function(e) {
+		$(document).on('change', '.btn-file :file', withRefresh(function(e) {
 			e.preventDefault();
 
 			var input = $(this);
@@ -389,9 +401,9 @@ var Promise = require("bluebird"),
 				file: file,
 				name: file.name
 			});
-		});
+		}));
 
-		$("#browse").on("click", "a", function(e) {
+		$("#browse").on("click", "a", withRefresh(function(e) {
 			e.preventDefault();
 
 			var target = $(this).attr("href");
@@ -410,7 +422,7 @@ var Promise = require("bluebird"),
 				url: target,
 				name: name
 			});
-		});
+		}));
 	};
 
 	var cancellableLoad = function(fDataLoader, name) {
@@ -505,22 +517,22 @@ var Promise = require("bluebird"),
 			start: 60,
 			handles: 1,
 			connect: "lower",
-			slide: function() {
+			slide: withRefresh(function() {
 				$.event.trigger({
 					type: 'plasio.cameraFOVChanged'
 				});
-			}
+			})
 		});
 
 		$("#intensity").noUiSlider({
 			range: [0, 100],
 			start: [0, 100],
 			connect: true,
-			slide: function() {
+			slide: withRefresh(function() {
 				$.event.trigger({
 					type: 'plasio.intensityClampChanged'
 				});
-			}
+			})
 		});
 
 		var blendUpdate = function() {
@@ -533,8 +545,8 @@ var Promise = require("bluebird"),
 			range: [0, 100],
 			start: 0,
 			handles: 1,
-			slide: blendUpdate,
-			set: blendUpdate
+			slide: withRefresh(blendUpdate),
+			set: withRefresh(blendUpdate)
 		});
 
 		$("#pointsize").noUiSlider({
@@ -542,11 +554,11 @@ var Promise = require("bluebird"),
 			start: 3,
 			handles: 1,
 			step: 1,
-			slide: function() {
+			slide: withRefresh(function() {
 				$.event.trigger({
 					type: 'plasio.pointSizeChanged'
 				});
-			}
+			})
 		});
 
 		scope.currentFOV = function() {
@@ -571,7 +583,7 @@ var Promise = require("bluebird"),
 	};
 
 	var setupComboBoxActions = function() {
-		$("#colorsource").on("click", "a", function(e) {
+		$("#colorsource").on("click", "a", withRefresh(function(e) {
 			e.preventDefault();
 			var $a = $(this);
 			console.log($a);
@@ -585,9 +597,9 @@ var Promise = require("bluebird"),
 			$.event.trigger({
 				type: "plasio.colorsourceChanged"
 			});
-		});
+		}));
 
-		$("#intensitysource").on("click", "a", function(e) {
+		$("#intensitysource").on("click", "a", withRefresh(function(e) {
 			e.preventDefault();
 			var $a = $(this);
 			console.log($a);
@@ -601,10 +613,10 @@ var Promise = require("bluebird"),
 			$.event.trigger({
 				type: "plasio.intensitysourceChanged"
 			});
-		});
+		}));
 
 
-		$("#colormap").on("click", "a", function(e) {
+		$("#colormap").on("click", "a", withRefresh(function(e) {
 			e.preventDefault();
 			var $a = $(this);
 
@@ -617,7 +629,7 @@ var Promise = require("bluebird"),
 			$.event.trigger({
 				type: "plasio.colormapChanged"
 			});
-		});
+		}));
 
 		scope.currentColorSource = function() {
 			var source = $("#colorsource button").attr('target');
@@ -636,29 +648,29 @@ var Promise = require("bluebird"),
 	};
 
 	var setupCameraActions = function() {
-		$("#perspective").on("click", function() {
+		$("#perspective").on("click", withRefresh(function() {
 			$.event.trigger({
 				type: 'plasio.camera.perspective'
 			});
-		});
+		}));
 
-		$("#ortho").on("click", function() {
+		$("#ortho").on("click", withRefresh(function() {
 			$.event.trigger({
 				type: 'plasio.camera.ortho'
 			});
-		});
+		}));
 
-		$("#top-view").on("click", function() {
+		$("#top-view").on("click", withRefresh(function() {
 			$.event.trigger({
 				type: 'plasio.camera.topView'
 			});
-		});
+		}));
 
-		$("#camera-reset").on("click", function() {
+		$("#camera-reset").on("click", withRefresh(function() {
 			$.event.trigger({
 				type: 'plasio.camera.reset'
 			});
-		});
+		}));
 		
 	};
 
@@ -719,7 +731,7 @@ var Promise = require("bluebird"),
 		$("body").on("dragenter", ignore);
 		$("body").on("dragleave", ignore);
 
-		$("body").on("drop", function(e) {
+		$("body").on("drop", withRefresh(function(e) {
 			ignore(e);
 			if (fileLoadInProgress)
 				return;
@@ -733,7 +745,7 @@ var Promise = require("bluebird"),
 				file: droppedFiles[0],
 				name: droppedFiles[0].name
 			});
-		});
+		}));
 	};
 
 	var makePanelsSlidable = function() {

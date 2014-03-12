@@ -113,6 +113,7 @@ var THREE = require("three"),
 		return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 	};
 
+	var needRefresh = false; // whenever a scene re-render is needed
 	function init(render_container) {
 		var container = $(render_container);
 		var w = container.width(),
@@ -144,7 +145,9 @@ var THREE = require("three"),
 		controls.dynamicDampingFactor = 0.3;
 
 		controls.keys = [ 65, 83, 68 ];
-		controls.addEventListener( 'change', render );
+		controls.addEventListener( 'change', function() {
+			needRefresh = true;
+		});
 
 		// world
 		scene = new THREE.Scene();
@@ -185,6 +188,10 @@ var THREE = require("three"),
 			if (restorePoint.length > 0)
 				setupView(restorePoint[0], restorePoint[1], restorePoint[2], restorePoint[3]);
 		});
+
+		$(document).on('plasio.renderer.needRefresh', function() {
+			needRefresh = true;
+		});
 	}
 
 	function onWindowResize() {
@@ -217,7 +224,12 @@ var THREE = require("three"),
 		requestAnimationFrame(animate);
 		controls.update();
 
-		render();
+		if (needRefresh) {
+			render();
+			needRefresh = false;
+		}
+
+		fpsUpdate();
 	}
 
 	var t = function() {
@@ -226,7 +238,7 @@ var THREE = require("three"),
 
 	var timeSinceLast = null;
 	var frames = 0;
-	function render() {
+	function fpsUpdate(){
 		var thisTime = t();
 		if (timeSinceLast === null)
 			timeSinceLast = thisTime;
@@ -237,9 +249,11 @@ var THREE = require("three"),
 				timeSinceLast = thisTime;
 			}
 		}
-		
-		frames ++;
+	}
+
+	function render() {
 		renderer.render(scene, activeCamera);
+		frames ++;
 	}
 
 	function updateColorUniformsForSource(uniforms, source) {
