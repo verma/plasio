@@ -28,27 +28,104 @@ var THREE = require("three"),
 		}
 	};
 
+	function removeBatcher(b) {
+		// if the provided batcher is an array, remove all elements from the scene
+		if( Object.prototype.toString.call(b) === '[object Array]' ) {
+			for (var i in b) {
+				b[i].removeFromScene(scene);
+			}
+		}
+		else
+			b.removeFromScene(scene);
+	}
+
+	function addBatcher(b) {
+		// if the provided batcher is an array, add all elements to the scene
+		if( Object.prototype.toString.call(b) === '[object Array]' ) {
+			for (var i in b) {
+				b[i].addToScene(scene);
+			}
+		}
+		else
+			b.addToScene(scene);
+	}
+
+	function determineBatcherProps(b) {
+		if( Object.prototype.toString.call(b) !== '[object Array]' ) {
+			return [
+				b.mn, b.mx, b.cg, b.scale
+			];
+		}
+
+		// the scale in all should be the same, so we don't touch it
+		var mx = null, mn = null, cg = null;
+		for(var i in b) {
+			if (mx === null) mx = b[i].mx.clone();
+			else mx.set(Math.max(mx.x, b[i].mx.x),
+						Math.max(mx.y, b[i].mx.y),
+						Math.max(mx.z, b[i].mx.z));
+
+			if (mn === null) mn = b[i].mn.clone();
+			else mn.set(Math.min(mn.x, b[i].mn.x),
+						Math.min(mn.y, b[i].mn.y),
+						Math.min(mn.z, b[i].mn.z));
+
+			if (cg === null) cg = b[i].cg.clone();
+			else mn.set((cg.x * i + b[i].cg.x) / (i+1),
+						(cg.y * i + b[i].cg.y) / (i+1),
+						(cg.z * i + b[i].cg.z) / (i+1));
+		}
+
+		console.log(b[0]);
+		return [mx, mn, cg, b[0].scale];
+	}
+
 	var oldBatcher = null; // the particle system which is already loaded
 	var restorePoint = [];
 	w.loadBatcher = function(batcher) {
 		if (oldBatcher !== null)
-			oldBatcher.removeFromScene(scene);
+			removeFromScene(batcher);
 
-		batcher.addToScene(scene);
+		addBatcher(batcher);
 		oldBatcher = batcher;
 
-		setupView(batcher.mn, batcher.mx, batcher.cg, batcher.scale);
-		restorePoint = [batcher.mn.clone(), batcher.mx.clone(),
-			batcher.cg.clone(), batcher.scale.clone()];
+		var batcherProps = determineBatcherProps(batcher);
+		var mn = batcherProps[0],
+			mx = batcherProps[1],
+			cg = batcherProps[2],
+			scale = batcherProps[3];
+
+		console.log('Batcher props:', batcherProps);
+
+		setupView(mn, mx, cg, scale);
+		restorePoint = [mn, mx, cg, scale];
+
+		// update some of the fields
+		var zrange = new THREE.Vector2(mn.z, mx.z);
+
+		console.log(cg);
+
+		// trigger signals for setting offsets
+		$.event.trigger({
+			type: 'plasio.offsetsChanged',
+			offsets: cg
+		});
+
+		// z-range
+		$.event.trigger({
+			type: 'plasio.zrangeChanged',
+			zrange: zrange
+		});
 
 		// trigger a signal which will cause the intenisty range to update
 		$.event.trigger({
 			type: 'plasio.intensityClampChanged'
 		});
 
+		// change scale
 		$.event.trigger({
 			type: 'plasio.scaleChanged',
-			scale: batcher.scale
+			scale: scale
 		});
 	};
 
@@ -288,10 +365,22 @@ var THREE = require("three"),
 
 	function updateIntensityClampingForBatcher(uniforms, batcher) {
 		var range = currentIntensityClamp();
+		var n, x;
+		if( Object.prototype.toString.call(batcher) !== '[object Array]' ) {
+			n = batcher.in_n;
+			x = batcher.in_x;
+		}
+		else {
+			n = 9999999999; x = -9999999999;
+			for (var i in batcher) {
+				n = Math.min(n, batcher[i].in_n);
+				x = Math.max(x, batcher[i].in_x);
+			}
+		}
 
 		var f = function(v) {
 			var vf = v  / 100.0;
-			return batcher.in_n + (batcher.in_x - batcher.in_n) * vf;
+			return n + (x - n) * vf;
 		};
 
 		var lower = f(parseFloat(range[0]));
@@ -384,6 +473,17 @@ var THREE = require("three"),
 
 		$(document).on("plasio.maxColorComponent", function(e) {
 			uniforms.maxColorComponent.value = Math.max(0.0001, e.maxColorComponent);
+		});
+
+
+		$(document).on("plasio.offsetsChanged", function(e) {
+			uniforms.offsets.value = e.offsets;
+			console.log('Offsets now is:', uniforms.offsets.value);
+		});
+
+		$(document).on("plasio.zrangeChanged", function(e) {
+			uniforms.zrange.value = e.zrange;
+			console.log('zrange now is:', uniforms.zrange.value);
 		});
 
 		$(document).on("plasio.scaleChanged", function(e) {
@@ -552,15 +652,6 @@ var THREE = require("three"),
 
 
 	ParticleSystemBatcher.prototype.addToScene = function(scene) {
-		// update some of the fields
-		var zrange = new THREE.Vector2(this.mn.z, this.mx.z);
-
-		this.material.uniforms.offsets.value = this.cg;
-		this.material.uniforms.zrange.value = zrange;
-
-		console.log('Set CG to:', this.cg);
-		console.log('Set Z-Range to:', zrange);
-
 		for (var i = 0, il = this.pss.length ; i < il ; i ++) {
 			scene.add(this.pss[i]);
 		}

@@ -124,15 +124,18 @@ var Promise = require("bluebird"),
 
 	var getBinaryLocal = function(file, cb) {
 		var fr = new FileReader();
-		return new Promise(function(resolve, reject) {
-			fr.onprogress = function(e) {
-				cb(e.loaded / e.total);
-			};
-			fr.onload = function(e) {
-				resolve(e.target.result);
-			};
-			fr.readAsArrayBuffer(file);
-		}).cancellable().catch(Promise.CancellationError, function(e) {
+		var p = Promise.defer();
+
+		fr.onprogress = function(e) {
+			p.progress(e.loaded / e.total);
+		};
+		fr.onload = function(e) {
+			p.resolve(e.target.result);
+		};
+
+		fr.readAsArrayBuffer(file);
+
+		return p.promise.cancellable().catch(Promise.CancellationError, function(e) {
 			fr.abort();
 			throw e;
 		});
@@ -144,13 +147,11 @@ var Promise = require("bluebird"),
 		//
 		// Actions to trigger file loading
 		//
-		$(document).on("plasio.loadfile.local", function(e) {
-			cancellableLoad(function(cb) {
-				return getBinaryLocal(e.file, cb);
-			}, e.name);
+		$(document).on("plasio.loadfiles.local", function(e) {
+			cancellableLoad(getBinaryLocal, e.files);
 		});
 
-		$(document).on("plasio.loadfile.remote", function(e) {
+		$(document).on("plasio.loadfiles.remote", function(e) {
 			cancellableLoad(function(cb) {
 				return getBinary(e.url, cb);
 			}, e.name);
@@ -201,33 +202,54 @@ var Promise = require("bluebird"),
 		};
 
 		$(document).on("plasio.load.completed", function(e) {
-			var batcher = e.batcher;
-			var header = e.header;
+			console.log(e.batches);
 
-			var batcherHasColor =
-				(batcher.cx.r - batcher.cn.r) > 0.0 ||
-				(batcher.cx.g - batcher.cn.g) > 0.0 ||
-				(batcher.cx.b - batcher.cn.b) > 0.0;
+			var batcherHasColor = false,
+				batcherHasIntensity = false,
+				batcherInSmallRange = false;
 
-			var batcherHasIntensity =
-				(batcher.in_x - batcher.in_y) > 0.0;
+			for (var i = 0, il = e.batches.length ; i < il; i ++) {
+				var batcher = e.batches[i][1];
 
-			var inSmallRange =
-				(batcher.mn.x > -180.0 && batcher.mx.x < 180.0) &&
-				(batcher.mn.y > -180.0 && batcher.mx.y < 180.0);
+				batcherHasColor = batcherHasColor ||
+					(batcher.cx.r - batcher.cn.r) > 0.0 ||
+					(batcher.cx.g - batcher.cn.g) > 0.0 ||
+					(batcher.cx.b - batcher.cn.b) > 0.0;
+
+				batcherHasIntensity = batcherHasIntensity ||
+					(batcher.in_x - batcher.in_y) > 0.0;
+
+				batcherInSmallRange = batcherInSmallRange ||
+					(batcher.mn.x > -180.0 && batcher.mx.x < 180.0) &&
+					(batcher.mn.y > -180.0 && batcher.mx.y < 180.0);
+			}
 
 			console.log('Has color:', batcherHasColor);
 			console.log('Has intensity:', batcherHasIntensity);
-			console.log('Has in range:', inSmallRange);
+			console.log('Has in range:', batcherInSmallRange);
 
-			var p = inSmallRange ? getScaleFromUser() : Promise.resolve(new THREE.Vector3(1, 1, 1));
+			var p = batcherInSmallRange ? getScaleFromUser() : Promise.resolve(new THREE.Vector3(1, 1, 1));
 
 			p.then(function(scale) {
 				// load the batcher
-				batcher.scale = scale;
-				render.loadBatcher(batcher);
+				//
+				var maxColorComponent = 0.0;
 
-				console.log(batcher);
+				var b = [];
+				for (var i = 0, il = e.batches.length ; i < il ; i ++) {
+					var batcher = e.batches[i][1];
+
+					console.log('Loading batch:', batcher);
+					maxColorComponent = Math.max(maxColorComponent,
+												 batcher.cx.r, batcher.cx.g, batcher.cx.b);
+					batcher.scale = scale;
+
+					b.push(batcher);
+
+				}
+
+				render.loadBatcher(b);
+
 
 				if (batcherHasColor && batcherHasIntensity) {
 					// enable both intensity and color, and set blend to 50
@@ -249,7 +271,6 @@ var Promise = require("bluebird"),
 					$("#blending").val(0, true);
 				}
 
-				var maxColorComponent = Math.max(batcher.cx.r, batcher.cx.g, batcher.cx.b);
 				console.log('Max color component', maxColorComponent);
 
 				$.event.trigger({
@@ -258,6 +279,7 @@ var Promise = require("bluebird"),
 				});
 
 				// Set properties
+				/*
 				$(".props").html(
 					"<tr><td>Name</td><td>" + header.name + "</td></tr>" +
 					"<tr><td>File Version</td><td>" + header.versionAsString + "</td></tr>" +
@@ -268,6 +290,7 @@ var Promise = require("bluebird"),
 					numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
 					"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
 					"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>").show();
+					*/
 
 				cleanup();
 			});
@@ -296,7 +319,7 @@ var Promise = require("bluebird"),
 	};
 	
 
-	var loadData = function(buffer, progress) {
+	var loadData = function(buffer) {
 		var lf = new laslaz.LASFile(buffer);
 
 		return Promise.resolve(lf).cancellable().then(function(lf) {
@@ -337,7 +360,7 @@ var Promise = require("bluebird"),
 														   header.offset));
 
 						totalRead += data.count;
-						progress(totalRead / totalToRead);
+						//progress(totalRead / totalToRead);
 
 						if (data.hasMoreData)
 							return reader();
@@ -357,7 +380,7 @@ var Promise = require("bluebird"),
 			var lf = v[0];
 			// we're done loading this file
 			//
-			progress(100);
+			//progress(100);
 
 			// Close it
 			return lf.close().then(function() {
@@ -397,7 +420,7 @@ var Promise = require("bluebird"),
 			var file = input.get(0).files[0];
 
 			$.event.trigger({
-				type: "plasio.loadfile.local",
+				type: "plasio.loadfiles.local",
 				file: file,
 				name: file.name
 			});
@@ -418,14 +441,14 @@ var Promise = require("bluebird"),
 			var name = target.substring(target.lastIndexOf('/')+1);
 
 			$.event.trigger({
-				type: "plasio.loadfile.remote",
+				type: "plasio.loadfiles.remote",
 				url: target,
 				name: name
 			});
 		}));
 	};
 
-	var cancellableLoad = function(fDataLoader, name) {
+	var cancellableLoad = function(fDataLoader, files, name) {
 		//  fDataLoader should be a function that when called returns a promise which
 		//  can be cancelled, the fDataLoader should resolve to an array buffer of loaded file
 		//  and should correctly handle cancel requets.
@@ -458,29 +481,21 @@ var Promise = require("bluebird"),
 		});
 
 		progress(0, "Fetching " + name + "...");
-		loaderPromise = fDataLoader(function(pc, msg) {
-			progress(pc * 0.5, msg);
-		}).then(function(data) {
-			return Promise.delay(200).cancellable().then(function() {
-				progress(0.5, "Decoding...");
-				return loadData(data, function(pc, msg) {
-					progress(0.5 + pc * 0.5, msg);
-				});
+
+		loaderPromise =
+		Promise.reduce(files, function(sofar, fname) {
+			return fDataLoader(fname).then(loadData).then(function(r) {
+				r.name = fname;
+				return sofar.concat([r]);
 			});
-		})
+		}, [])
 		.then(function(v) {
-			var header = v[0];
-			var batcher = v[1];
-
-			// add name to header
-			header.name = name;
-
 			$.event.trigger({
 				type: "plasio.load.completed",
-				batcher: batcher,
-				header: header
+				batches: v
 			});
 		})
+		.progressed(progress)
 		.catch(Promise.CancellationError, function(e) {
 			console.log("Cancel", e);
 			console.log(e.stack);
@@ -739,11 +754,20 @@ var Promise = require("bluebird"),
 			var dt = e.originalEvent.dataTransfer;
 			var droppedFiles = dt.files;
 
+			// convert from array like object to an array
+			var toArray = function(m) {
+				var a = [];
+				for (var i = 0, il = m.length ; i < il ; i ++) {
+					a.push(m[i]);
+				}
+				return a;
+			};
+
 
 			$.event.trigger({
-				type: "plasio.loadfile.local",
-				file: droppedFiles[0],
-				name: droppedFiles[0].name
+				type: "plasio.loadfiles.local",
+				files: toArray(droppedFiles),
+				name: (droppedFiles.length === 1? droppedFiles[0].name : "Multiple Files")
 			});
 		}));
 	};
