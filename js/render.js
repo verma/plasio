@@ -479,9 +479,9 @@ var THREE = require("three"),
 				cn.r = r; cn.g = g; cn.b = b;
 			}
 			else {
-				cn.r = Math.max(cn.r, r);
-				cn.g = Math.max(cn.g, g);
-				cn.r = Math.max(cn.b, b);
+				cn.r = Math.min(cn.r, r);
+				cn.g = Math.min(cn.g, g);
+				cn.b = Math.min(cn.b, b);
 			}
 
 			if (cx === null) {
@@ -491,7 +491,7 @@ var THREE = require("three"),
 			else {
 				cx.r = Math.max(cx.r, r);
 				cx.g = Math.max(cx.g, g);
-				cx.r = Math.max(cx.b, b);
+				cx.b = Math.max(cx.b, b);
 			}
 
 			in_n = (in_n === null)? p.intensity : Math.min(in_n, p.intensity);
