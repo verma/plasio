@@ -503,7 +503,9 @@ var Promise = require("bluebird"),
 					batcher: r[1]
 				};
 
-				ret.header.name = fname.name;
+				// TODO: This needs to be fixed for mutliple URLs
+				//
+				ret.header.name = fname.name || name;
 				currentLoadIndex ++;
 				return sofar.concat([ret]);
 			});
@@ -588,13 +590,15 @@ var Promise = require("bluebird"),
 			console.log('Got new batches!');
 
 			var $h5 = $(".props h5");
-			$h5.html("");
+			$h5.html("Some information about the loaded data.");
+			$("#multi-files").html("");
+
 
 			if (allBatches.length > 1) {
 				$("#multi-files").html("<div></div>");
 				var $slider = $("#multi-files div");
 
-				$h5.html("Use slider to switch between data sets and view data properties.");
+				$h5.html("Use slider to switch between data sets and view their properties.");
 
 				$slider.noUiSlider({
 					range: [0, allBatches.length - 1],
