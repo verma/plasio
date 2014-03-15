@@ -32,6 +32,7 @@ var Promise = require("bluebird"),
 	// some globals we need
 	//
 	var fileLoadInProgress = false;
+	var allBatches = []; // all the loaded batches
 
 	// Start UI
 	$(document).on("plasio.startUI", function() {
@@ -141,6 +142,18 @@ var Promise = require("bluebird"),
 		});
 	};
 
+	var loadFileInformation = function(header) {
+		$(".props table").html(
+			"<tr><td>Name</td><td>" + header.name + "</td></tr>" +
+			"<tr><td>File Version</td><td>" + header.versionAsString + "</td></tr>" +
+			"<tr><td>Compressed?</td><td>" + (header.isCompressed ? "Yes" : "No") + "</td></tr>" +
+			//"<tr><td>Color?</td><td>" + (batcherHasColor ? "Yes" : "No") + "</td></tr>" +
+			//"<tr><td>Intensity?</td><td>" + (batcherHasIntensity ? "Yes" : "No") + "</td></tr>" +
+			"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
+			numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
+			"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
+			"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>").show();
+	};
 
 	var setupLoadHandlers = function() {
 		// setup handlers which listens for notifications on how to do things
@@ -204,12 +217,13 @@ var Promise = require("bluebird"),
 		$(document).on("plasio.load.completed", function(e) {
 			console.log(e.batches);
 
+			console.log('Loaded batches:', e.batches);
 			var batcherHasColor = false,
 				batcherHasIntensity = false,
 				batcherInSmallRange = false;
 
 			for (var i = 0, il = e.batches.length ; i < il; i ++) {
-				var batcher = e.batches[i][1];
+				var batcher = e.batches[i].batcher;
 
 				batcherHasColor = batcherHasColor ||
 					(batcher.cx.r - batcher.cn.r) > 0.0 ||
@@ -237,20 +251,20 @@ var Promise = require("bluebird"),
 
 				var b = [];
 				for (var i = 0, il = e.batches.length ; i < il ; i ++) {
-					var batcher = e.batches[i][1];
+					var batcher = e.batches[i].batcher;
+					var header = e.batches[i].header;
 
 					console.log('Loading batch:', batcher);
 					maxColorComponent = Math.max(maxColorComponent,
 												 batcher.cx.r, batcher.cx.g, batcher.cx.b);
 					batcher.scale = scale;
-
-					b.push(batcher);
-
+					b.push({
+						batcher: batcher,
+						header: header
+					});
 				}
 
-				render.loadBatcher(b);
-
-
+				allBatches = b;
 				if (batcherHasColor && batcherHasIntensity) {
 					// enable both intensity and color, and set blend to 50
 					$("#rgb").trigger("click");
@@ -278,19 +292,12 @@ var Promise = require("bluebird"),
 					maxColorComponent: maxColorComponent
 				});
 
+				$.event.trigger({
+					type: "plasio.newBatches"
+				});
+
+
 				// Set properties
-				/*
-				$(".props").html(
-					"<tr><td>Name</td><td>" + header.name + "</td></tr>" +
-					"<tr><td>File Version</td><td>" + header.versionAsString + "</td></tr>" +
-					"<tr><td>Compressed?</td><td>" + (header.isCompressed ? "Yes" : "No") + "</td></tr>" +
-					"<tr><td>Color?</td><td>" + (batcherHasColor ? "Yes" : "No") + "</td></tr>" +
-					"<tr><td>Intensity?</td><td>" + (batcherHasIntensity ? "Yes" : "No") + "</td></tr>" +
-					"<tr><td>Total Points</td><td>" + numberWithCommas(header.pointsCount) + " (" +
-					numberWithCommas(header.totalRead) + ") " + "</td></tr>" +
-					"<tr><td>Point Format ID</td><td>" + header.pointsFormatId + "</td></tr>" +
-					"<tr><td>Point Record Size</td><td>" + header.pointsStructSize + "</td></tr>").show();
-					*/
 
 				cleanup();
 			});
@@ -454,6 +461,7 @@ var Promise = require("bluebird"),
 		//  and should correctly handle cancel requets.
 		//
 		var progress = function(pc, msg) {
+			console.log("progress: ", pc, msg);
 			var obj = {
 				type: "plasio.load.progress",
 				percent: Math.round(pc * 100)
@@ -485,8 +493,16 @@ var Promise = require("bluebird"),
 		loaderPromise =
 		Promise.reduce(files, function(sofar, fname) {
 			return fDataLoader(fname).then(loadData).then(function(r) {
-				r.name = fname;
-				return sofar.concat([r]);
+				console.log('BATCH LOADED', r);
+				console.log('FNAME', fname);
+
+				var ret = {
+					header: r[0],
+					batcher: r[1]
+				};
+
+				ret.header.name = fname.name;
+				return sofar.concat([ret]);
 			});
 		}, [])
 		.then(function(v) {
@@ -548,6 +564,47 @@ var Promise = require("bluebird"),
 					type: 'plasio.intensityClampChanged'
 				});
 			})
+		});
+
+		var setCurrentBatcher = function(index, resetCamera) {
+			console.log('Setting active batcher at index:', index);
+
+			var b = allBatches[index];
+			render.loadBatcher(b.batcher, resetCamera);
+			loadFileInformation(b.header);
+
+			$.event.trigger({
+				type: "plasio.needRefresh"
+			});
+		}
+
+		$(document).on("plasio.newBatches", function() {
+			// New batches have arrived, set the range accordingly on our slider and
+			// set start to 0
+			console.log('Got new batches!');
+
+			var $h5 = $(".props h5");
+			$h5.html("");
+
+			if (allBatches.length > 1) {
+				$("#multi-files").html("<div></div>");
+				var $slider = $("#multi-files div");
+
+				$h5.html("Use slider to switch between data sets and view data properties.");
+
+				$slider.noUiSlider({
+					range: [0, allBatches.length - 1],
+					start: 0,
+					handles: 1,
+					step: 1,
+					slide: function() {
+						setCurrentBatcher(parseInt($slider.val()));
+					},
+				});
+			}
+
+			setCurrentBatcher(0, true);
+			$(".props").show();
 		});
 
 		var blendUpdate = function() {

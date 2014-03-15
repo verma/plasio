@@ -30,6 +30,7 @@ var THREE = require("three"),
 
 	function removeBatcher(b) {
 		// if the provided batcher is an array, remove all elements from the scene
+		console.log('Removing batcher', b);
 		if( Object.prototype.toString.call(b) === '[object Array]' ) {
 			for (var i in b) {
 				b[i].removeFromScene(scene);
@@ -41,6 +42,7 @@ var THREE = require("three"),
 
 	function addBatcher(b) {
 		// if the provided batcher is an array, add all elements to the scene
+		console.log('Adding batcher', b);
 		if( Object.prototype.toString.call(b) === '[object Array]' ) {
 			for (var i in b) {
 				b[i].addToScene(scene);
@@ -82,9 +84,9 @@ var THREE = require("three"),
 
 	var oldBatcher = null; // the particle system which is already loaded
 	var restorePoint = [];
-	w.loadBatcher = function(batcher) {
+	w.loadBatcher = function(batcher, resetCamera) {
 		if (oldBatcher !== null)
-			removeFromScene(batcher);
+			removeBatcher(oldBatcher);
 
 		addBatcher(batcher);
 		oldBatcher = batcher;
@@ -97,8 +99,10 @@ var THREE = require("three"),
 
 		console.log('Batcher props:', batcherProps);
 
-		setupView(mn, mx, cg, scale);
-		restorePoint = [mn, mx, cg, scale];
+		if (resetCamera === true) {
+			setupView(mn, mx, cg, scale);
+			restorePoint = [mn, mx, cg, scale];
+		}
 
 		// update some of the fields
 		var zrange = new THREE.Vector2(mn.z, mx.z);
@@ -305,32 +309,10 @@ var THREE = require("three"),
 			render();
 			needRefresh = false;
 		}
-
-		fpsUpdate();
-	}
-
-	var t = function() {
-		return (new Date()).getTime();
-	};
-
-	var timeSinceLast = null;
-	var frames = 0;
-	function fpsUpdate(){
-		var thisTime = t();
-		if (timeSinceLast === null)
-			timeSinceLast = thisTime;
-		else {
-			if (thisTime - timeSinceLast > 1000) {
-				$("#fps").html (frames + "fps");
-				frames = 0;
-				timeSinceLast = thisTime;
-			}
-		}
 	}
 
 	function render() {
 		renderer.render(scene, activeCamera);
-		frames ++;
 	}
 
 	function updateColorUniformsForSource(uniforms, source) {
@@ -653,12 +635,14 @@ var THREE = require("three"),
 
 	ParticleSystemBatcher.prototype.addToScene = function(scene) {
 		for (var i = 0, il = this.pss.length ; i < il ; i ++) {
+			console.log('Adding', this.pss[i]);
 			scene.add(this.pss[i]);
 		}
 	};
 
 	ParticleSystemBatcher.prototype.removeFromScene = function(scene) {
 		for (var i = 0, il = this.pss.length ; i < il ; i ++) {
+			console.log('Removing', this.pss[i]);
 			scene.remove(this.pss[i]);
 		}
 	};
