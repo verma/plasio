@@ -5,9 +5,7 @@
 var Promise = require("bluebird"),
 	$ = require('jquery'),
 	render = require("./render"),
-	laslaz = require('./laslaz'),
-	Nanobar = require('nanobar');
-
+	laslaz = require('./laslaz');
 
 	require("jqueryui");
 	require("jquery-layout");
@@ -65,33 +63,32 @@ var Promise = require("bluebird"),
 		setupProjectionHandlers();
 	});
 
-	var neobar = null;
+	// some progress events arrive after hideProgress since certain operations are not
+	// completely cancellable.
+	//
+	var inProgress = false;
 
 	var startProgress = function() {
-		if (neobar === null) {
-			neobar = new Nanobar({
-				bg: '#3FB8AF',
-				target: document.getElementById('body'),
-				id: 'loaderNano'
-			});
-		}
+		$("#progressBar").width('0%').show();
+		inProgress = true;
 	};
 
 	var showProgress = function(percent, msg) {
-		if (neobar !== null) {
-			neobar.go(percent);
+		if (inProgress) {
+			$("#progressBar").animate({
+				width: (Math.round(percent) + '%')
+			}, 100);
+
 			if (msg)
 				$("#loadingStatus").html(msg);
 		}
 	};
 
 	var hideProgress = function() {
-		if (neobar !== null) {
-			neobar.go(100);
-			neobar = null;
-		}
-
+		$("#progressBar").hide();
 		$("#loadingStatus").html("");
+
+		inProgress = false;
 	};
 
 	var numberWithCommas = function(x) {
@@ -128,7 +125,7 @@ var Promise = require("bluebird"),
 		var p = Promise.defer();
 
 		fr.onprogress = function(e) {
-			p.progress(e.loaded / e.total);
+			cb(e.loaded / e.total);
 		};
 		fr.onload = function(e) {
 			p.resolve(e.target.result);
@@ -161,13 +158,11 @@ var Promise = require("bluebird"),
 		// Actions to trigger file loading
 		//
 		$(document).on("plasio.loadfiles.local", function(e) {
-			cancellableLoad(getBinaryLocal, e.files);
+			cancellableLoad(getBinaryLocal, e.files, e.name);
 		});
 
 		$(document).on("plasio.loadfiles.remote", function(e) {
-			cancellableLoad(function(cb) {
-				return getBinary(e.url, cb);
-			}, e.name);
+			cancellableLoad(getBinary, [e.url], e.name);
 		});
 
 		$(document).on("plasio.load.started", function() {
@@ -295,12 +290,7 @@ var Promise = require("bluebird"),
 				$.event.trigger({
 					type: "plasio.newBatches"
 				});
-
-
-				// Set properties
-
-				cleanup();
-			});
+			}).finally(cleanup);
 		});
 
 		$(document).on("plasio.load.cancelled", function(e) {
@@ -326,7 +316,7 @@ var Promise = require("bluebird"),
 	};
 	
 
-	var loadData = function(buffer) {
+	var loadData = function(buffer, progressCB) {
 		var lf = new laslaz.LASFile(buffer);
 
 		return Promise.resolve(lf).cancellable().then(function(lf) {
@@ -367,7 +357,7 @@ var Promise = require("bluebird"),
 														   header.offset));
 
 						totalRead += data.count;
-						//progress(totalRead / totalToRead);
+						progressCB(totalRead / totalToRead);
 
 						if (data.hasMoreData)
 							return reader();
@@ -387,7 +377,7 @@ var Promise = require("bluebird"),
 			var lf = v[0];
 			// we're done loading this file
 			//
-			//progress(100);
+			progressCB(1);
 
 			// Close it
 			return lf.close().then(function() {
@@ -478,7 +468,7 @@ var Promise = require("bluebird"),
 			var a = loaderPromise;
 			loaderPromise = null;
 
-			progress(100, "Cancelling...");
+			progress(1, "Cancelling...");
 			setTimeout(function() {
 				a.cancel();
 			}, 0);
@@ -490,28 +480,42 @@ var Promise = require("bluebird"),
 
 		progress(0, "Fetching " + name + "...");
 
+		var currentLoadIndex = 0;
+		var maxLoadIndex = files.length;
+
 		loaderPromise =
 		Promise.reduce(files, function(sofar, fname) {
-			return fDataLoader(fname).then(loadData).then(function(r) {
-				console.log('BATCH LOADED', r);
-				console.log('FNAME', fname);
+			// do a progress function based on which file we're processing
+			var pfuncDataLoad = function(p, msg) {
+				progress((currentLoadIndex + p*0.5) / maxLoadIndex, msg);
+			};
 
+			var pfuncDecompress = function(p, msg) {
+				progress((currentLoadIndex + 0.5 + p*0.5) / maxLoadIndex, msg);
+			};
+
+			return fDataLoader(fname, pfuncDataLoad).then(function(data) {
+				return loadData(data, pfuncDecompress);
+			})
+			.then(function(r) {
 				var ret = {
 					header: r[0],
 					batcher: r[1]
 				};
 
 				ret.header.name = fname.name;
+				currentLoadIndex ++;
 				return sofar.concat([ret]);
 			});
 		}, [])
 		.then(function(v) {
+			progress(1);
+
 			$.event.trigger({
 				type: "plasio.load.completed",
 				batches: v
 			});
 		})
-		.progressed(progress)
 		.catch(Promise.CancellationError, function(e) {
 			console.log("Cancel", e);
 			console.log(e.stack);
@@ -576,7 +580,7 @@ var Promise = require("bluebird"),
 			$.event.trigger({
 				type: "plasio.needRefresh"
 			});
-		}
+		};
 
 		$(document).on("plasio.newBatches", function() {
 			// New batches have arrived, set the range accordingly on our slider and
