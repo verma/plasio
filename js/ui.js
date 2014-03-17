@@ -577,7 +577,7 @@ var Promise = require("bluebird"),
 		var $pbr = $("#playback-rate");
 
 		var currentPlaybackRate = function() {
-			return ($pbr.val() - 6) * 1;
+			return ($pbr.val() - 6) * 5;
 		};
 
 		var handlePlaybackRateChange = function() {
