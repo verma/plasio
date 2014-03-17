@@ -598,11 +598,11 @@ var Promise = require("bluebird"),
 
 		$pbfps.html(currentPlaybackRate() + "fps");
 
-		var setCurrentBatcher = function(index, resetCamera) {
+		var setCurrentBatcher = function(index, resetCamera, overrideCG) {
 			console.log('Setting active batcher at index:', index);
 
 			var b = allBatches[index];
-			render.loadBatcher(b.batcher, resetCamera);
+			render.loadBatcher(b.batcher, resetCamera, overrideCG);
 			loadFileInformation(b.header);
 
 			$.event.trigger({
@@ -611,7 +611,7 @@ var Promise = require("bluebird"),
 		};
 
 		var pbTimeout = null;
-		var setBatchPlayAtRate = function(rate, sliderToUpdate) {
+		var setBatchPlayAtRate = function(rate, sliderToUpdate, overrideCG) {
 			console.log('Setting play rate at:', rate);
 			if (pbTimeout !== null) {
 				clearTimeout(pbTimeout);
@@ -639,7 +639,7 @@ var Promise = require("bluebird"),
 
 			var nextFrame = function() {
 				var thisIndex = (index < 0) ? end + index : index;
-				setCurrentBatcher(thisIndex);
+				setCurrentBatcher(thisIndex, false, overrideCGToUse);
 				if (sliderToUpdate !== undefined && sliderToUpdate.length > 0) {
 					sliderToUpdate.val(thisIndex);
 				}
@@ -661,6 +661,7 @@ var Promise = require("bluebird"),
 		};
 
 		var $sliderToUpdate = null;
+		var overrideCGToUse = null;
 		$(document).on("plasio.newBatches", function() {
 			// New batches have arrived, set the range accordingly on our slider and
 			// set start to 0
@@ -678,6 +679,9 @@ var Promise = require("bluebird"),
 
 				$h5.html("Use slider to switch between data sets and view their properties.");
 
+				$sliderToUpdate = $slider;
+				overrideCGToUse = allBatches[0].batcher.cg.clone();
+
 				$slider.noUiSlider({
 					range: [0, allBatches.length - 1],
 					start: 0,
@@ -685,21 +689,20 @@ var Promise = require("bluebird"),
 					step: 1,
 					slide: function() {
 						stopAllPlayback();
-						setCurrentBatcher(parseInt($slider.val()));
+						setCurrentBatcher(parseInt($slider.val()), false, overrideCGToUse);
 					},
 				});
 
 				$(".auto-play").show();
 
-				$sliderToUpdate = $slider;
 			}
 
-			setCurrentBatcher(0, true);
+			setCurrentBatcher(0, true, overrideCGToUse);
 			$(".props").show();
 		});
 
 		$(document).on("plasio.playRateChanged", function() {
-			setBatchPlayAtRate(currentPlaybackRate(), $sliderToUpdate);
+			setBatchPlayAtRate(currentPlaybackRate(), $sliderToUpdate, overrideCGToUse);
 		});
 
 		var blendUpdate = function() {

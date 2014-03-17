@@ -81,7 +81,7 @@ var THREE = require("three"),
 
 	var oldBatcher = null; // the particle system which is already loaded
 	var restorePoint = [];
-	w.loadBatcher = function(batcher, resetCamera) {
+	w.loadBatcher = function(batcher, resetCamera, overrideCG) {
 		if (oldBatcher !== null)
 			removeBatcher(oldBatcher);
 
@@ -91,7 +91,7 @@ var THREE = require("three"),
 		var batcherProps = determineBatcherProps(batcher);
 		var mn = batcherProps[0],
 			mx = batcherProps[1],
-			cg = batcherProps[2],
+			cg = overrideCG || batcherProps[2],
 			scale = batcherProps[3];
 
 		if (resetCamera === true) {
@@ -102,10 +102,12 @@ var THREE = require("three"),
 		// update some of the fields
 		var zrange = new THREE.Vector2(mn.z, mx.z);
 
+		var cgToUse = overrideCG || cg;
+
 		// trigger signals for setting offsets
 		$.event.trigger({
 			type: 'plasio.offsetsChanged',
-			offsets: cg
+			offsets: cgToUse
 		});
 
 		// z-range
