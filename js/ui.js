@@ -166,6 +166,7 @@ var Promise = require("bluebird"),
 		});
 
 		$(document).on("plasio.load.started", function() {
+			scope.stopAllPlayback();
 			startProgress();
 			showProgress(0);
 
@@ -572,6 +573,31 @@ var Promise = require("bluebird"),
 			})
 		});
 
+		var $pbfps = $("#playback-fps");
+		var $pbr = $("#playback-rate");
+
+		var currentPlaybackRate = function() {
+			return ($pbr.val() - 6) * 1;
+		};
+
+		var handlePlaybackRateChange = function() {
+			$pbfps.html(currentPlaybackRate() + "fps");
+			$.event.trigger({
+				type: 'plasio.playRateChanged'
+			});
+		};
+
+		$pbr.noUiSlider({
+			range: [0, 12],
+			start: 6,
+			handles: 1,
+			step: 1,
+			connect: false,
+			slide: handlePlaybackRateChange,
+		});
+
+		$pbfps.html(currentPlaybackRate() + "fps");
+
 		var setCurrentBatcher = function(index, resetCamera) {
 			console.log('Setting active batcher at index:', index);
 
@@ -584,14 +610,66 @@ var Promise = require("bluebird"),
 			});
 		};
 
+		var pbTimeout = null;
+		var setBatchPlayAtRate = function(rate, sliderToUpdate) {
+			console.log('Setting play rate at:', rate);
+			if (pbTimeout !== null) {
+				clearTimeout(pbTimeout);
+				pbTimeout = 0;
+			}
+			
+			if (rate === 0)
+				return;
+
+			if (!allBatches || allBatches.length === 0)
+				return;
+
+			var start = 0;
+			var end = allBatches.length;
+
+			if (rate < 0) {
+				var t = start; start = end - 1; end = t;
+			}
+
+			var index = start;
+
+			var step = rate < 0 ? -1 : 1;
+			rate = Math.abs(rate);
+			var freq = 1000 / rate;
+
+			var nextFrame = function() {
+				var thisIndex = (index < 0) ? end + index : index;
+				setCurrentBatcher(thisIndex);
+				if (sliderToUpdate !== undefined && sliderToUpdate.length > 0) {
+					sliderToUpdate.val(thisIndex);
+				}
+
+				index = index + step;
+				if (index === end || index === -end)
+					index = start;
+
+				pbTimeout = setTimeout(nextFrame, freq);
+			};
+
+			pbTimeout = setTimeout(nextFrame, freq);
+		};
+
+		var stopAllPlayback = function() {
+			setBatchPlayAtRate(0);
+			$pbr.val(6);
+			$pbfps.html("0fps");
+		};
+
+		var $sliderToUpdate = null;
 		$(document).on("plasio.newBatches", function() {
 			// New batches have arrived, set the range accordingly on our slider and
 			// set start to 0
 			console.log('Got new batches!');
 
-			var $h5 = $(".props h5");
+			var $h5 = $(".switch-inst");
 			$h5.html("Some information about the loaded data.");
 			$("#multi-files").html("");
+			$(".auto-play").hide();
 
 
 			if (allBatches.length > 1) {
@@ -606,13 +684,22 @@ var Promise = require("bluebird"),
 					handles: 1,
 					step: 1,
 					slide: function() {
+						stopAllPlayback();
 						setCurrentBatcher(parseInt($slider.val()));
 					},
 				});
+
+				$(".auto-play").show();
+
+				$sliderToUpdate = $slider;
 			}
 
 			setCurrentBatcher(0, true);
 			$(".props").show();
+		});
+
+		$(document).on("plasio.playRateChanged", function() {
+			setBatchPlayAtRate(currentPlaybackRate(), $sliderToUpdate);
 		});
 
 		var blendUpdate = function() {
@@ -660,6 +747,9 @@ var Promise = require("bluebird"),
 		scope.currentPointSize = function() {
 			return $("#pointsize").val();
 		};
+
+		scope.currentPlaybackRate = currentPlaybackRate;
+		scope.stopAllPlayback = stopAllPlayback;
 	};
 
 	var setupComboBoxActions = function() {
@@ -785,7 +875,6 @@ var Promise = require("bluebird"),
 		};
 
 		var dragLeave = function() {
-			console.log("Outside");
 			$(".drag-and-drop").hide();
 		};
 

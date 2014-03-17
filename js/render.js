@@ -30,7 +30,6 @@ var THREE = require("three"),
 
 	function removeBatcher(b) {
 		// if the provided batcher is an array, remove all elements from the scene
-		console.log('Removing batcher', b);
 		if( Object.prototype.toString.call(b) === '[object Array]' ) {
 			for (var i in b) {
 				b[i].removeFromScene(scene);
@@ -42,7 +41,6 @@ var THREE = require("three"),
 
 	function addBatcher(b) {
 		// if the provided batcher is an array, add all elements to the scene
-		console.log('Adding batcher', b);
 		if( Object.prototype.toString.call(b) === '[object Array]' ) {
 			for (var i in b) {
 				b[i].addToScene(scene);
@@ -78,7 +76,6 @@ var THREE = require("three"),
 						(cg.z * i + b[i].cg.z) / (i+1));
 		}
 
-		console.log(b[0]);
 		return [mx, mn, cg, b[0].scale];
 	}
 
@@ -97,8 +94,6 @@ var THREE = require("three"),
 			cg = batcherProps[2],
 			scale = batcherProps[3];
 
-		console.log('Batcher props:', batcherProps);
-
 		if (resetCamera === true) {
 			setupView(mn, mx, cg, scale);
 			restorePoint = [mn, mx, cg, scale];
@@ -106,8 +101,6 @@ var THREE = require("three"),
 
 		// update some of the fields
 		var zrange = new THREE.Vector2(mn.z, mx.z);
-
-		console.log(cg);
 
 		// trigger signals for setting offsets
 		$.event.trigger({
@@ -145,9 +138,6 @@ var THREE = require("three"),
 		];
 
 		var farPlaneDist = Math.max(range[0], range[1], range[2]);
-		console.log('mins:', mins);
-		console.log('maxs:', maxs);
-		console.log('Far plane distance', farPlaneDist);
 
 		// TODO: we'd have to check what kind of projection mode we're in
 		//
@@ -163,8 +153,6 @@ var THREE = require("three"),
 			-range[0]/2,
 			cg.z + range[2],
 			-range[1]/2);
-
-		console.log('Camera position set to:', camera.position);
 
 		camera.lookAt(new THREE.Vector3(0, 0, 0));
 		orthoCamera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -233,8 +221,6 @@ var THREE = require("three"),
 		// world
 		scene = new THREE.Scene();
 
-		console.log("Setting render size to: ", w, h);
-
 		renderer = new THREE.WebGLRenderer( { antialias: false } );
 		renderer.setClearColor("#111");
 		renderer.setSize(w, h);
@@ -277,7 +263,6 @@ var THREE = require("three"),
 
 	function onWindowResize() {
 		var container = $("#container");
-		console.log(container.width(), container.height());
 
 		var w =	container.width();
 		var h = container.height();
@@ -327,8 +312,6 @@ var THREE = require("three"),
 			case "heightmap-color": uniforms.map_f.value = 1.0; break;
 			case "heightmap-color-inv": uniforms.imap_f.value = 1.0; break;
 		}
-
-		console.log(uniforms);
 	}
 
 	function updateIntensityUniformsForSource(uniforms, source) {
@@ -341,8 +324,6 @@ var THREE = require("three"),
 			case "heightmap": uniforms.height_f.value = 1.0; break;
 			case "heightmap-inv": uniforms.iheight_f.value = 1.0; break;
 		}
-
-		console.log(uniforms);
 	}
 
 	function updateIntensityClampingForBatcher(uniforms, batcher) {
@@ -460,17 +441,14 @@ var THREE = require("three"),
 
 		$(document).on("plasio.offsetsChanged", function(e) {
 			uniforms.offsets.value = e.offsets;
-			console.log('Offsets now is:', uniforms.offsets.value);
 		});
 
 		$(document).on("plasio.zrangeChanged", function(e) {
 			uniforms.zrange.value = e.zrange;
-			console.log('zrange now is:', uniforms.zrange.value);
 		});
 
 		$(document).on("plasio.scaleChanged", function(e) {
 			uniforms.xyzScale.value = e.scale;
-			console.log('Scale is', uniforms.xyzScale.value);
 		});
 
 
@@ -635,14 +613,12 @@ var THREE = require("three"),
 
 	ParticleSystemBatcher.prototype.addToScene = function(scene) {
 		for (var i = 0, il = this.pss.length ; i < il ; i ++) {
-			console.log('Adding', this.pss[i]);
 			scene.add(this.pss[i]);
 		}
 	};
 
 	ParticleSystemBatcher.prototype.removeFromScene = function(scene) {
 		for (var i = 0, il = this.pss.length ; i < il ; i ++) {
-			console.log('Removing', this.pss[i]);
 			scene.remove(this.pss[i]);
 		}
 	};
