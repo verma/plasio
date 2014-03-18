@@ -624,29 +624,26 @@ var Promise = require("bluebird"),
 			if (!allBatches || allBatches.length === 0)
 				return;
 
-			var start = 0;
-			var end = allBatches.length;
-
-			if (rate < 0) {
-				var t = start; start = end - 1; end = t;
+			var frames = [];
+			for (var i = 0, il = allBatches.length ; i < il ; i ++) {
+				frames.push(rate > 0 ? i : (il - i - 1));
 			}
 
-			var index = start;
+			var freq = 1000 / Math.abs(rate);
+			var index = 0;
 
-			var step = rate < 0 ? -1 : 1;
-			rate = Math.abs(rate);
-			var freq = 1000 / rate;
+			console.log('frames:', frames);
 
 			var nextFrame = function() {
-				var thisIndex = (index < 0) ? end + index : index;
+				var thisIndex = frames[index];
 				setCurrentBatcher(thisIndex, false, overrideCGToUse);
 				if (sliderToUpdate !== undefined && sliderToUpdate.length > 0) {
 					sliderToUpdate.val(thisIndex);
 				}
 
-				index = index + step;
-				if (index === end || index === -end)
-					index = start;
+				index ++;
+				if (index > frames.length - 1)
+					index = 0;
 
 				pbTimeout = setTimeout(nextFrame, freq);
 			};
