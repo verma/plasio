@@ -632,8 +632,6 @@ var Promise = require("bluebird"),
 			var freq = 1000 / Math.abs(rate);
 			var index = 0;
 
-			console.log('frames:', frames);
-
 			var nextFrame = function() {
 				var thisIndex = frames[index];
 				setCurrentBatcher(thisIndex, false, overrideCGToUse);
