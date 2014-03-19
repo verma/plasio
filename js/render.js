@@ -355,6 +355,16 @@ var THREE = require("three"),
 		uniforms.clampHigher.value = Math.max(higher, lower + 0.001);
 	}
 
+
+	function updateColorClamping(uniforms) {
+		var range = currentColorClamp();
+		uniforms.colorClampLower.value = range[0];
+		uniforms.colorClampHigher.value = Math.max(range[1], range[0] + 0.001);
+
+		console.log(uniforms.colorClampLower.value,
+					uniforms.colorClampHigher.value);
+	}
+
 	var shaderMaterial = null;
 	function getMaterial(vs, fs) {
 		if (shaderMaterial !== null)
@@ -367,6 +377,7 @@ var THREE = require("three"),
 		};
 
 		var iblend = currentIntensityClamp();
+		var cclamp = currentColorClamp();
 
 		var uniforms = {
 			pointSize: { type: 'f', value: currentPointSize() },
@@ -388,6 +399,10 @@ var THREE = require("three"),
 
 			clampLower: { type: 'f', value: iblend[0] },
 			clampHigher: { type: 'f', value: iblend[1] },
+
+			colorClampLower: { type: 'f', value: cclamp[0] },
+			colorClampHigher: { type: 'f', value: cclamp[1] },
+
 			zrange: { type: 'v2', value: new THREE.Vector2(0, 0) },
 			offsets: { type: 'v3', value: new THREE.Vector3(0, 0, 0) },
 			map: { type: 't', value: THREE.ImageUtils.loadTexture(currentColorMap())}
@@ -397,6 +412,8 @@ var THREE = require("three"),
 		updateIntensityUniformsForSource(uniforms, currentIntensitySource());
 		if (oldBatcher !== null)
 			updateIntensityClampingForBatcher(uniforms, oldBatcher);
+
+		updateColorClamping(uniforms);
 
 		shaderMaterial = new THREE.ShaderMaterial({
 			vertexShader: vs,
@@ -408,8 +425,13 @@ var THREE = require("three"),
 		// attach handlers for notifications
 		$(document).on("plasio.colormapChanged", function() {
 			var colormap = currentColorMap();
-			uniforms.map.value = THREE.ImageUtils.loadTexture(currentColorMap());
-			uniforms.map.needsUpdate = true;
+
+			console.log('Colormap changed to:', colormap);
+
+			THREE.ImageUtils.loadTexture(colormap, undefined, function(tex) {
+				uniforms.map.value = tex;
+				uniforms.map.needsUpdate = true;
+			});
 		});
 
 		$(document).on("plasio.colorsourceChanged", function() {
@@ -423,6 +445,10 @@ var THREE = require("three"),
 		$(document).on("plasio.intensityClampChanged", function() {
 			if (oldBatcher !== null)
 				updateIntensityClampingForBatcher(uniforms, oldBatcher);
+		});
+
+		$(document).on("plasio.colorClampChanged", function() {
+			updateColorClamping(uniforms);
 		});
 
 		$(document).on("plasio.intensityBlendChanged", function() {

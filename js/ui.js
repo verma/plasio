@@ -15,6 +15,79 @@ var Promise = require("bluebird"),
 (function(scope) {
 	"use strict";
 
+	function ColormapRange(canvasElement) {
+		this.img = null;
+		this.range = [0.0, 1.0];
+		this.canvas = $(canvasElement);
+
+		console.log('Drawing');
+		this._refresh();
+
+		var o = this;
+		$(scope).on('broadcast.resize resize', function(e) {
+			console.log('Canvas resized');
+			o._refresh();
+		});
+	}
+
+	ColormapRange.prototype.setImage = function(img, cb) {
+		this.img = new Image(256, 1);
+		this.img.src = img;
+
+		var o = this;
+		this.img.onload = function() {
+			o._refresh();
+			if (cb) cb(); // since this is a delayed function, we may to trigger re-draw
+		};
+	};
+
+	ColormapRange.prototype.setRange = function(n, x) {
+		this.range = [n, x];
+		this._refresh();
+	};
+
+	ColormapRange.prototype._refresh = function() {
+		// refresh all the things
+		var w = this.canvas.width(),
+			h = this.canvas.height();
+
+		var domCanvas = this.canvas.get(0);
+
+		domCanvas.width = w;
+		domCanvas.height = h;
+
+		console.log(w, h);
+		var ctx = domCanvas.getContext('2d');
+
+		// first clear background
+		//
+		ctx.setFillColor(1.0);
+		ctx.fillRect(0, 0, w, h);
+
+		// Draw image if need be
+		if (this.img) {
+			// Draw first column
+			var f1 = Math.floor(this.range[0] * w);
+			var f2 = Math.floor(this.range[1] * w);
+
+			console.log(this.img.width, this.img.height);
+
+			console.log(f1, f2);
+
+			var y = 0,
+				yh = h;
+
+			// first band
+			ctx.drawImage(this.img, 0, 0, 1, 1, 0, y, f1, yh);
+			// second band
+			ctx.drawImage(this.img, 1, 0, this.img.width-2, 1, f1, y, f2 - f1, yh);
+			// third band
+			ctx.drawImage(this.img, this.img.width-1, 0, 1, 1, f2, y, w - f2, yh);
+		}
+	};
+
+	var colormapRange = new ColormapRange(document.getElementById('colorCanvasObject'));
+
 	var withRefresh = function(f) {
 		// return f wrapped around with a call to renderer.needRefresh
 		return function() {
@@ -48,6 +121,9 @@ var Promise = require("bluebird"),
 
 			onresize: function() {
 				render.doRenderResize();
+				$.event.trigger({
+					type: 'broadcast.resize'
+				});
 			}});
 
 
@@ -61,6 +137,10 @@ var Promise = require("bluebird"),
 		makePanelsSlidable();
 		setupLoadHandlers();
 		setupProjectionHandlers();
+
+		// get the currently selected image
+		var imgElement = $("#colorSwatches a:first img");
+		colormapRange.setImage(imgElement.attr("src"));
 	});
 
 	// some progress events arrive after hideProgress since certain operations are not
@@ -726,6 +806,30 @@ var Promise = require("bluebird"),
 			})
 		});
 
+		var $colormapClamp = $("#colormapClamp");
+		var currentColorClamp = function() {
+			var val  = $("#colormapClamp").val();
+			var n = parseInt(val[0]) / 100.0,
+				x = parseInt(val[1]) / 100.0;
+
+			return [n, x];
+		};
+
+		$("#colormapClamp").noUiSlider({
+			range: [0, 100],
+			start: [0, 100],
+			handles: 2,
+			connect: true,
+			slide: withRefresh(function() {
+				var r = currentColorClamp();
+				colormapRange.setRange(r[0], r[1]);
+
+				$.event.trigger({
+					type: 'plasio.colorClampChanged'
+				});
+			})
+		});
+
 		scope.currentFOV = function() {
 			return $("#fov").val();
 		};
@@ -746,6 +850,7 @@ var Promise = require("bluebird"),
 			return $("#pointsize").val();
 		};
 
+		scope.currentColorClamp = currentColorClamp;
 		scope.currentPlaybackRate = currentPlaybackRate;
 		scope.stopAllPlayback = stopAllPlayback;
 	};
@@ -784,20 +889,23 @@ var Promise = require("bluebird"),
 		}));
 
 
-		$("#colormap").on("click", "a", withRefresh(function(e) {
+		var activeColorMap = "/colormaps/blue-red.png";
+		$("#colorSwatches").on("click", "a", function(e) {
 			e.preventDefault();
+
 			var $a = $(this);
+			var $img = $a.find('img');
+			var imgUrl = $img.attr('src');
 
-			var $img = $a.find("img");
-			var imageUrl = $img.attr("src");
+			activeColorMap = imgUrl;
+			colormapRange.setImage(imgUrl, withRefresh(function() {
+				$.event.trigger({
+					type: "plasio.colormapChanged"
+				});
+			}));
+		});
 
-			var $target = $("#colormap").find("button img");
-			$target.attr("src", imageUrl);
-
-			$.event.trigger({
-				type: "plasio.colormapChanged"
-			});
-		}));
+		colormapRange.setImage(activeColorMap);
 
 		scope.currentColorSource = function() {
 			var source = $("#colorsource button").attr('target');
@@ -810,8 +918,7 @@ var Promise = require("bluebird"),
 		};
 
 		scope.currentColorMap = function() {
-			var $target = $("#colormap").find("button img");
-			return $target.attr("src");
+			return activeColorMap;
 		};
 	};
 

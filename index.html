@@ -150,20 +150,33 @@
 						<div class="labeled-controls">
 							<h4>Colormap</h4>
 							<h5>Color gradient values used for Heightmap Color and Classification color sources</h5>
-							<div class="btn-group btn-block map-picker" id="colormap">
-								<button type="button" class="btn btn-sm btn-default btn-block dropdown-toggle" data-toggle="dropdown">
-									<img src="/colormaps/blue-red.png"> <span class="caret"></span>
-								</button>
-								<ul class="dropdown-menu btn-block" role="menu" style="text-align: center">
-									<li><a href="#"><img src="/colormaps/blue-red.png"></a></li>
-									<li><a href="#"><img src="/colormaps/blue-hue.png"></a></li>
-									<li><a href="#"><img src="/colormaps/blue-orange.png"></a></li>
-									<li><a href="#"><img src="/colormaps/heat-map.png"></a></li>
-									<li><a href="#"><img src="/colormaps/awesome-green.png"></a></li>
-									<li><a href="#"><img src="/colormaps/pestel-shades.png"></a></li>
-									<li><a href="#"><img src="/colormaps/black-orange.png"></a></li>
-								</ul>
+							<div class='btn-group btn-group-justified' id="colorSwatches">
+								<a type="button" class="btn btn-default btn-sm">
+									<img src="/colormaps/blue-red.png" width="100%" height="10">
+								</a>
+								<a type="button" class="btn btn-default btn-sm">
+									<img src="/colormaps/blue-hue.png" width="100%" height="10">
+								</a>
+								<a type="button" class="btn btn-default btn-sm">
+									<img src="/colormaps/blue-orange.png" width="100%" height="10">
+								</a>
+								<a type="button" class="btn btn-default btn-sm">
+									<img src="/colormaps/heat-map.png" width="100%" height="10">
+								</a>
+								<a type="button" class="btn btn-default btn-sm">
+									<img src="/colormaps/awesome-green.png" width="100%" height="10">
+								</a>
+								<a type="button" class="btn btn-default btn-sm">
+									<img src="/colormaps/pestel-shades.png" width="100%" height="10">
+								</a>
+								<a type="button" class="btn btn-default btn-sm">
+									<img src="/colormaps/black-orange.png" width="100%" height="10">
+								</a>
 							</div>
+							<div id="colorCanvas">
+								<canvas id="colorCanvasObject"></canvas>
+							</div>
+							<div id="colormapClamp"></div>
 						</div>
 						<div class="labeled-controls">
 							<h4>Intensity Source</h4>
@@ -277,6 +290,8 @@
 
 			uniform float clampLower;
 			uniform float clampHigher;
+			uniform float colorClampLower;
+			uniform float colorClampHigher;
 			uniform vec2  zrange;
 			uniform vec3  offsets;
 			uniform sampler2D map;
@@ -295,11 +310,13 @@
 				gl_Position = projectionMatrix * mvPosition;
 				float nheight = (position.z - zrange.x) / (zrange.y - zrange.x);
 
+				float nhclamp = (nheight - colorClampLower) / (colorClampHigher - colorClampLower);
+
 				// compute color channels
 				//
 				vec3 norm_color = color / maxColorComponent;
-				vec3 map_color = texture2D(map, vec2(nheight, 0.5)).rgb;
-				vec3 inv_map_color = texture2D(map, vec2(1.0 - nheight, 0.5)).rgb;
+				vec3 map_color = texture2D(map, vec2(nhclamp, 0.5)).rgb;
+				vec3 inv_map_color = texture2D(map, vec2(1.0 - nhclamp, 0.5)).rgb;
 				vec3 class_color = texture2D(map, vec2(classification / 12.0, 0.5)).rgb;
 
 				// compute intensity channels
