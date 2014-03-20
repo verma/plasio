@@ -16,6 +16,105 @@ var THREE = require("three"),
 
 	var cross;
 
+	var mensurationMode = false;
+
+	function MensurationController(thisScene) {
+		var g = new THREE.PlaneGeometry(1.0, 1.0, 10, 10);
+		var m = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+
+		this.plane = new THREE.Mesh(g, m);
+		this.plane.rotation.x = Math.PI/2;
+		this.plane.visible = false;
+
+		this.tracking = false;
+		this.handlersAttached = false;
+		this.enabled = false;
+
+		this.startY = 0;
+
+		thisScene.add (this.plane);
+	}
+
+	MensurationController.prototype.setDimensions = function(x, y, z) {
+		var m = Math.max(x, z);
+		var s = Math.sqrt(2 * m * m);
+		this.plane.scale.set(s, s, 1.0);
+
+		this.zRange = y;
+		console.log('Setting plane scale:', this.plane.scale);
+		console.log('zrange:', this.zRange);
+	};
+
+	MensurationController.prototype._update = function(factor, scale) {
+		if (this.enabled && this.tracking && factor !== 0) {
+			var y = this.plane.position.y + factor * scale;
+			this.plane.position.y = Math.max(-this.zRange, Math.min(y, this.zRange));
+
+			console.log('Plane position:', this.plane.position.y);
+
+			needRefresh = true;
+		}
+	};
+
+	MensurationController.prototype.attachHandlers = function(on) {
+		var mc = this;
+
+		if (on && !this.handlersAttached) {
+			$(document).on("mousedown.plasio.mensuration", function(e) {
+				mc.startY = e.pageY;
+				mc.tracking = true;
+			});
+
+			$(document).on("mouseup.plasio.mensuration", function(e) {
+				mc.tracking = false;
+			});
+
+			$(document).on("mousemove.plasio.mensuration", function(e) {
+				var d = mc.startY - e.pageY;
+				mc.startY = e.pageY;
+
+				var f = d * (mc.zRange / 10000);
+				var scale = e.shiftKey ? 1 : 100;
+
+				mc._update(f, scale);
+			});
+
+			console.log('Mensuration handlers attached');
+		}
+		else {
+			$(document).off("mousedown.plasio.mensuration");
+			$(document).off("mouseup.plasio.mensuration");
+			$(document).off("mousemove.plasio.mensuration");
+
+			console.log('Mensuration handlers detached');
+		}
+
+		mc.handlersAttached = on;
+	};
+
+	MensurationController.prototype.setVisible = function(on) {
+		this.plane.visible = on;
+		this.enabled = on;
+		this.attachHandlers(on);
+	};
+
+	MensurationController.prototype.placeAt = function(position) {
+		this.plane.position.set(
+			0, 0, 0);
+
+		console.log('Setting plane position to:', this.plane.position);
+	};
+
+
+	var getMensurationControls = (function() {
+		var mc = null;
+		return function() {
+			if (mc === null)
+				mc = new MensurationController(scene);
+			return mc;
+		};
+	})();
+
 	w.startRenderer = function(render_container, status_cb) {
 		init(render_container);
 		animate();
@@ -25,6 +124,26 @@ var THREE = require("three"),
 				renderer.context.getParameter(renderer.context.VERSION) + ", Provider: " +
 				renderer.context.getParameter(renderer.context.VENDOR);
 			status_cb(vendor);
+		}
+	};
+
+	w.enableMensuration = function() {
+		if (!mensurationMode) {
+			mensurationMode = true;
+			controls.enabled = false;
+
+			getMensurationControls().setVisible(true);
+			needRefresh = true;
+		}
+	};
+
+	w.disableMensuration = function() {
+		if (mensurationMode) {
+			mensurationMode = false;
+			controls.enabled = true;
+
+			getMensurationControls().setVisible(false);
+			needRefresh = true;
 		}
 	};
 
@@ -178,6 +297,13 @@ var THREE = require("three"),
 		camera.updateProjectionMatrix();
 		orthoCamera.updateProjectionMatrix();
 		topViewCamera.updateProjectionMatrix();
+
+
+		// now setup any mensuration controls we may have
+		//
+		var mc = getMensurationControls();
+		mc.placeAt(cg);
+		mc.setDimensions(range[0], range[1], range[2]);
 	};
 
 	var numberWithCommas = function(x) {
@@ -224,7 +350,6 @@ var THREE = require("three"),
 		scene = new THREE.Scene();
 
 		renderer = new THREE.WebGLRenderer( { antialias: false } );
-		renderer.setClearColor("#111");
 		renderer.setSize(w, h);
 
 		container.append( renderer.domElement );
@@ -290,6 +415,7 @@ var THREE = require("three"),
 			camera.rotation.z);
 
 		requestAnimationFrame(animate);
+
 		controls.update();
 
 		if (needRefresh) {
@@ -299,6 +425,7 @@ var THREE = require("three"),
 	}
 
 	function render() {
+		renderer.setClearColor("#111");
 		renderer.render(scene, activeCamera);
 	}
 

@@ -138,6 +138,7 @@ var Promise = require("bluebird"),
 			}});
 
 
+		setupKeyboardHooks();
 		setupFileOpenHandlers();
 		setupSliders();
 		setupComboBoxActions();
@@ -1078,6 +1079,31 @@ var Promise = require("bluebird"),
 			$modal.attr("data-selection", $button.attr("data-value"));
 			$modal.modal('hide');
 		});
+	};
+
+	var setupKeyboardHooks = function() {
+		$(document).on('keydown', function(e) {
+			var keyCode = e.key || e.keyCode;
+
+			// we hold the space down to get into mensuration mode
+			//
+			if (keyCode === 32) {
+				e.preventDefault();
+				render.enableMensuration();
+			}
+		});
+
+		$(document).on('keyup', function(e) {
+			var keyCode = e.key || e.keyCode;
+
+			// turn the mensuration mode off when space is let go
+			if (keyCode === 32) {
+				e.preventDefault();
+				render.disableMensuration();
+			}
+		});
+
+
 	};
 })(window);
 
