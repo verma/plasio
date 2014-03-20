@@ -61,7 +61,7 @@ var Promise = require("bluebird"),
 
 		// first clear background
 		//
-		ctx.setFillColor(1.0);
+		ctx.fillStyle = "#fff";
 		ctx.fillRect(0, 0, w, h);
 
 		// Draw image if need be
@@ -99,6 +99,17 @@ var Promise = require("bluebird"),
 			return r;
 		};
 	};
+
+	// convert from array like object to an array
+	var toArray = function(m) {
+		var a = [];
+		for (var i = 0, il = m.length ; i < il ; i ++) {
+			a.push(m[i]);
+		}
+		return a;
+	};
+
+
 
 	// some globals we need
 	//
@@ -495,12 +506,12 @@ var Promise = require("bluebird"),
 			e.preventDefault();
 
 			var input = $(this);
-			var file = input.get(0).files[0];
+			var files = input.get(0).files;
 
 			$.event.trigger({
 				type: "plasio.loadfiles.local",
-				file: file,
-				name: file.name
+				files: toArray(files),
+				name: files.length === 1 ? files[0].name : 'Multiple Files'
 			});
 		}));
 
@@ -1012,16 +1023,6 @@ var Promise = require("bluebird"),
 
 			var dt = e.originalEvent.dataTransfer;
 			var droppedFiles = dt.files;
-
-			// convert from array like object to an array
-			var toArray = function(m) {
-				var a = [];
-				for (var i = 0, il = m.length ; i < il ; i ++) {
-					a.push(m[i]);
-				}
-				return a;
-			};
-
 
 			$.event.trigger({
 				type: "plasio.loadfiles.local",
