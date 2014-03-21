@@ -18,6 +18,170 @@ var THREE = require("three"),
 
 	var mensurationMode = false;
 
+
+	function PointCollector(domElement) {
+		this.points = [];
+		this.domElement = domElement || window;
+
+		console.log(this.domElement);
+		console.log(window);
+
+		this.fromCamera = null;
+		this.size = [0, 0];
+
+		var o = this;
+		THREE.ImageUtils.loadTexture("/assets/circle.png", undefined, function(map) {
+			o.mat = new THREE.SpriteMaterial({
+						map: map,
+						color: 0xffffff,
+						fog: false,
+					});
+		});
+
+		this._sprites = [];
+		this.orthoScene = new THREE.Scene();
+		this.orthoCamera = new THREE.OrthographicCamera(-1, 1.0, 1.0, -1.0, 1, 10);
+		this.orthoCamera.position.z = 10;
+	}
+
+	PointCollector.prototype._2dProj = function(p, proj) {
+		proj = proj || (new THREE.Projector());
+		var ndc = p.clone();
+		proj.projectVector(ndc, this.fromCamera);
+		return new THREE.Vector3(
+			ndc.x * this.size[0] / 2, ndc.y * this.size[1] / 2, 1.0);
+	};
+
+
+	PointCollector.prototype.push = function(p) {
+		var d2 = this._2dProj(p);
+
+		for (var i = 0; i < this.points.length ; i ++) {
+			console.log(d2);
+			console.log(this.points[i].sprite.position);
+			console.log(d2.distanceTo(this.points[i].sprite.position));
+			if (d2.distanceTo(this.points[i].sprite.position) < 8.0) {
+				// the user clicked on one of the points
+				this.orthoScene.remove(this.points[i].sprite);
+				this.points.splice(i, 1);
+
+				needRefresh = true;
+				return;
+			}
+		}
+
+		// the user intends to add a new point
+		p.sprite = null;
+		p.color = new THREE.Color();
+		p.color.setHSL(Math.random(), 0.5, 0.5);
+
+		this.points.push(p);
+
+		needRefresh = true;
+	};
+
+	PointCollector.prototype.clearPoints = function() {
+		for (var i = 0 ; i < this.points.length ; i ++) {
+			this.orthoScene.remove(this.points[i].sprite);
+		}
+
+		this.points = [];
+	};
+
+	PointCollector.prototype._updateSpritePositions = function() {
+		var width = this.size[0];
+		var height = this.size[1];
+
+		var proj = new THREE.Projector();
+
+		for (var i = 0, il = this.points.length ; i < il ; i ++) {
+			var p = this.points[i];
+
+			if (!p.sprite) {
+				p.sprite = new THREE.Sprite(this.mat);
+				p.sprite.scale.set(16, 16, 1);
+				this.orthoScene.add(p.sprite);
+			}
+
+			var ndc = this._2dProj(p, proj);
+			p.sprite.position.set(ndc.x, ndc.y, ndc.z);
+
+				/*
+			console.log(p.sprite.position.x,
+						p.sprite.position.y,
+						p.sprite.position.z);
+						*/
+		}
+	};
+
+	PointCollector.prototype.reset = function() {
+		this.points = [];
+	};
+
+	var getPointCollector = (function() {
+		var pc = null;
+
+		return function() {
+			if (pc === null)
+				pc = new PointCollector(renderer.domElement);
+			return pc;
+		};
+	})();
+
+	PointCollector.prototype.update = function() {
+		var $e = $(this.domElement);
+		var width = $e.width(),
+			height = $e.height();
+
+		if (this.fromCamera != activeCamera ||
+			width !== this.size[0] || height !== this.size[1]) {
+			// needs to be revalidated
+			this.size = [width, height];
+			this.fromCamera = activeCamera;
+
+			this.orthoCamera.left = -width / 2;
+			this.orthoCamera.right = width / 2;
+			this.orthoCamera.top = height / 2;
+			this.orthoCamera.bottom = -height / 2;
+
+			this.orthoCamera.updateProjectionMatrix();
+			this._updateSpritePositions();
+
+			needRefresh = true;
+		}
+	};
+
+	PointCollector.prototype.render = function(renderer) {
+		this._updateSpritePositions();
+
+		// build lines
+		var lines = [];
+		for (var i = 0 ; i < this.points.length - 1 ; i ++) {
+			var g = new THREE.Geometry();
+			g.vertices.push(this.points[i].sprite.position);
+			g.vertices.push(this.points[i+1].sprite.position);
+
+			var dist = this.points[i].distanceTo(this.points[i+1]);
+
+			var m = new THREE.LineBasicMaterial({color: this.points[i].color.getHex(), linewidth: 5});
+			var l = new THREE.Line(g, m);
+
+			this.orthoScene.add(l);
+			lines.push(l);
+
+			console.log('Distance:', dist);
+		}
+
+		console.log(lines.length);
+
+		renderer.clearDepth();
+		renderer.render(this.orthoScene, this.orthoCamera);
+
+		for (i = 0 ; i < lines.length ; i ++) {
+			this.orthoScene.remove(lines[i]);
+		}
+	};
+
 	function MensurationController(thisScene) {
 		var g = new THREE.PlaneGeometry(1.0, 1.0, 10, 10);
 		var m = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
@@ -61,22 +225,60 @@ var THREE = require("three"),
 
 		if (on && !this.handlersAttached) {
 			$(document).on("mousedown.plasio.mensuration", function(e) {
-				mc.startY = e.pageY;
-				mc.tracking = true;
+				e.preventDefault();
+
+				if (e.button === 2) {
+					mc.startY = e.pageY;
+					mc.tracking = true;
+				}
 			});
 
 			$(document).on("mouseup.plasio.mensuration", function(e) {
-				mc.tracking = false;
+				e.preventDefault();
+
+				if (e.button === 2) {
+					mc.tracking = false;
+				}
 			});
 
 			$(document).on("mousemove.plasio.mensuration", function(e) {
-				var d = mc.startY - e.pageY;
-				mc.startY = e.pageY;
+				e.preventDefault();
 
-				var f = d * (mc.zRange / 10000);
-				var scale = e.shiftKey ? 1 : 100;
+				if (e.button === 2) {
+					var d = mc.startY - e.pageY;
+					mc.startY = e.pageY;
 
-				mc._update(f, scale);
+					var f = d * (mc.zRange / 10000);
+					var scale = e.shiftKey ? 1 : 100;
+
+					mc._update(f, scale);
+				}
+			});
+
+			$(document).on("click.plasio.mensuration", function(e) {
+				e.preventDefault();
+
+				var x = e.clientX,
+					y = e.clientY,
+					width = $(e.target).width(),
+					height = $(e.target).height();
+
+				var vec = new THREE.Vector3((x / width) * 2 - 1,
+											(y / height) * -2 + 1,
+											0);
+
+				var p = new THREE.Projector();
+				p.unprojectVector(vec, activeCamera);
+				vec.sub(activeCamera.position);
+
+				vec.normalize();
+
+				var rc = new THREE.Raycaster(activeCamera.position, vec);
+
+				var res = rc.intersectObject(mc.plane);
+				if (res.length > 0) {
+					getPointCollector().push(res[0].point);
+				}
 			});
 
 			console.log('Mensuration handlers attached');
@@ -85,6 +287,7 @@ var THREE = require("three"),
 			$(document).off("mousedown.plasio.mensuration");
 			$(document).off("mouseup.plasio.mensuration");
 			$(document).off("mousemove.plasio.mensuration");
+			$(document).off("click.plasio.mensuration");
 
 			console.log('Mensuration handlers detached');
 		}
@@ -351,6 +554,7 @@ var THREE = require("three"),
 
 		renderer = new THREE.WebGLRenderer( { antialias: false } );
 		renderer.setSize(w, h);
+		renderer.autoClear = false;
 
 		container.append( renderer.domElement );
 
@@ -418,6 +622,8 @@ var THREE = require("three"),
 
 		controls.update();
 
+		getPointCollector().update();
+
 		if (needRefresh) {
 			render();
 			needRefresh = false;
@@ -426,7 +632,10 @@ var THREE = require("three"),
 
 	function render() {
 		renderer.setClearColor("#111");
+		renderer.clear();
 		renderer.render(scene, activeCamera);
+
+		getPointCollector().render(renderer);
 	}
 
 	function updateColorUniformsForSource(uniforms, source) {

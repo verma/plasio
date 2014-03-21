@@ -1102,8 +1102,6 @@ var Promise = require("bluebird"),
 				render.disableMensuration();
 			}
 		});
-
-
 	};
 })(window);
 
