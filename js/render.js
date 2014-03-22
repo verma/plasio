@@ -19,6 +19,226 @@ var THREE = require("three"),
 	var mensurationMode = false;
 
 
+	function XYZRenderer() {
+		this.off = null;
+		this.downBy = 1;
+		this.textureHeight = 0;
+
+		this.uniforms = {
+			pointSize: {type: 'f', value: currentPointSize() },
+			xyzScale: { type: 'v3', value: new THREE.Vector3(1, 1, 1) },
+			zrange: { type: 'v2', value: new THREE.Vector2(0, 0) },
+			offsets: { type: 'v3', value: new THREE.Vector3(0, 0, 0) },
+			which: { type: 'v3', value: new THREE.Vector3(0, 0, 0) }
+		};
+
+		this.mat = new THREE.ShaderMaterial({
+			blending: THREE.CustomBlending,
+			blendSrc: THREE.OneFactor,
+			blendDst: THREE.ZeroFactor,
+			/*jshint multistr: true */
+			vertexShader: '\
+			uniform float pointSize; \n\
+			uniform vec3 xyzScale; \n\
+			uniform vec2 zrange; \n\
+			uniform vec3 offsets; \n\
+			uniform vec3 which; \n\
+			varying vec3 xyz; \n\
+			void main() { \n\
+				vec3 fpos = ((position.xyz - offsets) * xyzScale).xzy * vec3(-1, 1, 1); \n\
+				vec4 mvPosition = modelViewMatrix * vec4(fpos, 1.0); \n\
+				gl_Position = projectionMatrix * mvPosition; \n\
+				gl_PointSize = pointSize; \n\
+				xyz = which * fpos; \n\
+			}',
+			fragmentShader:'\n\
+			varying vec3 xyz; \n\
+			float shift_right(float v, float amt) {\
+				v = floor(v) + 0.5;\
+				return floor(v / exp2(amt));\
+			}\
+			float shift_left(float v, float amt) {\
+				return floor(v * exp2(amt) + 0.5);\
+			}\
+			\
+			float mask_last(float v, float bits) {\
+				return mod(v, shift_left(1.0, bits));\
+			}\
+			float extract_bits(float num, float from, float to) {\
+				from = floor(from + 0.5);\
+				to = floor(to + 0.5);\
+				return mask_last(shift_right(num, from), to - from);\
+			}\
+			vec4 encode_float(float val) {\
+				if (val == 0.0)\
+					return vec4(0, 0, 0, 0);\
+				float sign = val > 0.0 ? 0.0 : 1.0;\
+				val = abs(val);\
+				float exponent = floor(log2(val));\
+				float biased_exponent = exponent + 127.0;\
+				float fraction = ((val / exp2(exponent)) - 1.0) * 8388608.0;\
+				\
+				float t = biased_exponent / 2.0;\
+				float last_bit_of_biased_exponent = fract(t) * 2.0;\
+				float remaining_bits_of_biased_exponent = floor(t);\
+				\
+				float byte4 = extract_bits(fraction, 0.0, 8.0) / 255.0;\
+				float byte3 = extract_bits(fraction, 8.0, 16.0) / 255.0;\
+				float byte2 = (last_bit_of_biased_exponent * 128.0 + extract_bits(fraction, 16.0, 23.0)) / 255.0;\
+				float byte1 = (sign * 128.0 + remaining_bits_of_biased_exponent) / 255.0;\
+				return vec4(byte4, byte3, byte2, byte1);\
+			}\
+			void main() { \n\
+				float s = xyz.x + xyz.y + xyz.z; \
+				gl_FragColor = encode_float(s); }',
+			uniforms: this.uniforms
+		});
+	}
+
+	XYZRenderer.prototype.resize = function(width, height) {
+		this.off = new THREE.WebGLRenderTarget(width/this.downBy, height/this.downBy, { 
+			stencilBuffer: false,
+			magFilter: THREE.NearestFilter,
+			minFilter: THREE.NearestFilter
+		});
+
+		this.off.generateMipmaps = false;
+
+		this.textureHeight = height / this.downBy;
+		console.log('texture height:', this.textureHeight);
+	};
+
+	/*
+	var exp2Table = [
+		2.168404E-19, 4.336809E-19, 8.673617E-19, 1.734723E-18,
+		3.469447E-18, 6.938894E-18, 1.387779E-17, 2.775558E-17,
+		5.551115E-17, 1.110223E-16, 2.220446E-16, 4.440892E-16,
+		8.881784E-16, 1.776357E-15, 3.552714E-15, 7.105427E-15,
+		1.421085E-14, 2.842171E-14, 5.684342E-14, 1.136868E-13,
+		2.273737E-13, 4.547474E-13, 9.094947E-13, 1.818989E-12,
+		3.637979E-12, 7.275958E-12, 1.455192E-11, 2.910383E-11,
+		5.820766E-11, 1.164153E-10, 2.328306E-10, 4.656613E-10,
+		9.313226E-10, 1.862645E-09, 3.725290E-09, 7.450581E-09,
+		1.490116E-08, 2.980232E-08, 5.960464E-08, 1.192093E-07,
+		2.384186E-07, 4.768372E-07, 9.536743E-07, 1.907349E-06,
+		3.814697E-06, 7.629395E-06, 1.525879E-05, 3.051758E-05,
+		6.103516E-05, 1.220703E-04, 2.441406E-04, 4.882812E-04,
+		9.765625E-04, 1.953125E-03, 3.906250E-03, 7.812500E-03,
+		1.562500E-02, 3.125000E-02, 6.250000E-02, 1.250000E-01,
+		2.500000E-01, 5.000000E-01, 1.000000E+00, 2.000000E+00,
+		4.000000E+00, 8.000000E+00, 1.600000E+01, 3.200000E+01,
+		6.400000E+01, 1.280000E+02, 2.560000E+02, 5.120000E+02,
+		1.024000E+03, 2.048000E+03, 4.096000E+03, 8.192000E+03,
+		1.638400E+04, 3.276800E+04, 6.553600E+04, 1.310720E+05,
+		2.621440E+05, 5.242880E+05, 1.048576E+06, 2.097152E+06,
+		4.194304E+06, 8.388608E+06, 1.677722E+07, 3.355443E+07,
+		6.710886E+07, 1.342177E+08, 2.684355E+08, 5.368709E+08,
+		1.073742E+09, 2.147484E+09, 4.294967E+09, 8.589935E+09,
+		1.717987E+10, 3.435974E+10, 6.871948E+10, 1.374390E+11,
+		2.748779E+11, 5.497558E+11, 1.099512E+12, 2.199023E+12,
+		4.398047E+12, 8.796093E+12, 1.759219E+13, 3.518437E+13,
+		7.036874E+13, 1.407375E+14, 2.814750E+14, 5.629500E+14,
+		1.125900E+15, 2.251800E+15, 4.503600E+15, 9.007199E+15,
+		1.801440E+16, 3.602880E+16, 7.205759E+16, 1.441152E+17,
+		2.882304E+17, 5.764608E+17, 1.152922E+18, 2.305843E+18
+	];
+
+	var decodeFloat = function (input, output) {
+		var m, e, i_sign, i, i4, len;
+
+		m = input[1] * 3.921569E-03 +
+			input[2] * 1.537870E-05 +
+			input[3] * 6.030863E-08;
+
+		e = input[0];
+		i_sign = 0;
+
+		if (e & 0x80) {
+			i_sign = 1;
+			e &= ~0x80;
+		}
+		if (e & 0x40) {
+			m = -m;
+			e &= ~0x40;
+		}
+		if (i_sign) {
+			e = -e;
+		}
+
+		return m * exp2Table[e + 62];
+	};
+	*/
+	var decodeFloat = function(input) {
+		var fa = new Float32Array(input.buffer);
+		return fa[0];
+	};
+
+	XYZRenderer.prototype._debugRender = function(renderer, scene, camera, x, y, z) {
+		console.log('Rendering');
+		var prev = scene.overrideMaterial;
+		scene.overrideMaterial = this.mat;
+
+		this.uniforms.which.value = new THREE.Vector3(x, y, z);
+		renderer.render(scene, camera);
+
+		scene.overrideMaterial = prev;
+	};
+
+	XYZRenderer.prototype.pick = function(renderer, scene, camera, x, y) {
+		if (this.X === null ||
+			this.Y === null ||
+			this.Z === null)
+			return;
+
+		var o = this;
+
+		renderer.setClearColor("#000", 0);
+		var gl = renderer.getContext();
+
+
+		var rx = x / this.downBy,
+			ry = y / this.downBy;
+
+		var renderWith = function(x, y, z) {
+			o.uniforms.which.value = new THREE.Vector3(x, y, z);
+			renderer.render(scene, camera, o.off, true);
+
+			var tx = rx, ty = o.textureHeight - ry;
+
+			console.log(tx, ty);
+
+			var pixelBuffer = new Uint8Array(4);
+			gl.readPixels(tx, ty, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelBuffer);
+			console.log(pixelBuffer);
+
+			return pixelBuffer;
+		};
+
+		var ox = 0.0, oy = 0.0, oz = 0.0;
+
+		var prev = scene.overrideMaterial;
+		scene.overrideMaterial = this.mat;
+
+		ox = decodeFloat(renderWith(1, 0, 0));
+		oy = decodeFloat(renderWith(0, 1, 0));
+		oz = decodeFloat(renderWith(0, 0, 1));
+
+		scene.overrideMaterial = prev;
+
+
+		return new THREE.Vector3(ox, oy, oz);
+	};
+
+
+	var getXYZRenderer = (function() {
+		var xyz = null;
+		return function() {
+			if (xyz === null)
+				xyz = new XYZRenderer();
+			return xyz;
+		};
+	})();
+
 	function PointCollector(domElement) {
 		this.points = [];
 		this.domElement = domElement || window;
@@ -62,8 +282,15 @@ var THREE = require("three"),
 			console.log(d2.distanceTo(this.points[i].sprite.position));
 			if (d2.distanceTo(this.points[i].sprite.position) < 8.0) {
 				// the user clicked on one of the points
+				var thisPoint = this.points[i];
+
 				this.orthoScene.remove(this.points[i].sprite);
 				this.points.splice(i, 1);
+
+				$.event.trigger({
+					type: 'plasio.mensuration.pointRemoved',
+					point: thisPoint
+				});
 
 				needRefresh = true;
 				return;
@@ -76,6 +303,11 @@ var THREE = require("three"),
 		p.color.setHSL(Math.random(), 0.5, 0.5);
 
 		this.points.push(p);
+
+		$.event.trigger({
+			type: 'plasio.mensuration.pointAdded',
+			point: p
+		});
 
 		needRefresh = true;
 	};
@@ -556,6 +788,8 @@ var THREE = require("three"),
 		renderer.setSize(w, h);
 		renderer.autoClear = false;
 
+		getXYZRenderer().resize(w, h);
+
 		container.append( renderer.domElement );
 
 		window.addEventListener( 'resize', onWindowResize, false );
@@ -590,6 +824,19 @@ var THREE = require("three"),
 		$(document).on('plasio.renderer.needRefresh', function() {
 			needRefresh = true;
 		});
+
+		$(renderer.domElement).on('dblclick', function(e) {
+			e.preventDefault();
+			
+			var x = e.clientX, y = e.clientY;
+			var point = getXYZRenderer().pick(renderer, scene, camera, x, y);
+
+			if (point.x === 0.0 && point.y === 0.0 && point.z === 0.0)
+				return;
+
+			getPointCollector().push(point);
+			console.log(x, y, ' -> ', point);
+		});
 	}
 
 	function onWindowResize() {
@@ -602,6 +849,8 @@ var THREE = require("three"),
 		camera.updateProjectionMatrix();
 		renderer.setSize(w, h);
 		controls.handleResize();
+
+		getXYZRenderer().resize(w, h);
 
 		render();
 	}
@@ -631,7 +880,6 @@ var THREE = require("three"),
 	}
 
 	function render() {
-		renderer.setClearColor("#111");
 		renderer.clear();
 		renderer.render(scene, activeCamera);
 
@@ -795,6 +1043,7 @@ var THREE = require("three"),
 
 		$(document).on("plasio.pointSizeChanged", function() {
 			var f = currentPointSize();
+			getXYZRenderer().uniforms.pointSize.value = f;
 			uniforms.pointSize.value = f;
 		});
 
@@ -802,16 +1051,18 @@ var THREE = require("three"),
 			uniforms.maxColorComponent.value = Math.max(0.0001, e.maxColorComponent);
 		});
 
-
 		$(document).on("plasio.offsetsChanged", function(e) {
+			getXYZRenderer().uniforms.offsets.value = e.offsets;
 			uniforms.offsets.value = e.offsets;
 		});
 
 		$(document).on("plasio.zrangeChanged", function(e) {
+			getXYZRenderer().uniforms.zrange.value = e.zrange;
 			uniforms.zrange.value = e.zrange;
 		});
 
 		$(document).on("plasio.scaleChanged", function(e) {
+			getXYZRenderer().uniforms.xyzScale.value = e.scale;
 			uniforms.xyzScale.value = e.scale;
 		});
 

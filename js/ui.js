@@ -149,6 +149,7 @@ var Promise = require("bluebird"),
 		makePanelsSlidable();
 		setupLoadHandlers();
 		setupProjectionHandlers();
+		setupMensurationHandlers();
 
 		// get the currently selected image
 		var imgElement = $("#colorSwatches a:first img");
@@ -1102,6 +1103,70 @@ var Promise = require("bluebird"),
 				render.disableMensuration();
 			}
 		});
+	};
+
+
+	var setupMensurationHandlers = function() {
+		var currentPoints = [];
+		var $control = $("#points-list");
+		var $table = $("#points-list tbody");
+
+		console.log("Mensuration views:");
+		console.log($control, $table);
+
+		var _formatVector = function(v) {
+			return "(" +
+				v.x.toFixed(1) + ", " +
+				v.y.toFixed(1) + ", " +
+				v.z.toFixed(1) + ")";
+		};
+
+		var _distance = function(a, b) {
+			var d = a.distanceTo(b);
+			return d.toFixed(1);
+		};
+
+		var _updateTable = function() {
+			var html = "";
+			for (var i = 0, il = currentPoints.length - 1 ; i < il ; i ++) {
+				html +=
+					"<tr style='background-color:#" + currentPoints[i].color.getHexString() + "'>" +
+					"<td>" + (i+1) + "</td>" +
+					"<td>" + _formatVector(currentPoints[i]) + "</td>" +
+					"<td>" + _formatVector(currentPoints[i+1]) + "</td>" +
+					"<td>" + _distance(currentPoints[i], currentPoints[i+1]) + "</td>" +
+					"</tr>";
+			}
+
+			console.log("HTML:", html);
+
+			$table.html(html);
+
+			if (html.length === 0)
+				$control.hide();
+			else
+				$control.show();
+		};
+
+		$(document).on('plasio.mensuration.pointAdded', function(e) {
+			console.log("Adding new point");
+			currentPoints.push(e.point);
+			_updateTable();
+		});
+
+		$(document).on('plasio.mensuration.pointRemoved', function(e) {
+			console.log("Removing a point");
+			for (var i = 0, il = currentPoints.length ; i < il ; i ++) {
+				if (currentPoints[i] == e.point) {
+					currentPoints.splice(i, 1);
+					break;
+				}
+			}
+
+			_updateTable();
+		});
+
+		_updateTable();
 	};
 })(window);
 
