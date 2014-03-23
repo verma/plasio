@@ -73,7 +73,9 @@ To publish to AWS simply run::
 Credits
 ...............................................................................
 
-- Blue Marker Icon from `Function Icons` By `Liam McKay`
+- Blue Marker Icon from `Function Icons`_ By `Liam McKay`_
+- High precision GPU point picking wouldn't have been possible without the `Work done here`_.
+- `Carlos Scheidegger`_ for GPU float to bytes conversion.
 
 
 License
@@ -94,3 +96,5 @@ The software is licensed under the permissive `MIT`_ license.
 .. _`Google Chrome's Live Reload`: https://chrome.google.com/webstore/detail/livereload/jnihajbhpnppcggbcgedagnkighmdlei?hl=en
 .. _`Function Icons`: https://www.iconfinder.com/search/?q=iconset:function_icon_set
 .. _`Liam McKay`: http://wefunction.com/contact/
+.. _`Work done here`: http://concord-consortium.github.io/lab/experiments/webgl-gpgpu/webgl.html
+.. _`Carlos Scheidegger`: http://www.khronos.org/webgl/public-mailing-list/archives/1206/msg00233.html
