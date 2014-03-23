@@ -70,6 +70,12 @@ To publish to AWS simply run::
     gulp publish
 
 
+Credits
+...............................................................................
+
+- Blue Marker Icon from `Function Icons` By `Liam McKay`
+
+
 License
 ...............................................................................
 
@@ -86,3 +92,5 @@ The software is licensed under the permissive `MIT`_ license.
 .. _`Mac and Windows Chrome Canary`: https://www.google.com/intl/en/chrome/browser/canary.html
 .. _`Gulp`: http://gulpjs.com/
 .. _`Google Chrome's Live Reload`: https://chrome.google.com/webstore/detail/livereload/jnihajbhpnppcggbcgedagnkighmdlei?hl=en
+.. _`Function Icons`: https://www.iconfinder.com/search/?q=iconset:function_icon_set
+.. _`Liam McKay`: http://wefunction.com/contact/

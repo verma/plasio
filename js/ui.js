@@ -138,7 +138,8 @@ var Promise = require("bluebird"),
 			}});
 
 
-		setupKeyboardHooks();
+		// TODO: Evaluate if its a good idea to have plane based projection
+		// setupKeyboardHooks();
 		setupFileOpenHandlers();
 		setupSliders();
 		setupComboBoxActions();
@@ -379,6 +380,10 @@ var Promise = require("bluebird"),
 				$.event.trigger({
 					type: "plasio.maxColorComponent",
 					maxColorComponent: maxColorComponent
+				});
+
+				$.event.trigger({
+					type: "plasio.mensuration.pointsReset"
 				});
 
 				$.event.trigger({
@@ -1109,7 +1114,7 @@ var Promise = require("bluebird"),
 	var setupMensurationHandlers = function() {
 		var currentPoints = [];
 		var $control = $("#points-list");
-		var $table = $("#points-list tbody");
+		var $table = $("#points-list table");
 
 		console.log("Mensuration views:");
 		console.log($control, $table);
@@ -1129,23 +1134,25 @@ var Promise = require("bluebird"),
 		var _updateTable = function() {
 			var html = "";
 			for (var i = 0, il = currentPoints.length - 1 ; i < il ; i ++) {
+				if (currentPoints[i].id !== currentPoints[i+1].id)
+					continue; // if the next point is a starting point for the next one
+
+
 				html +=
 					"<tr style='background-color:#" + currentPoints[i].color.getHexString() + "'>" +
 					"<td>" + (i+1) + "</td>" +
-					"<td>" + _formatVector(currentPoints[i]) + "</td>" +
-					"<td>" + _formatVector(currentPoints[i+1]) + "</td>" +
-					"<td>" + _distance(currentPoints[i], currentPoints[i+1]) + "</td>" +
+					// "<td>" + _formatVector(currentPoints[i]) + "</td>" +
+					//"<td>" + _formatVector(currentPoints[i+1]) + "</td>" +
+					"<td style='text-align: right'>" + _distance(currentPoints[i], currentPoints[i+1]) + "</td>" +
 					"</tr>";
 			}
 
-			console.log("HTML:", html);
-
-			$table.html(html);
+			$table.find("tbody").html(html);
 
 			if (html.length === 0)
-				$control.hide();
+				$table.hide();
 			else
-				$control.show();
+				$table.show();
 		};
 
 		$(document).on('plasio.mensuration.pointAdded', function(e) {
@@ -1164,6 +1171,19 @@ var Promise = require("bluebird"),
 			}
 
 			_updateTable();
+		});
+
+		$(document).on('plasio.mensuration.pointsReset', function(e) {
+			console.log("Resetting all points");
+			currentPoints = [];
+			_updateTable();
+		});
+
+		$("#mensuration-reset").on("click", function(e) {
+			e.preventDefault();
+			$.event.trigger({
+				type: 'plasio.mensuration.pointsReset'
+			});
 		});
 
 		_updateTable();

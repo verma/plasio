@@ -108,73 +108,12 @@ var THREE = require("three"),
 		console.log('texture height:', this.textureHeight);
 	};
 
-	/*
-	var exp2Table = [
-		2.168404E-19, 4.336809E-19, 8.673617E-19, 1.734723E-18,
-		3.469447E-18, 6.938894E-18, 1.387779E-17, 2.775558E-17,
-		5.551115E-17, 1.110223E-16, 2.220446E-16, 4.440892E-16,
-		8.881784E-16, 1.776357E-15, 3.552714E-15, 7.105427E-15,
-		1.421085E-14, 2.842171E-14, 5.684342E-14, 1.136868E-13,
-		2.273737E-13, 4.547474E-13, 9.094947E-13, 1.818989E-12,
-		3.637979E-12, 7.275958E-12, 1.455192E-11, 2.910383E-11,
-		5.820766E-11, 1.164153E-10, 2.328306E-10, 4.656613E-10,
-		9.313226E-10, 1.862645E-09, 3.725290E-09, 7.450581E-09,
-		1.490116E-08, 2.980232E-08, 5.960464E-08, 1.192093E-07,
-		2.384186E-07, 4.768372E-07, 9.536743E-07, 1.907349E-06,
-		3.814697E-06, 7.629395E-06, 1.525879E-05, 3.051758E-05,
-		6.103516E-05, 1.220703E-04, 2.441406E-04, 4.882812E-04,
-		9.765625E-04, 1.953125E-03, 3.906250E-03, 7.812500E-03,
-		1.562500E-02, 3.125000E-02, 6.250000E-02, 1.250000E-01,
-		2.500000E-01, 5.000000E-01, 1.000000E+00, 2.000000E+00,
-		4.000000E+00, 8.000000E+00, 1.600000E+01, 3.200000E+01,
-		6.400000E+01, 1.280000E+02, 2.560000E+02, 5.120000E+02,
-		1.024000E+03, 2.048000E+03, 4.096000E+03, 8.192000E+03,
-		1.638400E+04, 3.276800E+04, 6.553600E+04, 1.310720E+05,
-		2.621440E+05, 5.242880E+05, 1.048576E+06, 2.097152E+06,
-		4.194304E+06, 8.388608E+06, 1.677722E+07, 3.355443E+07,
-		6.710886E+07, 1.342177E+08, 2.684355E+08, 5.368709E+08,
-		1.073742E+09, 2.147484E+09, 4.294967E+09, 8.589935E+09,
-		1.717987E+10, 3.435974E+10, 6.871948E+10, 1.374390E+11,
-		2.748779E+11, 5.497558E+11, 1.099512E+12, 2.199023E+12,
-		4.398047E+12, 8.796093E+12, 1.759219E+13, 3.518437E+13,
-		7.036874E+13, 1.407375E+14, 2.814750E+14, 5.629500E+14,
-		1.125900E+15, 2.251800E+15, 4.503600E+15, 9.007199E+15,
-		1.801440E+16, 3.602880E+16, 7.205759E+16, 1.441152E+17,
-		2.882304E+17, 5.764608E+17, 1.152922E+18, 2.305843E+18
-	];
-
-	var decodeFloat = function (input, output) {
-		var m, e, i_sign, i, i4, len;
-
-		m = input[1] * 3.921569E-03 +
-			input[2] * 1.537870E-05 +
-			input[3] * 6.030863E-08;
-
-		e = input[0];
-		i_sign = 0;
-
-		if (e & 0x80) {
-			i_sign = 1;
-			e &= ~0x80;
-		}
-		if (e & 0x40) {
-			m = -m;
-			e &= ~0x40;
-		}
-		if (i_sign) {
-			e = -e;
-		}
-
-		return m * exp2Table[e + 62];
-	};
-	*/
 	var decodeFloat = function(input) {
 		var fa = new Float32Array(input.buffer);
 		return fa[0];
 	};
 
 	XYZRenderer.prototype._debugRender = function(renderer, scene, camera, x, y, z) {
-		console.log('Rendering');
 		var prev = scene.overrideMaterial;
 		scene.overrideMaterial = this.mat;
 
@@ -205,11 +144,8 @@ var THREE = require("three"),
 
 			var tx = rx, ty = o.textureHeight - ry;
 
-			console.log(tx, ty);
-
 			var pixelBuffer = new Uint8Array(4);
 			gl.readPixels(tx, ty, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelBuffer);
-			console.log(pixelBuffer);
 
 			return pixelBuffer;
 		};
@@ -243,9 +179,6 @@ var THREE = require("three"),
 		this.points = [];
 		this.domElement = domElement || window;
 
-		console.log(this.domElement);
-		console.log(window);
-
 		this.fromCamera = null;
 		this.size = [0, 0];
 
@@ -268,19 +201,19 @@ var THREE = require("three"),
 		proj = proj || (new THREE.Projector());
 		var ndc = p.clone();
 		proj.projectVector(ndc, this.fromCamera);
-		return new THREE.Vector3(
-			ndc.x * this.size[0] / 2, ndc.y * this.size[1] / 2, 1.0);
+
+		var screen = new THREE.Vector2(this.size[0] * (ndc.x + 1) / 2, this.size[1] - this.size[1] * (ndc.y + 1) / 2);
+		var ortho = new THREE.Vector3(ndc.x * this.size[0] / 2, ndc.y * this.size[1] / 2, 1.0);
+
+		return [screen, ortho];
 	};
 
 
-	PointCollector.prototype.push = function(p) {
-		var d2 = this._2dProj(p);
+	PointCollector.prototype.push = function(x, y, p, isNew) {
+		var newPos = new THREE.Vector2(x, y);
 
 		for (var i = 0; i < this.points.length ; i ++) {
-			console.log(d2);
-			console.log(this.points[i].sprite.position);
-			console.log(d2.distanceTo(this.points[i].sprite.position));
-			if (d2.distanceTo(this.points[i].sprite.position) < 8.0) {
+			if (newPos.distanceTo(this.points[i].screenPos) < 16.0) {
 				// the user clicked on one of the points
 				var thisPoint = this.points[i];
 
@@ -297,10 +230,24 @@ var THREE = require("three"),
 			}
 		}
 
+		if (p.x === 0.0 && p.y === 0.0 && p.z === 0.0)
+			return; // didn't click on a point
+
+		if (this.points.length === 0) // first point starts with id == 1.
+			p.id = 1;
+		else if (isNew) { // if a new id increment, or use the parents
+			p.id = this.points[this.points.length - 1].id + 1;
+		}
+		else {
+			p.id = this.points[this.points.length - 1].id;
+		}
+
+
 		// the user intends to add a new point
 		p.sprite = null;
+		p.screenPos = newPos;
 		p.color = new THREE.Color();
-		p.color.setHSL(Math.random(), 0.5, 0.5);
+		p.color.setHSL(Math.random(), 0.8, 0.8);
 
 		this.points.push(p);
 
@@ -326,6 +273,15 @@ var THREE = require("three"),
 
 		var proj = new THREE.Projector();
 
+		// http://stackoverflow.com/questions/10858599/how-to-determine-if-plane-is-in-three-js-camera-frustum
+		//
+		this.fromCamera.updateMatrix(); // make sure camera's local matrix is updated
+		this.fromCamera.updateMatrixWorld(); // make sure camera's world matrix is updated
+		this.fromCamera.matrixWorldInverse.getInverse( this.fromCamera.matrixWorld );
+
+		var frustum = new THREE.Frustum();
+		frustum.setFromMatrix( new THREE.Matrix4().multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse ) );
+
 		for (var i = 0, il = this.points.length ; i < il ; i ++) {
 			var p = this.points[i];
 
@@ -335,14 +291,12 @@ var THREE = require("three"),
 				this.orthoScene.add(p.sprite);
 			}
 
-			var ndc = this._2dProj(p, proj);
+			var ps = this._2dProj(p, proj);
+			var ndc = ps[1];
 			p.sprite.position.set(ndc.x, ndc.y, ndc.z);
+			p.screenPos = ps[0];
 
-				/*
-			console.log(p.sprite.position.x,
-						p.sprite.position.y,
-						p.sprite.position.z);
-						*/
+			p.sprite.visible = frustum.containsPoint(p);
 		}
 	};
 
@@ -386,32 +340,8 @@ var THREE = require("three"),
 	PointCollector.prototype.render = function(renderer) {
 		this._updateSpritePositions();
 
-		// build lines
-		var lines = [];
-		for (var i = 0 ; i < this.points.length - 1 ; i ++) {
-			var g = new THREE.Geometry();
-			g.vertices.push(this.points[i].sprite.position);
-			g.vertices.push(this.points[i+1].sprite.position);
-
-			var dist = this.points[i].distanceTo(this.points[i+1]);
-
-			var m = new THREE.LineBasicMaterial({color: this.points[i].color.getHex(), linewidth: 5});
-			var l = new THREE.Line(g, m);
-
-			this.orthoScene.add(l);
-			lines.push(l);
-
-			console.log('Distance:', dist);
-		}
-
-		console.log(lines.length);
-
 		renderer.clearDepth();
 		renderer.render(this.orthoScene, this.orthoCamera);
-
-		for (i = 0 ; i < lines.length ; i ++) {
-			this.orthoScene.remove(lines[i]);
-		}
 	};
 
 	function MensurationController(thisScene) {
@@ -445,8 +375,6 @@ var THREE = require("three"),
 		if (this.enabled && this.tracking && factor !== 0) {
 			var y = this.plane.position.y + factor * scale;
 			this.plane.position.y = Math.max(-this.zRange, Math.min(y, this.zRange));
-
-			console.log('Plane position:', this.plane.position.y);
 
 			needRefresh = true;
 		}
@@ -509,7 +437,7 @@ var THREE = require("three"),
 
 				var res = rc.intersectObject(mc.plane);
 				if (res.length > 0) {
-					getPointCollector().push(res[0].point);
+					getPointCollector().push(x, y, res[0].point);
 				}
 			});
 
@@ -825,16 +753,18 @@ var THREE = require("three"),
 			needRefresh = true;
 		});
 
+		$(document).on('plasio.mensuration.pointsReset', function() {
+			getPointCollector().clearPoints();
+			needRefresh = true;
+		});
+
 		$(renderer.domElement).on('dblclick', function(e) {
 			e.preventDefault();
 			
 			var x = e.clientX, y = e.clientY;
 			var point = getXYZRenderer().pick(renderer, scene, camera, x, y);
 
-			if (point.x === 0.0 && point.y === 0.0 && point.z === 0.0)
-				return;
-
-			getPointCollector().push(point);
+			getPointCollector().push(x, y, point, e.shiftKey);
 			console.log(x, y, ' -> ', point);
 		});
 	}
@@ -879,9 +809,43 @@ var THREE = require("three"),
 		}
 	}
 
+	var renderCollectorLines = function(r, c) {
+		var scene = new THREE.Scene();
+
+		var points = getPointCollector().points;
+		for (var i = 0 ; i < points.length - 1 ; i ++) {
+			var p = points[i],
+				n = points[i+1];
+
+			if (p.id !== n.id)
+				continue; // don't connect if they belong to different segments
+
+			var g = new THREE.Geometry();
+			g.vertices.push(p);
+			g.vertices.push(n);
+
+			var m = new THREE.LineBasicMaterial({
+				color: p.color.getHex(),
+				linewidth: 5,
+				blending: THREE.NoBlending,
+				depthTest: false,
+				depthWrite: false
+			});
+
+			var l = new THREE.Line(g, m);
+			scene.add(l);
+		}
+
+		r.render(scene, c);
+	};
+
+
 	function render() {
 		renderer.clear();
 		renderer.render(scene, activeCamera);
+
+		// render collector lines
+		renderCollectorLines(renderer, activeCamera);
 
 		getPointCollector().render(renderer);
 	}
