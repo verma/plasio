@@ -73,7 +73,7 @@ To publish to AWS simply run::
 Credits
 ...............................................................................
 
-- Blue Marker Icon from `Function Icons` By `Liam McKay`
+- Blue Marker Icon from `Function Icons`_ By `Liam McKay`_
 
 
 License
