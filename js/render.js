@@ -131,6 +131,8 @@ var THREE = require("three"),
 
 		var o = this;
 
+		o.uniforms.pointSize.value = 10.0; // draw points with super size bloat
+
 		renderer.setClearColor("#000", 0);
 		var gl = renderer.getContext();
 
