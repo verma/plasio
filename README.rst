@@ -75,7 +75,7 @@ Credits
 
 - Blue Marker Icon from `Function Icons`_ By `Liam McKay`_
 - High precision GPU point picking wouldn't have been possible without the `Work done here`_.
-- `Carlos Scheidegger` for GPU float to bytes conversion.
+- `Carlos Scheidegger`_ for GPU float to bytes conversion.
 
 
 License
