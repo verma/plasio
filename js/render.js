@@ -5,7 +5,8 @@
 var THREE = require("three"),
 	$ = require('jquery');
 
-	require("trackball-controls");
+	require("trackball-controls"),
+	require("binary-loader");
 
 (function(w) {
 	"use strict";
@@ -480,6 +481,44 @@ var THREE = require("three"),
 		};
 	})();
 
+	function ModelCache() {
+		this.models = {};
+	}
+
+	ModelCache.prototype.getModel = function(url, cb) {
+		var o = this;
+		if (this.models[url])
+			return setTimeout(function() {
+				var m = o.models[url];
+				cb(m[0], m[1]);
+			}, 0);
+
+			var loader = new THREE.BinaryLoader();
+			loader.load(url, function(geometry, materials) {
+				console.log('Done loading object');
+
+				for (var i = 0 ; i < materials.length ; i ++) {
+					materials[i].ambient = new THREE.Color(1, 1, 1);
+					materials[i].color = new THREE.Color(1, 1, 1);
+				}
+
+				o.models[url] = [geometry, materials];
+
+				setTimeout(function() {
+					cb(geometry, materials);
+				}, 0);
+			});
+	};
+
+	var getModelCache = (function() {
+		var cache = null;
+		return function() {
+			if (cache === null)
+				cache = new ModelCache();
+			return cache;
+		};
+	})();
+
 	w.startRenderer = function(render_container, status_cb) {
 		init(render_container);
 		animate();
@@ -490,6 +529,10 @@ var THREE = require("three"),
 				renderer.context.getParameter(renderer.context.VENDOR);
 			status_cb(vendor);
 		}
+	};
+
+	w.rendererDOMElement = function() {
+		return renderer.domElement;
 	};
 
 	w.enableMensuration = function() {
@@ -562,6 +605,7 @@ var THREE = require("three"),
 
 		return [mx, mn, cg, b[0].scale];
 	}
+
 
 	var oldBatcher = null; // the particle system which is already loaded
 	var restorePoint = [];
@@ -714,6 +758,10 @@ var THREE = require("three"),
 		// world
 		scene = new THREE.Scene();
 
+		// ambiently light our scale objects
+		var l = new THREE.AmbientLight(0xffffff);
+		scene.add(l);
+
 		renderer = new THREE.WebGLRenderer( { antialias: false } );
 		renderer.setSize(w, h);
 		renderer.autoClear = false;
@@ -760,14 +808,42 @@ var THREE = require("three"),
 			needRefresh = true;
 		});
 
-		$(renderer.domElement).on('dblclick', function(e) {
-			e.preventDefault();
-			
-			var x = e.clientX, y = e.clientY;
-			var point = getXYZRenderer().pick(renderer, scene, camera, x, y);
+		$(document).on('plasio.mensuration.addPoint', function(d) {
+			var point = getXYZRenderer().pick(renderer, scene, activeCamera, d.x, d.y);
+			getPointCollector().push(d.x, d.y, point, d.startNew);
 
-			getPointCollector().push(x, y, point, e.shiftKey);
-			console.log(x, y, ' -> ', point);
+			console.log('Point added:', d.x, d.y, ' -> ', point);
+		});
+
+		var scaleObjects = [];
+		$(document).on('plasio.scalegeoms.place', function(d) {
+			var placeWhere = getXYZRenderer().pick(renderer, scene, activeCamera, d.x, d.y);
+			var scale = d.scale || 1.0;
+
+			getModelCache().getModel(d.url, function(geometry, materials) {
+				var m = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
+				m.position.set(placeWhere.x, placeWhere.y, placeWhere.z);
+
+				m.scale.set(scale, scale, scale);
+
+				scaleObjects.push(m);
+				scene.add(m);
+
+				needRefresh = true;
+			});
+		});
+
+		$(document).on('plasio.scalegeoms.reset', function(d) {
+			for (var i = 0, il = scaleObjects.length ; i < il ; i ++) {
+				scene.remove(scaleObjects[i]);
+			}
+			scaleObjects = [];
+		});
+
+		$(document).on('plasio.scalegeoms.scale', function(d) {
+			for (var i = 0, il = scaleObjects.length ; i < il ; i ++) {
+				scaleObjects[i].scale.set(d.scale, d.scale, d.scale);
+			}
 		});
 	}
 

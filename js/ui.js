@@ -151,6 +151,8 @@ var Promise = require("bluebird"),
 		setupLoadHandlers();
 		setupProjectionHandlers();
 		setupMensurationHandlers();
+		setupScaleObjectsHandlers();
+
 
 		// get the currently selected image
 		var imgElement = $("#colorSwatches a:first img");
@@ -384,6 +386,10 @@ var Promise = require("bluebird"),
 
 				$.event.trigger({
 					type: "plasio.mensuration.pointsReset"
+				});
+
+				$.event.trigger({
+					type: "plasio.scalegeoms.reset"
 				});
 
 				$.event.trigger({
@@ -1186,7 +1192,82 @@ var Promise = require("bluebird"),
 			});
 		});
 
+		// TODO: This information should come down from somewhere, the UI module
+		// should not assume that we know where the renderer is.  The render module has
+		// a function to query this, but the renderer hasn't been initialized yet
+		//
+		$("#container").on("dblclick", function(e) {
+			if (!e.altKey) {
+				e.preventDefault();
+
+				$.event.trigger({
+					type: 'plasio.mensuration.addPoint',
+					x: e.clientX, y: e.clientY,
+					startNew: e.shiftKey
+				});
+			}
+		});
+
 		_updateTable();
+	};
+
+	function nameToScale(name) {
+		var scale = 1.0;
+		switch(name) {
+			case "meters": scale = 1.0; break;
+			case "feet": scale = 3.28; break;
+			case "inches": scale = 39.37; break;
+		}
+
+		return scale;
+	}
+
+	var setupScaleObjectsHandlers = function() {
+		// TODO: Don't assume where the renderer is running
+		//
+		$("#container").on('dblclick', function(e) {
+			console.log('dbl-click', e);
+			if (e.altKey) {
+				e.preventDefault();
+
+				var scale = $("#scale-geoms-scale button").attr("target");
+
+				$.event.trigger({
+					type: 'plasio.scalegeoms.place',
+					url: '/scale-objects/EmpireStateBuilding/EmpireStateBuilding.js',
+					x: e.clientX,
+					y: e.clientY,
+					scale: nameToScale(scale)
+				});
+			}
+		});
+
+		$("#scale-geoms-clear").on('click', function(e) {
+			e.preventDefault();
+
+			$.event.trigger({
+				type: 'plasio.scalegeoms.reset'
+			});
+		});
+
+		$("#scale-geoms-scale").on("click", "a", withRefresh(function(e) {
+			e.preventDefault();
+			var $a = $(this);
+			console.log($a);
+
+			var option = $a.text();
+			var target = $a.attr("href").substring(1);
+			$("#scale-geoms-scale").find("button")
+				.html(option + "&nbsp;<span class='caret'></span>")
+				.attr("target", target);
+
+			var scale = nameToScale(target);
+			console.log('Setting scale to:', scale);
+			$.event.trigger({
+				type: "plasio.scalegeoms.scale",
+				scale: nameToScale(target)
+			});
+		}));
 	};
 })(window);
 
