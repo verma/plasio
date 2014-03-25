@@ -483,6 +483,7 @@ var THREE = require("three"),
 
 	function ModelCache() {
 		this.models = {};
+		this.inprogress = {};
 	}
 
 	ModelCache.prototype.getModel = function(url, cb) {
@@ -493,9 +494,26 @@ var THREE = require("three"),
 				cb(m[0], m[1]);
 			}, 0);
 
+			if (this.inprogress[url]) {
+				// this download is in progress right now, so we'd wait till its done and then invoke user's callback
+				//
+				return this.inprogress[url].push(cb);
+			}
+			
+			// this URL is neither loaded nor has it been queued, queue it
+			this.inprogress[url] = [cb];
+
+			$.event.trigger({
+				type: 'plasio.progress.start'
+			});
+
 			var loader = new THREE.BinaryLoader();
 			loader.load(url, function(geometry, materials) {
 				console.log('Done loading object');
+
+				$.event.trigger({
+					type: 'plasio.progress.end'
+				});
 
 				for (var i = 0 ; i < materials.length ; i ++) {
 					materials[i].ambient = new THREE.Color(1, 1, 1);
@@ -505,8 +523,20 @@ var THREE = require("three"),
 				o.models[url] = [geometry, materials];
 
 				setTimeout(function() {
-					cb(geometry, materials);
+					var cbs = o.inprogress[url];
+					delete o.inprogress[url];
+
+					for (var k in cbs) {
+						cbs[k](geometry, materials);
+					}
 				}, 0);
+			},
+			undefined, undefined,
+			function(e) {
+				$.event.trigger({
+					type: "plasio.progress.progress",
+					percent: (100 * e.loaded / e.total)
+				});
 			});
 	};
 
@@ -818,6 +848,9 @@ var THREE = require("three"),
 		var scaleObjects = [];
 		$(document).on('plasio.scalegeoms.place', function(d) {
 			var placeWhere = getXYZRenderer().pick(renderer, scene, activeCamera, d.x, d.y);
+			if (placeWhere.x === 0.0 && placeWhere.y === 0.0 && placeWhere.z === 0.0)
+				return;
+
 			var scale = d.scale || 1.0;
 
 			getModelCache().getModel(d.url, function(geometry, materials) {
@@ -830,6 +863,22 @@ var THREE = require("three"),
 				scene.add(m);
 
 				needRefresh = true;
+
+
+				// FIXME: I am not sure how to counter the black building yet, so we just queue
+				// renders for next 2 seconds
+				var count = 0;
+				var rerenderStuff = function() {
+					setTimeout(function() {
+						needRefresh = true;
+
+						if (count < 10)
+							rerenderStuff();
+						count ++;
+					}, 200);
+				};
+
+				rerenderStuff();
 			});
 		});
 
@@ -838,6 +887,8 @@ var THREE = require("three"),
 				scene.remove(scaleObjects[i]);
 			}
 			scaleObjects = [];
+
+			needRefresh = true;
 		});
 
 		$(document).on('plasio.scalegeoms.scale', function(d) {

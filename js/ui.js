@@ -140,6 +140,7 @@ var Promise = require("bluebird"),
 
 		// TODO: Evaluate if its a good idea to have plane based projection
 		// setupKeyboardHooks();
+		setupProgressHandlers();
 		setupFileOpenHandlers();
 		setupSliders();
 		setupComboBoxActions();
@@ -162,29 +163,37 @@ var Promise = require("bluebird"),
 	// some progress events arrive after hideProgress since certain operations are not
 	// completely cancellable.
 	//
-	var inProgress = false;
+	var setupProgressHandlers = function() {
+		var inProgress = false;
+		var startProgress = function() {
+			$("#progressBar").width('0%').show();
+			inProgress = true;
+		};
 
-	var startProgress = function() {
-		$("#progressBar").width('0%').show();
-		inProgress = true;
-	};
+		var showProgress = function(percent, msg) {
+			if (inProgress) {
+				console.log('showing progress', percent);
+				$("#progressBar").animate({
+					width: (Math.round(percent) + '%')
+				}, 100);
 
-	var showProgress = function(percent, msg) {
-		if (inProgress) {
-			$("#progressBar").animate({
-				width: (Math.round(percent) + '%')
-			}, 100);
+				if (msg)
+					$("#loadingStatus").html(msg);
+			}
+		};
 
-			if (msg)
-				$("#loadingStatus").html(msg);
-		}
-	};
+		var hideProgress = function() {
+			$("#progressBar").hide();
+			$("#loadingStatus").html("");
 
-	var hideProgress = function() {
-		$("#progressBar").hide();
-		$("#loadingStatus").html("");
+			inProgress = false;
+		};
 
-		inProgress = false;
+		$(document).on('plasio.progress.start', startProgress);
+		$(document).on('plasio.progress.progress', function(d) {
+			showProgress(d.percent, d.message);
+		});
+		$(document).on('plasio.progress.end', hideProgress);
 	};
 
 	var numberWithCommas = function(x) {
@@ -263,8 +272,14 @@ var Promise = require("bluebird"),
 
 		$(document).on("plasio.load.started", function() {
 			scope.stopAllPlayback();
-			startProgress();
-			showProgress(0);
+			$.event.trigger({
+				type: 'plasio.progress.start'
+			});
+
+			$.event.trigger({
+				type: 'plasio.progress.progress',
+				percent: 0
+			});
 
 			$("#loadError").html("").hide();
 			$("#browse button").attr("disabled", true);
@@ -275,11 +290,18 @@ var Promise = require("bluebird"),
 		});
 
 		$(document).on("plasio.load.progress", function(e) {
-			showProgress(e.percent, e.message);
+			$.event.trigger({
+				type: 'plasio.progress.progress',
+				percent: e.percent,
+				message: e.message
+			});
 		});
 
 		var cleanup = function() {
-			hideProgress();
+			$.event.trigger({
+				type: 'plasio.progress.end'
+			});
+
 			$("#browseCancel").hide();
 			$("#browse button").attr("disabled", false);
 			$("#browse").show();
