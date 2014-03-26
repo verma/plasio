@@ -5,7 +5,7 @@
 var THREE = require("three"),
 	$ = require('jquery');
 
-	require("trackball-controls"),
+	require("trackball-controls");
 	require("binary-loader");
 
 (function(w) {
@@ -19,6 +19,152 @@ var THREE = require("three"),
 
 	var mensurationMode = false;
 
+	function CameraControl(container) {
+		this.container = container;
+		this.cameras = {};
+
+		this.active = null;
+	}
+
+	CameraControl.prototype.addCamera = function(name, camera, noRotate, noPan) {
+		var controls = new THREE.TrackballControls(camera, this.container);
+
+		controls.noRotate = (noRotate === undefined ? false : noRotate);
+		controls.noPan = (noPan === undefined ? false : noPan);
+		controls.rotateSpeed = 1.0;
+		controls.zoomSpeed = 1.2;
+		controls.panSpeed = 0.8;
+
+		controls.noZoom = false;
+
+		controls.dynamicDampingFactor = 0.3;
+		controls.enabled = false;
+
+		console.log(controls);
+
+		// if the camera being set is of orthographic type, we never want the trackball control
+		// doing the zooming
+		if (camera instanceof THREE.OrthographicCamera) {
+			controls.noZoom = true;
+			controls.__zoomLevel = 1.0;
+		}
+
+		this.cameras[name] = [camera, controls];
+		if (this.cameras.length === 1)
+			this.makeActive(name);
+
+		this.onchange = function() {};
+
+		var o = this;
+		controls.addEventListener( 'change', function() {
+			o.onchange();
+		});
+
+	};
+
+	CameraControl.prototype.reset = function() {
+		for (var k in this.cameras) {
+			this.cameras[k][1].reset();
+		}
+	};
+
+	CameraControl.prototype.eachCamera = function(cb, type) {
+		// iterate through each camera and call the cb, the cb should return
+		// an array with two elements, first being the position, the second being
+		// the target
+		for(var k in this.cameras) {
+			var cc = this.cameras[k];
+			if (type === undefined)
+				cb.apply(null, [cc[0], cc[1], k]);
+			else if (cc[0] instanceof type)
+				cb.apply(null, [cc[0], cc[1], k]);
+		}
+	};
+
+	CameraControl.prototype.setPlanes = function(left, right, top, bottom) {
+		// sets planes on all orhtographic cameras
+		this.eachCamera(function(c, cnt) {
+			c.left = left * cnt.__zoomLevel;
+			c.right = right * cnt.__zoomLevel;
+			c.top = top * cnt.__zoomLevel;
+			c.bottom = bottom * cnt.__zoomLevel;
+
+			c.updateProjectionMatrix();
+		}, THREE.OrthographicCamera);
+	};
+
+	CameraControl.prototype.updateProjectionMatrix = function() {
+		this.eachCamera(function(c) {
+			c.updateProjectionMatrix();
+		});
+	};
+
+	CameraControl.prototype.makeActive = function(name) {
+		this.eachCamera(function(camera, controls) {
+			controls.enabled = false;
+		});
+
+		this.activeControls = this.cameras[name][1];
+		this.activeCamera = this.cameras[name][0];
+
+		this.activeControls.enabled = true;
+	};
+
+	CameraControl.prototype.update = function() {
+		// only update the active camera, and leave all cameras in their current states
+		this.activeControls.update();
+	};
+
+	CameraControl.prototype.resize = function(w, h) {
+		// Perspective cameras need their aspects changed
+		this.eachCamera(function(camera, control) {
+			camera.viewportWidth = w;
+			camera.viewportHeight = h;
+
+			camera.left = -w / 2 * control.__zoomLevel;
+			camera.right = w / 2 * control.__zoomLevel;
+			camera.top = h / 2 * control.__zoomLevel;
+			camera.bottom = -h / 2 * control.__zoomLevel;
+			camera.updateProjectionMatrix();
+
+			control.handleResize();
+		}, THREE.OrthographicCamera);
+
+		this.eachCamera(function(camera, control) {
+			camera.aspect = w / h;
+			camera.updateProjectionMatrix();
+
+			control.handleResize();
+		}, THREE.PerspectiveCamera);
+	};
+
+	CameraControl.prototype.setFov = function(fov) {
+		// Our FOV only applies to perspective cameras
+		this.eachCamera(function(camera, control) {
+			camera.fov = fov;
+			camera.updateProjectionMatrix();
+		}, THREE.PerspectiveCamera);
+	};
+
+
+	CameraControl.prototype.setNearFar = function(near, far) {
+		for(var v in this.cameras) {
+			this.cameras[v][0].near = near;
+			this.cameras[v][0].far = far;
+
+			this.cameras[v][0].updateProjectionMatrix();
+		}
+	};
+
+	var getCameraControl = (function() {
+		var cc = null;
+		return function(container) {
+			if (cc === null) {
+				cc = new CameraControl(container || document);
+			}
+			return cc;
+		};
+	})();
 
 	function XYZRenderer() {
 		this.off = null;
@@ -214,7 +360,6 @@ var THREE = require("three"),
 
 	PointCollector.prototype.push = function(x, y, p, isNew) {
 		var newPos = new THREE.Vector2(x, y);
-
 		for (var i = 0; i < this.points.length ; i ++) {
 			if (newPos.distanceTo(this.points[i].screenPos) < 16.0) {
 				// the user clicked on one of the points
@@ -283,7 +428,8 @@ var THREE = require("three"),
 		this.fromCamera.matrixWorldInverse.getInverse( this.fromCamera.matrixWorld );
 
 		var frustum = new THREE.Frustum();
-		frustum.setFromMatrix( new THREE.Matrix4().multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse ) );
+		frustum.setFromMatrix( new THREE.Matrix4().multiplyMatrices(this.fromCamera.projectionMatrix, 
+																	this.fromCamera.matrixWorldInverse ) );
 
 		for (var i = 0, il = this.points.length ; i < il ; i ++) {
 			var p = this.points[i];
@@ -322,11 +468,14 @@ var THREE = require("three"),
 		var width = $e.width(),
 			height = $e.height();
 
-		if (this.fromCamera != activeCamera ||
+
+		var ac = getCameraControl().activeCamera;
+
+		if (this.fromCamera != ac ||
 			width !== this.size[0] || height !== this.size[1]) {
 			// needs to be revalidated
 			this.size = [width, height];
-			this.fromCamera = activeCamera;
+			this.fromCamera = ac;
 
 			this.orthoCamera.left = -width / 2;
 			this.orthoCamera.right = width / 2;
@@ -346,140 +495,6 @@ var THREE = require("three"),
 		renderer.clearDepth();
 		renderer.render(this.orthoScene, this.orthoCamera);
 	};
-
-	function MensurationController(thisScene) {
-		var g = new THREE.PlaneGeometry(1.0, 1.0, 10, 10);
-		var m = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
-
-		this.plane = new THREE.Mesh(g, m);
-		this.plane.rotation.x = Math.PI/2;
-		this.plane.visible = false;
-
-		this.tracking = false;
-		this.handlersAttached = false;
-		this.enabled = false;
-
-		this.startY = 0;
-
-		thisScene.add (this.plane);
-	}
-
-	MensurationController.prototype.setDimensions = function(x, y, z) {
-		var m = Math.max(x, z);
-		var s = Math.sqrt(2 * m * m);
-		this.plane.scale.set(s, s, 1.0);
-
-		this.zRange = y;
-		console.log('Setting plane scale:', this.plane.scale);
-		console.log('zrange:', this.zRange);
-	};
-
-	MensurationController.prototype._update = function(factor, scale) {
-		if (this.enabled && this.tracking && factor !== 0) {
-			var y = this.plane.position.y + factor * scale;
-			this.plane.position.y = Math.max(-this.zRange, Math.min(y, this.zRange));
-
-			needRefresh = true;
-		}
-	};
-
-	MensurationController.prototype.attachHandlers = function(on) {
-		var mc = this;
-
-		if (on && !this.handlersAttached) {
-			$(document).on("mousedown.plasio.mensuration", function(e) {
-				e.preventDefault();
-
-				if (e.button === 2) {
-					mc.startY = e.pageY;
-					mc.tracking = true;
-				}
-			});
-
-			$(document).on("mouseup.plasio.mensuration", function(e) {
-				e.preventDefault();
-
-				if (e.button === 2) {
-					mc.tracking = false;
-				}
-			});
-
-			$(document).on("mousemove.plasio.mensuration", function(e) {
-				e.preventDefault();
-
-				if (e.button === 2) {
-					var d = mc.startY - e.pageY;
-					mc.startY = e.pageY;
-
-					var f = d * (mc.zRange / 10000);
-					var scale = e.shiftKey ? 1 : 100;
-
-					mc._update(f, scale);
-				}
-			});
-
-			$(document).on("click.plasio.mensuration", function(e) {
-				e.preventDefault();
-
-				var x = e.clientX,
-					y = e.clientY,
-					width = $(e.target).width(),
-					height = $(e.target).height();
-
-				var vec = new THREE.Vector3((x / width) * 2 - 1,
-											(y / height) * -2 + 1,
-											0);
-
-				var p = new THREE.Projector();
-				p.unprojectVector(vec, activeCamera);
-				vec.sub(activeCamera.position);
-
-				vec.normalize();
-
-				var rc = new THREE.Raycaster(activeCamera.position, vec);
-
-				var res = rc.intersectObject(mc.plane);
-				if (res.length > 0) {
-					getPointCollector().push(x, y, res[0].point);
-				}
-			});
-
-			console.log('Mensuration handlers attached');
-		}
-		else {
-			$(document).off("mousedown.plasio.mensuration");
-			$(document).off("mouseup.plasio.mensuration");
-			$(document).off("mousemove.plasio.mensuration");
-			$(document).off("click.plasio.mensuration");
-
-			console.log('Mensuration handlers detached');
-		}
-
-		mc.handlersAttached = on;
-	};
-
-	MensurationController.prototype.setVisible = function(on) {
-		this.plane.visible = on;
-		this.enabled = on;
-		this.attachHandlers(on);
-	};
-
-	MensurationController.prototype.placeAt = function(position) {
-		this.plane.position.set(
-			0, 0, 0);
-
-		console.log('Setting plane position to:', this.plane.position);
-	};
-
-
-	var getMensurationControls = (function() {
-		var mc = null;
-		return function() {
-			if (mc === null)
-				mc = new MensurationController(scene);
-			return mc;
-		};
-	})();
 
 	function ModelCache() {
 		this.models = {};
@@ -687,7 +702,7 @@ var THREE = require("three"),
 	};
 
 	var setupView = function(mins, maxs, cg, scale) {
-		controls.reset();
+		getCameraControl().reset();
 
 		// make sure the projection and camera is setup correctly to view the loaded data
 		//
@@ -698,51 +713,25 @@ var THREE = require("three"),
 		];
 
 		var farPlaneDist = Math.max(range[0], range[1], range[2]);
-
-		// TODO: we'd have to check what kind of projection mode we're in
-		//
-		camera.far = farPlaneDist * 4;
-		orthoCamera.far = camera.far * 2;
-		topViewCamera.far = orthoCamera.far;
-
-		// find a spot for our camera
-		// we are switching coords where because the data is switched the 
-		// same way, y is z and z is y
-		//
-		camera.position.set(
-			-range[0]/2,
-			cg.z + range[2],
-			-range[1]/2);
-
-		camera.lookAt(new THREE.Vector3(0, 0, 0));
-		orthoCamera.lookAt(new THREE.Vector3(0, 0, 0));
-
 		var limits = Math.ceil(Math.sqrt(2*farPlaneDist*farPlaneDist));
 
-		orthoCamera.left = -limits/2;
-		orthoCamera.right = limits/2;
-		orthoCamera.bottom = -limits/2;
-		orthoCamera.top = limits/2;
 
-		topViewCamera.left = -limits/2;
-		topViewCamera.right = limits/2;
-		topViewCamera.bottom = -limits/2;
-		topViewCamera.top = limits/2;
+		getCameraControl().setNearFar(1.0, farPlaneDist * 4);
 
-		topViewCamera.position.set(
-			0, topViewCamera.far / 2, 0);
-		topViewCamera.lookAt(new THREE.Vector3(0, 0, 1));
-		
-		camera.updateProjectionMatrix();
-		orthoCamera.updateProjectionMatrix();
-		topViewCamera.updateProjectionMatrix();
+		console.log('setupView');
+		var zero = new THREE.Vector3(0, 0, 0);
+		getCameraControl().eachCamera(function(camera, controls, name) {
+			if (name === 'top')
+				camera.position.set(0, farPlaneDist / 2, 0);
+			else
+				camera.position.set(-range[0]/2, cg.z + range[2], -range[1]/2);
 
+			camera.lookAt(zero);
 
-		// now setup any mensuration controls we may have
-		//
-		var mc = getMensurationControls();
-		mc.placeAt(cg);
-		mc.setDimensions(range[0], range[1], range[2]);
+			console.log('setup', camera.position);
+		});
+
+		getCameraControl().setPlanes(-limits/2, limits/2, limits/2, -limits/2);
 	};
 
 	var numberWithCommas = function(x) {
@@ -755,36 +744,6 @@ var THREE = require("three"),
 		var w = container.width(),
 			h = container.height();
 
-		camera = new THREE.PerspectiveCamera(60,
-			w / h, 1, 10000);
-		camera.position.z = 500;
-
-		orthoCamera = new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 10000);
-		orthoCamera.position.set(camera.position.x,
-								 camera.position.y,
-								 camera.position.z);
-
-		topViewCamera = new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 100000);
-
-		activeCamera = camera;
-
-		controls = new THREE.TrackballControls( camera, render_container );
-
-		controls.rotateSpeed = 1.0;
-		controls.zoomSpeed = 1.2;
-		controls.panSpeed = 0.8;
-
-		controls.noZoom = false;
-		controls.noPan = false;
-
-		controls.staticMoving = true;
-		controls.dynamicDampingFactor = 0.3;
-
-		controls.keys = [ 65, 83, 68 ];
-		controls.addEventListener( 'change', function() {
-			needRefresh = true;
-		});
-
 		// world
 		scene = new THREE.Scene();
 
@@ -795,6 +754,22 @@ var THREE = require("three"),
 		renderer = new THREE.WebGLRenderer( { antialias: false } );
 		renderer.setSize(w, h);
 		renderer.autoClear = false;
+
+		// instantiate camera control instance with the container we'd like it to use
+		getCameraControl(render_container);
+
+		// setup cameras
+		getCameraControl().addCamera("perspective", new THREE.PerspectiveCamera(60, w/h, 1, 10000));
+		getCameraControl().addCamera("ortho", new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 10000));
+		getCameraControl().addCamera("top", new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 100000));
+
+		getCameraControl().onchange = function() {
+			console.log('change!');
+			needRefresh = true;
+		};
+
+		getCameraControl().makeActive("perspective");
+		getCameraControl().resize(w, h);
 
 		getXYZRenderer().resize(w, h);
 
@@ -811,20 +786,19 @@ var THREE = require("three"),
 		});
 
 		$(document).on("plasio.camera.perspective", function() {
-			activeCamera = camera;
+			getCameraControl().makeActive("perspective");
 		});
 
 		$(document).on("plasio.camera.ortho", function() {
-			activeCamera = orthoCamera;
+			getCameraControl().makeActive("ortho");
 		});
 
 		$(document).on("plasio.camera.topView", function() {
-			activeCamera = topViewCamera;
+			getCameraControl().makeActive("top");
 		});
 
 		$(document).on("plasio.camera.reset", function() {
 			// reset the perspective camera controls
-			controls.reset();
 			if (restorePoint.length > 0)
 				setupView(restorePoint[0], restorePoint[1], restorePoint[2], restorePoint[3]);
 		});
@@ -839,7 +813,7 @@ var THREE = require("three"),
 		});
 
 		$(document).on('plasio.mensuration.addPoint', function(d) {
-			var point = getXYZRenderer().pick(renderer, scene, activeCamera, d.x, d.y);
+			var point = getXYZRenderer().pick(renderer, scene, getCameraControl().activeCamera, d.x, d.y);
 			getPointCollector().push(d.x, d.y, point, d.startNew);
 
 			console.log('Point added:', d.x, d.y, ' -> ', point);
@@ -847,7 +821,7 @@ var THREE = require("three"),
 
 		var scaleObjects = [];
 		$(document).on('plasio.scalegeoms.place', function(d) {
-			var placeWhere = getXYZRenderer().pick(renderer, scene, activeCamera, d.x, d.y);
+			var placeWhere = getXYZRenderer().pick(renderer, scene, getCameraControl().activeCamera, d.x, d.y);
 			if (placeWhere.x === 0.0 && placeWhere.y === 0.0 && placeWhere.z === 0.0)
 				return;
 
@@ -904,10 +878,8 @@ var THREE = require("three"),
 		var w =	container.width();
 		var h = container.height();
 
-		camera.aspect = w / h;
-		camera.updateProjectionMatrix();
+		getCameraControl().resize(w, h);
 		renderer.setSize(w, h);
-		controls.handleResize();
 
 		getXYZRenderer().resize(w, h);
 
@@ -917,19 +889,9 @@ var THREE = require("three"),
 	w.doRenderResize = onWindowResize;
 
 	function animate() {
-		orthoCamera.position.set(
-			camera.position.x,
-			camera.position.y,
-			camera.position.z);
-		orthoCamera.rotation.set(
-			camera.rotation.x,
-			camera.rotation.y,
-			camera.rotation.z);
-
 		requestAnimationFrame(animate);
 
-		controls.update();
-
+		getCameraControl().update();
 		getPointCollector().update();
 
 		if (needRefresh) {
@@ -971,11 +933,11 @@ var THREE = require("three"),
 
 	function render() {
 		renderer.clear();
-		renderer.render(scene, activeCamera);
+		var camera = getCameraControl().activeCamera;
+		renderer.render(scene, camera);
 
 		// render collector lines
-		renderCollectorLines(renderer, activeCamera);
-
+		renderCollectorLines(renderer, camera);
 		getPointCollector().render(renderer);
 	}
 
