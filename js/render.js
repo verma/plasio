@@ -26,16 +26,17 @@ var THREE = require("three"),
 		this.active = null;
 	}
 
-	CameraControl.prototype.addCamera = function(name, camera, noRotate, noPan) {
+	CameraControl.prototype.addCamera = function(name, camera, noRotate, noPan, noZoom) {
 		var controls = new THREE.TrackballControls(camera, this.container);
 
 		controls.noRotate = (noRotate === undefined ? false : noRotate);
 		controls.noPan = (noPan === undefined ? false : noPan);
+		controls.noZoom = (noZoom === undefined ? false : noZoom);
+
 		controls.rotateSpeed = 1.0;
 		controls.zoomSpeed = 1.2;
 		controls.panSpeed = 0.8;
 
-		controls.noZoom = false;
 
 		controls.dynamicDampingFactor = 0.3;
 		controls.enabled = false;
@@ -45,6 +46,7 @@ var THREE = require("three"),
 		// if the camera being set is of orthographic type, we never want the trackball control
 		// doing the zooming
 		if (camera instanceof THREE.OrthographicCamera) {
+			controls.noZoomWasRequested = controls.noZoom;
 			controls.noZoom = true;
 			controls.__zoomLevel = 1.0;
 		}
@@ -69,6 +71,10 @@ var THREE = require("three"),
 		var mousewheel = function(e) {
 			e.preventDefault();
 
+			if (o.activeControls.noZoomWasRequested)
+				return;
+
+
 			var delta = 0;
 
 			if ( event.wheelDelta ) { // WebKit / Opera / Explorer 9
@@ -78,9 +84,7 @@ var THREE = require("three"),
 			}
 
 			var newZoom = Math.min(2.0, Math.max(o.activeControls.__zoomLevel - delta * 0.01, 0.01));
-
 			o.activeControls.__zoomLevel = newZoom;
-			console.log(o.activeControls.__zoomLevel);
 			o.updateForZoom(o.activeCamera, o.activeControls);
 
 			needRefresh = true;
@@ -785,15 +789,16 @@ var THREE = require("three"),
 
 		getCameraControl().setNearFar(1.0, farPlaneDist * 4);
 
-		console.log('setupView');
 		var zero = new THREE.Vector3(0, 0, 0);
 		getCameraControl().eachCamera(function(camera, controls, name) {
-			if (name === 'top')
+			if (name === 'top') {
 				camera.position.set(0, farPlaneDist / 2, 0);
-			else
+				camera.lookAt(zero);
+			}
+			else {
 				camera.position.set(-range[0]/2, cg.z + range[2], -range[1]/2);
-
-			camera.lookAt(zero);
+				camera.lookAt(zero);
+			}
 
 			console.log('setup', camera.position);
 		});
@@ -830,7 +835,7 @@ var THREE = require("three"),
 		// setup cameras
 		getCameraControl().addCamera("perspective", new THREE.PerspectiveCamera(60, w/h, 1, 10000));
 		getCameraControl().addCamera("ortho", new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 10000));
-		getCameraControl().addCamera("top", new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 10000));
+		getCameraControl().addCamera("top", new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 10000), true, true, true);
 
 		getCameraControl().onchange = function() {
 			console.log('change!');
