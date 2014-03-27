@@ -62,6 +62,44 @@ var THREE = require("three"),
 
 	};
 
+	CameraControl.prototype._attachHandlers = function(on) {
+		var o = this;
+		var $e = $(this.container || document);
+
+		var mousewheel = function(e) {
+			e.preventDefault();
+
+			var delta = 0;
+
+			if ( event.wheelDelta ) { // WebKit / Opera / Explorer 9
+				delta = event.wheelDelta / 40;
+			} else if ( event.detail ) { // Firefox
+				delta = - event.detail / 3;
+			}
+
+			var newZoom = Math.min(2.0, Math.max(o.activeControls.__zoomLevel - delta * 0.01, 0.01));
+
+			o.activeControls.__zoomLevel = newZoom;
+			console.log(o.activeControls.__zoomLevel);
+			o.updateForZoom(o.activeCamera, o.activeControls);
+
+			needRefresh = true;
+		};
+
+		if (on) {
+			$e.on('mousewheel.plasio.orthoZoom', mousewheel);
+			$e.on('DOMMouseScroll.plasio.orthoZoom', mousewheel);
+
+			console.log('Handlers attached!');
+		}
+		else {
+			$e.off('mousewheel.plasio.orthoZoom');
+			$e.off('DOMMouseScroll.plasio.orthoZoom');
+
+			console.log('Handlers dettached!');
+		}
+	};
+
 	CameraControl.prototype.reset = function() {
 		for (var k in this.cameras) {
 			this.cameras[k][1].reset();
@@ -81,15 +119,42 @@ var THREE = require("three"),
 		}
 	};
 
-	CameraControl.prototype.setPlanes = function(left, right, top, bottom) {
-		// sets planes on all orhtographic cameras
-		this.eachCamera(function(c, cnt) {
-			c.left = left * cnt.__zoomLevel;
-			c.right = right * cnt.__zoomLevel;
-			c.top = top * cnt.__zoomLevel;
-			c.bottom = bottom * cnt.__zoomLevel;
+	CameraControl.prototype._setCameraPlanes = function(c, cnt) {
+		if (!(c instanceof THREE.OrthographicCamera))
+			throw new Error("Need an orthographic camera");
 
-			c.updateProjectionMatrix();
+		// make sure we have all the things before we try to change projection
+		if (!c.planes || !c.viewportWidth || !c.viewportHeight)
+			return;
+
+		var planes = c.planes;
+
+		var left = planes[0],
+		right = planes[1],
+		top = planes[2],
+		bottom = planes[3];
+
+		c.left = left * cnt.__zoomLevel;
+		c.right = right * cnt.__zoomLevel;
+		c.top = top * cnt.__zoomLevel;
+		c.bottom = bottom * cnt.__zoomLevel;
+
+		var aspect = c.viewportWidth / c.viewportHeight;
+			c.left *= aspect;
+			c.right *= aspect;
+
+		c.updateProjectionMatrix();
+	};
+
+	CameraControl.prototype.updateForZoom = function(camera, controls) {
+		this._setCameraPlanes(camera, controls);
+	};
+
+	CameraControl.prototype.setPlanes = function(cb) {
+		var o = this;
+		this.eachCamera(function(c, cnt, name) {
+			c.planes = cb.apply(null, [c, cnt, name]);
+			o._setCameraPlanes(c, cnt);
 		}, THREE.OrthographicCamera);
 	};
 
@@ -104,10 +169,15 @@ var THREE = require("three"),
 			controls.enabled = false;
 		});
 
+		this._attachHandlers(false);
+
 		this.activeControls = this.cameras[name][1];
 		this.activeCamera = this.cameras[name][0];
 
 		this.activeControls.enabled = true;
+
+		if (this.activeCamera instanceof THREE.OrthographicCamera)
+			this._attachHandlers(true);
 	};
 
 	CameraControl.prototype.update = function() {
@@ -117,15 +187,12 @@ var THREE = require("three"),
 
 	CameraControl.prototype.resize = function(w, h) {
 		// Perspective cameras need their aspects changed
+		var o = this;
 		this.eachCamera(function(camera, control) {
 			camera.viewportWidth = w;
 			camera.viewportHeight = h;
 
-			camera.left = -w / 2 * control.__zoomLevel;
-			camera.right = w / 2 * control.__zoomLevel;
-			camera.top = h / 2 * control.__zoomLevel;
-			camera.bottom = -h / 2 * control.__zoomLevel;
-			camera.updateProjectionMatrix();
+			o._setCameraPlanes(camera, control);
 
 			control.handleResize();
 		}, THREE.OrthographicCamera);
@@ -731,7 +798,9 @@ var THREE = require("three"),
 			console.log('setup', camera.position);
 		});
 
-		getCameraControl().setPlanes(-limits/2, limits/2, limits/2, -limits/2);
+		getCameraControl().setPlanes(function(camera, controls, name) {
+			return [-farPlaneDist/2, farPlaneDist/2, farPlaneDist/2, -farPlaneDist/2];
+		});
 	};
 
 	var numberWithCommas = function(x) {
@@ -761,7 +830,7 @@ var THREE = require("three"),
 		// setup cameras
 		getCameraControl().addCamera("perspective", new THREE.PerspectiveCamera(60, w/h, 1, 10000));
 		getCameraControl().addCamera("ortho", new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 10000));
-		getCameraControl().addCamera("top", new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 100000));
+		getCameraControl().addCamera("top", new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 10000));
 
 		getCameraControl().onchange = function() {
 			console.log('change!');
