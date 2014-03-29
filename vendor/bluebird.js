@@ -349,7 +349,8 @@ module.exports = function(Promise, INTERNAL) {
     Promise.prototype._cancel = function Promise$_cancel() {
         if (!this.isCancellable()) return this;
         var parent;
-        if ((parent = this._cancellationParent) !== void 0) {
+        if ((parent = this._cancellationParent) !== void 0 &&
+			parent.isCancellable()) {
             parent.cancel(SYNC_TOKEN);
             return;
         }

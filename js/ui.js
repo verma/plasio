@@ -173,9 +173,7 @@ var Promise = require("bluebird"),
 		var showProgress = function(percent, msg) {
 			if (inProgress) {
 				console.log('showing progress', percent);
-				$("#progressBar").animate({
-					width: (Math.round(percent) + '%')
-				}, 100);
+				$("#progressBar").width(Math.round(percent) + '%');
 
 				if (msg)
 					$("#loadingStatus").html(msg);
@@ -591,13 +589,13 @@ var Promise = require("bluebird"),
 		var loaderPromise = null;
 		$(document).on("plasio.load.cancel", function() {
 			if (loaderPromise === null) return;
-
 			var a = loaderPromise;
 			loaderPromise = null;
 
 			progress(1, "Cancelling...");
 			setTimeout(function() {
 				a.cancel();
+				console.log('Cancellation done!');
 			}, 0);
 		});
 
@@ -610,59 +608,64 @@ var Promise = require("bluebird"),
 		var currentLoadIndex = 0;
 		var maxLoadIndex = files.length;
 
-		loaderPromise =
-		Promise.reduce(files, function(sofar, fname) {
-			// do a progress function based on which file we're processing
-			var pfuncDataLoad = function(p, msg) {
-				progress((currentLoadIndex + p*0.5) / maxLoadIndex, msg);
-			};
+		var sofar = [];
 
-			var pfuncDecompress = function(p, msg) {
-				progress((currentLoadIndex + 0.5 + p*0.5) / maxLoadIndex, msg);
-			};
+		var pfuncDataLoad = function(p, msg) {
+			progress((currentLoadIndex + p*0.5) / maxLoadIndex, msg);
+		};
 
-			return fDataLoader(fname, pfuncDataLoad).then(function(data) {
-				return loadData(data, pfuncDecompress);
-			})
-			.then(function(r) {
-				var ret = {
-					header: r[0],
-					batcher: r[1]
-				};
+		var pfuncDecompress = function(p, msg) {
+			progress((currentLoadIndex + 0.5 + p*0.5) / maxLoadIndex, msg);
+		};
 
-				// TODO: This needs to be fixed for mutliple URLs
-				//
-				ret.header.name = fname.name || name;
-				currentLoadIndex ++;
-				return sofar.concat([ret]);
+		var cur = Promise.resolve().cancellable();
+
+		files.forEach(function(fname) {
+			cur = cur.then(function() {
+				return fDataLoader(fname, pfuncDataLoad).then(function(data) {
+					console.log(fname.name, 'Done loading file, loading data...');
+					return loadData(data, pfuncDecompress);
+				})
+				.then(function(r) {
+					console.log(fname.name, 'Done loading data...');
+					var ret = {
+						header: r[0],
+						batcher: r[1]
+					};
+
+					// TODO: This needs to be fixed for mutliple URLs
+					//
+					ret.header.name = fname.name || name;
+					currentLoadIndex ++;
+					sofar.push(ret);
+				});
 			});
-		}, [])
-		.then(function(v) {
-			progress(1);
+		});
 
+		loaderPromise = cur.then(function() {
 			$.event.trigger({
 				type: "plasio.load.completed",
-				batches: v
+				batches: sofar
 			});
 		})
 		.catch(Promise.CancellationError, function(e) {
-			console.log("Cancel", e);
-			console.log(e.stack);
+			console.log(e, e.stack);
 
 			$.event.trigger({
 				type: "plasio.load.cancelled",
 			});
 		})
 		.catch(function(e) {
-			console.log("Error", e);
-			console.log(e.stack);
+			console.log(e, e.stack);
 
 			$.event.trigger({
 				type: "plasio.load.failed",
-				error: e.message
+				error: "Failed to load file"
 			});
 		})
 		.finally(function() {
+			progress(1);
+
 			loaderPromise = null;
 		});
 	};
