@@ -207,7 +207,7 @@ var Promise = require("bluebird"),
 			oReq.responseType = "arraybuffer";
 
 			oReq.onprogress = function(e) {
-				cb(e.loaded / e.totalSize);
+				cb(e.loaded / e.total);
 			};
 
 			oReq.onload = function(oEvent) {
