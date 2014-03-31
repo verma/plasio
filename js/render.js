@@ -19,6 +19,73 @@ var THREE = require("three"),
 
 	var mensurationMode = false;
 
+	function RegionsController() {
+		this.regions = [];
+	}
+
+	RegionsController.TypeRibbon = 1;
+	RegionsController.TypeAA = 2;
+
+	RegionsController.prototype.add = function(p1, p2) {
+		var region = {
+			start: p1,
+			end: p2,
+			type: RegionsController.TypeRibbon,
+			widthScale: 1.0,
+		};
+
+		console.log('Adding new region!');
+
+		this.regions.push(region);
+
+		$.event.trigger({
+			type: 'plasio.regions.new',
+			region: region
+		});
+
+		needRefresh = true;
+	};
+
+	RegionsController.prototype.drawRegions = function(renderer, camera) {
+		// draw the regions
+		var mat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
+
+		var geom = new THREE.CubeGeometry(1, 1, 1);
+		var v = new THREE.Vector3();
+		var vmid = new THREE.Vector3();
+
+		this.regions.forEach(function(region) {
+			var scene = new THREE.Scene();
+			var m = new THREE.Mesh(geom, mat);
+
+			v.copy(region.end).sub(region.start);
+			vmid.copy(v).multiplyScalar(0.5);
+
+
+			if (region.type === RegionsController.TypeAA) {
+				m.position.copy(region.start).add(vmid);
+				m.scale.copy(v);
+			}
+			else {
+				m.position.copy(region.start).add(vmid);
+				m.scale.set(region.widthScale * 100, 100, v.length());
+				m.lookAt(region.end);
+			}
+
+			scene.add(m);
+			renderer.render(scene, camera);
+		});
+	};
+
+	var getRegionsController = (function() {
+		var rc = null;
+		return function() {
+			if (rc === null)
+				rc = new RegionsController();
+			return rc;
+		};
+	})();
+
 	function CameraControl(container) {
 		this.container = container;
 		this.cameras = {};
@@ -528,7 +595,7 @@ var THREE = require("three"),
 		var pc = null;
 
 		return function() {
-			if (pc === null)
+			if (pc === null && renderer && renderer.domElement)
 				pc = new PointCollector(renderer.domElement);
 			return pc;
 		};
@@ -651,6 +718,15 @@ var THREE = require("three"),
 		return renderer.domElement;
 	};
 
+
+	w.getCurrentPoints = function() {
+		// we may not have the point collector yet
+		if (!getPointCollector())
+			return [];
+
+		return getPointCollector().points;
+	};
+
 	w.enableMensuration = function() {
 		if (!mensurationMode) {
 			mensurationMode = true;
@@ -669,6 +745,10 @@ var THREE = require("three"),
 			getMensurationControls().setVisible(false);
 			needRefresh = true;
 		}
+	};
+
+	w.createNewRegion = function(p1, p2) {
+		getRegionsController().add(p1, p2);
 	};
 
 	function removeBatcher(b) {
@@ -1009,6 +1089,9 @@ var THREE = require("three"),
 		renderer.clear();
 		var camera = getCameraControl().activeCamera;
 		renderer.render(scene, camera);
+
+		// Render the regions as quads
+		getRegionsController().drawRegions(renderer, camera);
 
 		// render collector lines
 		renderCollectorLines(renderer, camera);

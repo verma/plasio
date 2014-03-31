@@ -155,6 +155,7 @@ var Promise = require("bluebird"),
 		setupProjectionHandlers();
 		setupMensurationHandlers();
 		setupScaleObjectsHandlers();
+		setupRegionHandlers();
 
 
 		// get the currently selected image
@@ -1288,6 +1289,25 @@ var Promise = require("bluebird"),
 				scale: nameToScale(target)
 			});
 		}));
+	};
+
+	var setupRegionHandlers = function() {
+		$(document).on('plasio.regions.new', function(e) {
+			console.log('New region was created!', e);
+		});
+
+		$(document).on('click', 'a.make-region', function(e) {
+			e.preventDefault();
+
+			var index = parseInt($(this).attr('href').substring(1));
+			console.log('Making a region out of segment out of index', index);
+
+			var currentPoints = render.getCurrentPoints();
+			var p1 = currentPoints[index];
+			var p2 = currentPoints[index+1];
+
+			render.createNewRegion(p1, p2);
+		});
 	};
 })(window);
 
