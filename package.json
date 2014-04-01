@@ -45,10 +45,12 @@
     "jquery-layout": "./vendor/jquery.layout.js",
     "bootstrap": "./vendor/bootstrap.min.js",
     "trackball-controls": "./vendor/controls/TrackballControls.js",
-	"binary-loader": "./vendor/loaders/BinaryLoader.js"
+	"binary-loader": "./vendor/loaders/BinaryLoader.js",
+	"lodash": "./vendor/lodash.min.js"
   },
   "browserify-shim": {
     "bluebird": "global:Promise",
+	"react": "global:React",
     "jquery": "$",
     "jqueryui": {
       "depends": "jquery:$"

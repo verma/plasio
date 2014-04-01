@@ -5,7 +5,9 @@
 var Promise = require("bluebird"),
 	$ = require('jquery'),
 	render = require("./render"),
-	laslaz = require('./laslaz');
+	laslaz = require('./laslaz'),
+	React = require('react'),
+	_ = require('lodash');
 
 	require("jqueryui");
 	require("jquery-layout");
@@ -1143,73 +1145,6 @@ var Promise = require("bluebird"),
 
 
 	var setupMensurationHandlers = function() {
-		var currentPoints = [];
-		var $control = $("#points-list");
-		var $table = $("#points-list table");
-
-		console.log("Mensuration views:");
-		console.log($control, $table);
-
-		var _formatVector = function(v) {
-			return "(" +
-				v.x.toFixed(1) + ", " +
-				v.y.toFixed(1) + ", " +
-				v.z.toFixed(1) + ")";
-		};
-
-		var _distance = function(a, b) {
-			var d = a.distanceTo(b);
-			return d.toFixed(1);
-		};
-
-		var _updateTable = function() {
-			var html = "";
-			for (var i = 0, il = currentPoints.length - 1 ; i < il ; i ++) {
-				if (currentPoints[i].id !== currentPoints[i+1].id)
-					continue; // if the next point is a starting point for the next one
-
-
-				html +=
-					"<tr style='background-color:#" + currentPoints[i].color.getHexString() + "'>" +
-					"<td>" + (i+1) + "</td>" +
-					// "<td>" + _formatVector(currentPoints[i]) + "</td>" +
-					//"<td>" + _formatVector(currentPoints[i+1]) + "</td>" +
-					"<td style='text-align: right'>" + _distance(currentPoints[i], currentPoints[i+1]) + "</td>" +
-					"</tr>";
-			}
-
-			$table.find("tbody").html(html);
-
-			if (html.length === 0)
-				$table.hide();
-			else
-				$table.show();
-		};
-
-		$(document).on('plasio.mensuration.pointAdded', function(e) {
-			console.log("Adding new point");
-			currentPoints.push(e.point);
-			_updateTable();
-		});
-
-		$(document).on('plasio.mensuration.pointRemoved', function(e) {
-			console.log("Removing a point");
-			for (var i = 0, il = currentPoints.length ; i < il ; i ++) {
-				if (currentPoints[i] == e.point) {
-					currentPoints.splice(i, 1);
-					break;
-				}
-			}
-
-			_updateTable();
-		});
-
-		$(document).on('plasio.mensuration.pointsReset', function(e) {
-			console.log("Resetting all points");
-			currentPoints = [];
-			_updateTable();
-		});
-
 		$("#mensuration-reset").on("click", function(e) {
 			e.preventDefault();
 			$.event.trigger({
@@ -1233,7 +1168,67 @@ var Promise = require("bluebird"),
 			}
 		});
 
-		_updateTable();
+		var LineSegment = React.createClass({
+			render: function() {
+				return React.DOM.tr({
+					style: { backgroundColor: '#' + this.props.start.color.getHexString() },
+					children: [
+						React.DOM.td(null, this.props.lineIndex),
+						React.DOM.td({ style: { textAlign: 'right' }}, this.props.start.distanceTo(this.props.end).toFixed(1))
+					]
+				});
+			}
+		});
+
+		var LineSegmentsBox = React.createClass({
+			getInitialState: function() {
+				return { points: [] };
+			},
+			componentWillMount: function() {
+				var c = this;
+				$(document).on('plasio.mensuration.pointAdded', function(e) {
+					c.setState({ points: c.state.points.concat([e.point])});
+				});
+
+				$(document).on('plasio.mensuration.pointRemoved', function(e) {
+					c.setState({ points: _.without(c.state.points, e.point) });
+				});
+
+				$(document).on('plasio.mensuration.pointsReset', function(e) {
+					console.log("Resetting all points");
+					c.setState({ points: [] });
+				});
+			},
+			render: function() {
+				var lines = [];
+				var index = 0;
+				for (var i = 0 ; i < this.state.points.length - 1 ; i ++) {
+					var p1 = this.state.points[i],
+						p2 = this.state.points[i+1];
+					if (p1.id === p2.id) {
+						lines.push(LineSegment({ lineIndex: index+1, start: p1, end: p2 }));
+						index ++;
+					}
+				}
+
+				if (lines.length === 0)
+					return React.DOM.div({ className: "its-empty" },
+										 "No Mensuration Points");
+				return React.DOM.table({
+					class: "table"
+				}, [
+					React.DOM.thead(null, [
+						React.DOM.tr(null, [
+							React.DOM.td(null, 'Index'),
+							React.DOM.td(null, 'Length')
+						])
+					]),
+					React.DOM.tbody(null, lines)
+				]);
+			}
+		});
+
+		React.renderComponent(LineSegmentsBox({}), $("#points-list-table").get(0));
 	};
 
 	function nameToScale(name) {

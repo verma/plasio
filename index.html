@@ -147,15 +147,8 @@
 							<h4>Mensuration Points</h4>
 							<h5>Set of points in mensuration view</h5>
 							<button type="button" class="btn btn-sm btn-default btn-block" id="mensuration-reset">Reset Points</button>
-							<table class="table">
-								<thead>
-									<tr>
-										<td>Index</td>
-										<td style="text-align: right">Length</td>
-									</tr>
-								</thead>
-								<tbody></tbody>
-							</table>
+							<div id="points-list-table">
+							</div>
 						</div>
 						<div class="labeled-controls">
 							<h4>Particle Size</h4>
@@ -301,6 +294,7 @@
 		</div>
 
 		
+		<script src="http://fb.me/react-0.10.0.js"></script>
 		<script src="bad.js"></script>
 		<script src="client.js"></script>
 		<script type="x-shader/x-vertex" id="vertexshader">
