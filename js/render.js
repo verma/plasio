@@ -37,7 +37,8 @@ var THREE = require("three"),
 			type: RegionsController.TypeRibbon,
 			widthScale: 3,
 			heightScale: 3,
-			color: color
+			color: color,
+			active: false
 		};
 
 		console.log('Adding new region!');

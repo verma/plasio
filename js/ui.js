@@ -1314,24 +1314,15 @@ var Promise = require("bluebird"),
 
 		var RegionViewport = React.createClass({
 			render: function() {
-				return React.DOM.div({
-					className: 'btn-group btn-block'
-				}, [
-					React.DOM.button({
-						type: 'button',
-						className: 'btn btn-sm btn-default btn-block dropdown-toggle',
-						'data-toggle': 'dropdown'
-					}, [
-						'No Viewport ',
-						React.DOM.span({className: 'caret'})
-					]),
-					React.DOM.ul({
-						className: 'btn-block dropdown-menu',
-						role: 'menu'
-					}, ['Main', 'Subview 1', 'Subview 2'].map(function(v) {
-						return React.DOM.li(null, React.DOM.a({href: '#'}, v));
-					}))
-				]);
+				var classes = React.addons.classSet({
+					'btn btn-block btn-default btn-sm': true,
+					'active': this.props.region.active
+				});
+				return React.DOM.button({
+					className: classes,
+					onClick: this.props.toggle
+				},
+				this.props.region.active ? "Deactivate" : "Activate");
 			}
 		});
 
@@ -1400,7 +1391,10 @@ var Promise = require("bluebird"),
 						startScale: this.props.region.heightScale,
 						setSize: _.partial(this.props.setHeight, this.props.index)
 					}) : '',
-					RegionViewport({})
+					RegionViewport({
+						region: this.props.region,
+						toggle: _.partial(this.props.toggle, this.props.index)
+					})
 				]);
 			},
 		});
@@ -1436,7 +1430,8 @@ var Promise = require("bluebird"),
 							setAxisAligned: o.setAxisAligned,
 							setWidth: o.setWidth,
 							setHeight: o.setHeight,
-							remove: o.remove});
+							remove: o.remove,
+							toggle: o.toggle });
 					}));
 			},
 
@@ -1469,6 +1464,10 @@ var Promise = require("bluebird"),
 					type: 'plasio.regions.remove',
 					region: r
 				});
+			}),
+			toggle: withRefresh(function(i) {
+				this.state.regions[i].active = !this.state.regions[i].active;
+				this.setState({ regions: this.state.regions });
 			})
 		});
 
