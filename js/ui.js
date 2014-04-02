@@ -416,6 +416,10 @@ var Promise = require("bluebird"),
 				});
 
 				$.event.trigger({
+					type: "plasio.regions.reset"
+				});
+
+				$.event.trigger({
 					type: "plasio.newBatches"
 				});
 			}).finally(cleanup);
@@ -1172,12 +1176,14 @@ var Promise = require("bluebird"),
 		var LineSegment = React.createClass({
 			render: function() {
 				return React.DOM.tr({
-					style: { backgroundColor: '#' + this.props.start.color.getHexString() },
-					children: [
+					style: { backgroundColor: '#' + this.props.start.color.getHexString() } }, [
 						React.DOM.td(null, this.props.lineIndex),
-						React.DOM.td({ style: { textAlign: 'right' }}, this.props.start.distanceTo(this.props.end).toFixed(1))
-					]
-				});
+						React.DOM.td({style: {textAlign: 'right'}}, this.props.start.distanceTo(this.props.end).toFixed(1)),
+						React.DOM.td(null, React.DOM.a({ href: "#", onClick: this.addRegion }, React.DOM.span({className: "glyphicon glyphicon-picture"}, '')))
+					]);
+			},
+			addRegion: function(e) {
+				render.createNewRegion(this.props.start, this.props.end, this.props.start.color);
 			}
 		});
 
@@ -1221,7 +1227,8 @@ var Promise = require("bluebird"),
 					React.DOM.thead(null, [
 						React.DOM.tr(null, [
 							React.DOM.td(null, 'Index'),
-							React.DOM.td(null, 'Length')
+							React.DOM.td({style: {textAlign: 'right'}}, 'Length'),
+							React.DOM.td(null, '')
 						])
 					]),
 					React.DOM.tbody(null, lines)
@@ -1292,10 +1299,6 @@ var Promise = require("bluebird"),
 	};
 
 	var setupRegionHandlers = function() {
-		$(document).on('plasio.regions.new', function(e) {
-			console.log('New region was created!', e);
-		});
-
 		$(document).on('click', 'a.make-region', function(e) {
 			e.preventDefault();
 
@@ -1308,6 +1311,168 @@ var Promise = require("bluebird"),
 
 			render.createNewRegion(p1, p2);
 		});
+
+		var RegionViewport = React.createClass({
+			render: function() {
+				return React.DOM.div({
+					className: 'btn-group btn-block'
+				}, [
+					React.DOM.button({
+						type: 'button',
+						className: 'btn btn-sm btn-default btn-block dropdown-toggle',
+						'data-toggle': 'dropdown'
+					}, [
+						'No Viewport ',
+						React.DOM.span({className: 'caret'})
+					]),
+					React.DOM.ul({
+						className: 'btn-block dropdown-menu',
+						role: 'menu'
+					}, ['Main', 'Subview 1', 'Subview 2'].map(function(v) {
+						return React.DOM.li(null, React.DOM.a({href: '#'}, v));
+					}))
+				]);
+			}
+		});
+
+		var RegionSizeSlider = React.createClass({
+			componentDidMount: function() {
+				var a = this.getDOMNode();
+				$(a).noUiSlider({
+					range: [1, 10],
+					start: Math.round(this.props.startScale),
+					step: 1,
+					handles: 1,
+					connect: false,
+					slide: this.setSize
+				});
+			},
+			render: function() {
+				return React.DOM.div({style: { marginBottom: '15px' }});
+			},
+			setSize: function() {
+				var v = $(this.getDOMNode()).val();
+				this.props.setSize(v);
+			},
+		});
+
+		var Region = React.createClass({
+			render: function() {
+				var cx = React.addons.classSet;
+				var classesFor = function(active) {
+					return cx({
+						'btn': true,
+						'btn-default': true,
+						'btn-sm': true,
+						'active': active });
+				};
+
+				console.log('Rendering');
+
+				return React.DOM.div({ style: {
+					borderLeft: '10px solid #' + this.props.region.color.getHexString(),
+					marginBottom: '5px',
+					paddingLeft: '5px',
+					boxSizing: 'border-box'
+				}}, [
+					React.DOM.div({ 
+						style: { float: 'right', padding: '0px' },
+						className: "btn btn-link btn-sm",
+						onClick: _.partial(this.props.remove, this.props.index),
+						type: "button" }, React.DOM.span({ className: "glyphicon glyphicon-remove"})),
+					React.DOM.div({ className: "btn-group btn-group-justified", style: { marginBottom: '10px' }}, [
+						React.DOM.div({
+							className: classesFor(this.props.region.type == 1),
+							onClick: _.partial(this.props.setRibbon, this.props.index),
+							type: "button" }, "Ribbon"),
+						React.DOM.div({
+							className: classesFor(this.props.region.type == 2),
+							onClick: _.partial(this.props.setAxisAligned, this.props.index),
+							type: "button" }, "Axis-Aligned")
+					]),
+					this.props.region.type === 1 ? RegionSizeSlider({
+						region: this.props.region,
+						startScale: this.props.region.widthScale,
+						setSize: _.partial(this.props.setWidth, this.props.index)
+					}) : '',
+					this.props.region.type === 1 ? RegionSizeSlider({
+						region: this.props.region,
+						startScale: this.props.region.heightScale,
+						setSize: _.partial(this.props.setHeight, this.props.index)
+					}) : '',
+					RegionViewport({})
+				]);
+			},
+		});
+
+		var RegionsBox = React.createClass({
+			getInitialState: function() {
+				return { regions: [] };
+			},
+			componentWillMount: function() {
+				var o = this;
+				$(document).on("plasio.regions.new", function(e) {
+					o.setState({ regions: o.state.regions.concat(e.region) });
+				});
+
+				$(document).on("plasio.regions.reset", function() {
+					o.setState({ regions: [] });
+				});
+
+			},
+			render: function() {
+				if (this.state.regions.length === 0)
+					return React.DOM.div({ className: 'its-empty' }, 'No regions defined');
+
+				var o = this;
+				return React.DOM.div({
+					class: "all-regions" },
+					_.times(this.state.regions.length, function(i) {
+						var r = o.state.regions[i];
+						return Region({ 
+							index: i,
+							region: o.state.regions[i],
+							setRibbon: o.setRibbon,
+							setAxisAligned: o.setAxisAligned,
+							setWidth: o.setWidth,
+							setHeight: o.setHeight,
+							remove: o.remove});
+					}));
+			},
+
+			setRibbon: withRefresh(function(i) {
+				this.state.regions[i].type = 1;
+				this.setState({ regions: this.state.regions });
+			}),
+			setAxisAligned: withRefresh(function(i) {
+				this.state.regions[i].type = 2;
+				this.setState({ regions: this.state.regions });
+			}),
+
+			setWidth: withRefresh(function(i, w) {
+				this.state.regions[i].widthScale = w;
+				this.setState({ regions: this.state.regions });
+			}),
+
+			setHeight: withRefresh(function(i, h) {
+				this.state.regions[i].heightScale = h;
+
+				this.setState({ regions: this.state.regions });
+			}),
+
+			remove: withRefresh(function(i) {
+				console.log('Removing region');
+				var r = this.state.regions[i];
+				this.setState({ regions: _.without(this.state.regions, r) });
+
+				$.event.trigger({
+					type: 'plasio.regions.remove',
+					region: r
+				});
+			})
+		});
+
+		React.renderComponent(RegionsBox({}), $("#clipping-regions").get(0));
 	};
 })(window);
 

@@ -3,7 +3,8 @@
 //
 
 var THREE = require("three"),
-	$ = require('jquery');
+	$ = require('jquery'),
+	_ = require('lodash');
 
 	require("trackball-controls");
 	require("binary-loader");
@@ -21,17 +22,20 @@ var THREE = require("three"),
 
 	function RegionsController() {
 		this.regions = [];
+		this.scaleFactor = 100.0;
 	}
 
 	RegionsController.TypeRibbon = 1;
 	RegionsController.TypeAA = 2;
 
-	RegionsController.prototype.add = function(p1, p2) {
+	RegionsController.prototype.add = function(p1, p2, color) {
 		var region = {
 			start: p1,
 			end: p2,
 			type: RegionsController.TypeRibbon,
-			widthScale: 1.0,
+			widthScale: 3,
+			heightScale: 3,
+			color: color
 		};
 
 		console.log('Adding new region!');
@@ -48,14 +52,15 @@ var THREE = require("three"),
 
 	RegionsController.prototype.drawRegions = function(renderer, camera) {
 		// draw the regions
-		var mat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 });
-
 		var geom = new THREE.CubeGeometry(1, 1, 1);
 		var v = new THREE.Vector3();
 		var vmid = new THREE.Vector3();
 
+		var o = this;
+
 		this.regions.forEach(function(region) {
 			var scene = new THREE.Scene();
+			var mat = new THREE.MeshBasicMaterial({ color: region.color.getHex(), transparent: true, opacity: 0.5 });
 			var m = new THREE.Mesh(geom, mat);
 
 			v.copy(region.end).sub(region.start);
@@ -68,13 +73,28 @@ var THREE = require("three"),
 			}
 			else {
 				m.position.copy(region.start).add(vmid);
-				m.scale.set(region.widthScale * 100, 100, v.length());
+				m.scale.set(region.widthScale * o.scaleFactor, region.heightScale * o.scaleFactor, v.length());
 				m.lookAt(region.end);
 			}
 
 			scene.add(m);
 			renderer.render(scene, camera);
 		});
+	};
+
+	RegionsController.prototype.reset = function() {
+		this.regions = [];
+
+		needRefresh = true;
+	};
+
+	RegionsController.prototype.remove = function(r) {
+		console.log('removing region', this.regions.length);
+		this.regions = _.without(this.regions, r);
+
+		console.log('removing region', this.regions.length);
+
+		needRefresh = true;
 	};
 
 	var getRegionsController = (function() {
@@ -747,8 +767,8 @@ var THREE = require("three"),
 		}
 	};
 
-	w.createNewRegion = function(p1, p2) {
-		getRegionsController().add(p1, p2);
+	w.createNewRegion = function(p1, p2, color) {
+		getRegionsController().add(p1, p2, color);
 	};
 
 	function removeBatcher(b) {
@@ -964,6 +984,16 @@ var THREE = require("three"),
 		$(document).on('plasio.mensuration.pointsReset', function() {
 			getPointCollector().clearPoints();
 			needRefresh = true;
+		});
+
+		$(document).on('plasio.regions.reset', function() {
+			if (getRegionsController())
+				getRegionsController().reset();
+		});
+
+		$(document).on('plasio.regions.remove', function(e) {
+			if (getRegionsController())
+				getRegionsController().remove(e.region);
 		});
 
 		$(document).on('plasio.mensuration.addPoint', function(d) {
