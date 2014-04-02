@@ -16,6 +16,8 @@ var THREE = require("three"),
 	var camera, controls, scene, renderer;
 	var activeCamera, orthoCamera, topViewCamera;
 
+	var offscreen = null;
+
 	var cross;
 
 	var mensurationMode = false;
@@ -654,6 +656,67 @@ var THREE = require("three"),
 		renderer.render(this.orthoScene, this.orthoCamera);
 	};
 
+
+	function OffscreenRenderer(w, h) {
+		this.resize(w, h);
+	}
+
+	OffscreenRenderer.prototype.resize = function(w, h) {
+		this.off = new THREE.WebGLRenderTarget(w, h, {
+			stencilBuffer: false,
+		});
+
+		this.off.generateMipmaps = false;
+
+		this.width = w;
+		this.height = h;
+
+		this.camera = new THREE.OrthographicCamera(0, w, h, 0, 1, 10);
+		this.scene = new THREE.Scene();
+
+		this.camera.position.z = 5;
+
+		var mat = new THREE.MeshBasicMaterial({
+			map: this.off,
+			color: 0xffffff,
+			side: THREE.DoubleSide
+		});
+		var g = new THREE.PlaneGeometry(w / 4, h / 4);
+		var m = new THREE.Mesh(g, mat);
+
+		var matbg = new THREE.MeshBasicMaterial({
+			color: 0xffffff,
+			side: THREE.DoubleSide
+		});
+		var gbg = new THREE.PlaneGeometry(w / 4, h / 4);
+		var mbg = new THREE.Mesh(g, matbg);
+
+		m.position.set(w - (w  / 4) + (w / 8) - 10, ( h / 4) - (h / 8) + 10, 0); // much math to account for plane having its origin right in the middle
+		mbg.position.set(w - (w  / 4) + (w / 8) - 10, ( h / 4) - (h / 8) + 10, -1); // much math to account for plane having its origin right in the middle
+
+		m.scale.set(0.99, 0.99, 1.0);
+
+		this.scene.add(m);
+		this.scene.add(mbg);
+
+
+		console.log(this.camera, this.scene, this.off, this.width, this.height);
+		console.log('offscreen was resized!');
+	};
+
+	OffscreenRenderer.prototype.render = function(renderer) {
+		if (!this.scene)
+			return;
+
+		console.log('Rendering offscreen');
+		renderer.clearDepth();
+		renderer.render(this.scene, this.camera);
+	};
+
+	OffscreenRenderer.prototype.getRenderTarget = function() {
+		return this.off;
+	};
+
 	function ModelCache() {
 		this.models = {};
 		this.inprogress = {};
@@ -918,6 +981,12 @@ var THREE = require("three"),
 		return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 	};
 
+	function createOffScreenBuffer(w, h) {
+		return THREE.WebGLRenderTarget(w, h, {
+			stencilBuffer: false
+		});
+	}
+
 	var needRefresh = false; // whenever a scene re-render is needed
 	function init(render_container) {
 		var container = $(render_container);
@@ -952,6 +1021,11 @@ var THREE = require("three"),
 		getCameraControl().resize(w, h);
 
 		getXYZRenderer().resize(w, h);
+
+
+		// Prepare the offscreen buffer for rendering the secondary buffer to
+		//
+		offscreen = new OffscreenRenderer(w, h);
 
 		container.append( renderer.domElement );
 
@@ -1073,6 +1147,9 @@ var THREE = require("three"),
 
 		getXYZRenderer().resize(w, h);
 
+
+		offscreen.resize(w, h);
+
 		render();
 	}
 
@@ -1126,12 +1203,20 @@ var THREE = require("three"),
 		var camera = getCameraControl().activeCamera;
 		renderer.render(scene, camera);
 
+		// render the scene to our off screen surface also
+		// TODO: Change shader
+		if (offscreen.getRenderTarget())
+			renderer.render(scene, camera, offscreen.getRenderTarget(), true);
+
 		// Render the regions as quads
 		getRegionsController().drawRegions(renderer, camera);
 
 		// render collector lines
 		renderCollectorLines(renderer, camera);
 		getPointCollector().render(renderer);
+
+		// Finally draw our offscreen surface, if one is enabled
+		offscreen.render(renderer);
 	}
 
 	function updateColorUniformsForSource(uniforms, source) {
