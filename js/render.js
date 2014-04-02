@@ -906,6 +906,12 @@ var THREE = require("three"),
 		getCameraControl().setPlanes(function(camera, controls, name) {
 			return [-farPlaneDist/2, farPlaneDist/2, farPlaneDist/2, -farPlaneDist/2];
 		});
+
+
+		// Also set the scales on the regions controller, this determines how much the volume changes when we
+		// change the sliders
+		//
+		getRegionsController().scaleFactor = farPlaneDist / 100.0;
 	};
 
 	var numberWithCommas = function(x) {
