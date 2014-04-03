@@ -17,6 +17,7 @@ var THREE = require("three"),
 	var activeCamera, orthoCamera, topViewCamera;
 
 	var offscreen = null;
+	var toggleActivate = false;
 
 	var cross;
 
@@ -38,7 +39,7 @@ var THREE = require("three"),
 			widthScale: 3,
 			heightScale: 3,
 			color: color,
-			active: false
+			active: true
 		};
 
 		console.log('Adding new region!');
@@ -131,8 +132,9 @@ var THREE = require("three"),
 		this.regions.forEach(this.makePlanes, this);
 	};
 
-	RegionsController.prototype.drawRegions = function(renderer, camera) {
+	RegionsController.prototype.drawRegions = function(renderer, camera, target, forceClear) {
 		// draw the regions
+		//
 		var geom = new THREE.CubeGeometry(1, 1, 1);
 		var v = new THREE.Vector3();
 		var vmid = new THREE.Vector3();
@@ -159,7 +161,7 @@ var THREE = require("three"),
 			}
 
 			scene.add(m);
-			renderer.render(scene, camera);
+			renderer.render(scene, camera, target, forceClear);
 		});
 	};
 
@@ -787,11 +789,11 @@ var THREE = require("three"),
 		}
 	};
 
-	PointCollector.prototype.render = function(renderer) {
+	PointCollector.prototype.render = function(renderer, target, forceClear) {
 		this._updateSpritePositions();
 
-		renderer.clearDepth();
-		renderer.render(this.orthoScene, this.orthoCamera);
+		//renderer.clearDepth();
+		renderer.render(this.orthoScene, this.orthoCamera, target, forceClear);
 	};
 
 
@@ -1271,6 +1273,12 @@ var THREE = require("three"),
 				scaleObjects[i].scale.set(d.scale, d.scale, d.scale);
 			}
 		});
+
+
+		$(document).on('plasio.render.toggleClip', function(e) {
+			console.log('toggling');
+			toggleActivate = !toggleActivate;
+		});
 	}
 
 	function onWindowResize() {
@@ -1304,7 +1312,7 @@ var THREE = require("three"),
 		}
 	}
 
-	var renderCollectorLines = function(r, c) {
+	var renderCollectorLines = function(r, c, target, clear) {
 		var scene = new THREE.Scene();
 
 		var points = getPointCollector().points;
@@ -1331,44 +1339,62 @@ var THREE = require("three"),
 			scene.add(l);
 		}
 
-		r.render(scene, c);
+		r.render(scene, c, target, clear);
 	};
 
 
 	function render() {
 		renderer.clear();
 		var camera = getCameraControl().activeCamera;
-		renderer.render(scene, camera);
 
-		// render the scene to our off screen surface also
-		// TODO: Change shader
-		if (offscreen.getRenderTarget()) {
-			var regions = getRegionsController().regions;
-			var target = offscreen.getRenderTarget();
+		// regions we have right now
+		var regions = getRegionsController().regions;
+		var needOverlay = _.some(regions, 'active'); // only need overlay when we have active regions
 
-			if (regions.length === 0) {
-				renderer.render(scene, camera, target, true);
-			}
-			else {
-				getRegionsController().updatePlanes();
+		// make sure all plaes are updated
+		getRegionsController().updatePlanes();
 
-				var first = true;
-				regions.forEach(function(r) {
-					getRegionClipper().render(r, renderer, scene, camera, target, first);
-					if (first) first = false;
-				});
-			}
+		var renderRegions = function(target) {
+			var activeRegions = _.filter(regions, 'active');
+
+			var first = true;
+			activeRegions.forEach(function(r) {
+				getRegionClipper().render(r, renderer, scene, camera, target, first);
+				if (first) first = false;
+			});
+		};
+
+		var renderEverything = function(target) {
+			renderer.render(scene, camera, target, true);
+
+			// Render the regions as quads
+			getRegionsController().drawRegions(renderer, camera, target);
+
+			// render collector lines
+			renderCollectorLines(renderer, camera, target);
+			getPointCollector().render(renderer, target);
+		};
+
+		if (needOverlay && toggleActivate) {
+			// there is an active overlay and it has been toggled, we need to render regions stuff to main area
+			// and point cloud to offscreen
+			renderRegions();
+			renderEverything(offscreen.getRenderTarget());
+			
+			offscreen.render(renderer);
 		}
+		else if (needOverlay) {
+			// the toggle hasn't been activated but an overlay is active
+			//
+			renderEverything();
+			renderRegions(offscreen.getRenderTarget());
 
-		// Render the regions as quads
-		getRegionsController().drawRegions(renderer, camera);
-
-		// render collector lines
-		renderCollectorLines(renderer, camera);
-		getPointCollector().render(renderer);
-
-		// Finally draw our offscreen surface, if one is enabled
-		offscreen.render(renderer);
+			offscreen.render(renderer);
+		}
+		else {
+			// no overlay, no toggle
+			renderEverything();
+		}
 	}
 
 	function updateColorUniformsForSource(uniforms, source) {

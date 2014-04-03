@@ -141,7 +141,7 @@ var Promise = require("bluebird"),
 
 
 		// TODO: Evaluate if its a good idea to have plane based projection
-		// setupKeyboardHooks();
+		setupKeyboardHooks();
 		setupProgressHandlers();
 		setupFileOpenHandlers();
 		setupSliders();
@@ -1126,28 +1126,23 @@ var Promise = require("bluebird"),
 	};
 
 	var setupKeyboardHooks = function() {
-		$(document).on('keydown', function(e) {
-			var keyCode = e.key || e.keyCode;
+		$(document).on('keypress', withRefresh(function(e) {
+			console.log('Keypress', e);
+
+			var keyCode = e.key || e.which || e.keyCode;
 
 			// we hold the space down to get into mensuration mode
 			//
-			if (keyCode === 32) {
+			if (keyCode === 84 || keyCode === 116) {
 				e.preventDefault();
-				render.enableMensuration();
-			}
-		});
+				e.stopPropagation();
 
-		$(document).on('keyup', function(e) {
-			var keyCode = e.key || e.keyCode;
-
-			// turn the mensuration mode off when space is let go
-			if (keyCode === 32) {
-				e.preventDefault();
-				render.disableMensuration();
+				$.event.trigger({
+					type: 'plasio.render.toggleClip'
+				});
 			}
-		});
+		}));
 	};
-
 
 	var setupMensurationHandlers = function() {
 		$("#mensuration-reset").on("click", function(e) {
@@ -1315,8 +1310,9 @@ var Promise = require("bluebird"),
 		var RegionViewport = React.createClass({
 			render: function() {
 				var classes = React.addons.classSet({
-					'btn btn-block btn-default btn-sm': true,
-					'active': this.props.region.active
+					'btn btn-block btn-sm': true,
+					'btn-default': !this.props.region.active,
+					'btn-success active': this.props.region.active
 				});
 				return React.DOM.button({
 					className: classes,
@@ -1419,20 +1415,27 @@ var Promise = require("bluebird"),
 					return React.DOM.div({ className: 'its-empty' }, 'No regions defined');
 
 				var o = this;
+				var resetButton = React.DOM.button({
+					className: 'btn btn-info btn-sm btn-block',
+					style: { marginBottom: '10px' },
+					onClick: withRefresh(function() { $.event.trigger({ type: 'plasio.render.toggleClip' }); })
+				}, 'Toggle Regions View (T)');
+
 				return React.DOM.div({
 					class: "all-regions" },
-					_.times(this.state.regions.length, function(i) {
-						var r = o.state.regions[i];
-						return Region({ 
-							index: i,
-							region: o.state.regions[i],
-							setRibbon: o.setRibbon,
-							setAxisAligned: o.setAxisAligned,
-							setWidth: o.setWidth,
-							setHeight: o.setHeight,
-							remove: o.remove,
-							toggle: o.toggle });
-					}));
+					[resetButton].concat(
+						_.times(this.state.regions.length, function(i) {
+							var r = o.state.regions[i];
+							return Region({ 
+								index: i,
+								region: o.state.regions[i],
+								setRibbon: o.setRibbon,
+								setAxisAligned: o.setAxisAligned,
+								setWidth: o.setWidth,
+								setHeight: o.setHeight,
+								remove: o.remove,
+								toggle: o.toggle });
+						})));
 			},
 
 			setRibbon: withRefresh(function(i) {
