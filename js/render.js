@@ -113,6 +113,24 @@ var THREE = require("three"),
 		return points;
 	};
 
+	RegionsController.prototype.makePlanes = function(region) {
+		var points = this.toPoints(region);
+		var v = new THREE.Plane();
+
+		region.planes = [
+			v.setFromCoplanarPoints(points[0], points[1], points[2]).clone(), // back
+			v.setFromCoplanarPoints(points[7], points[4], points[0]).clone(), // left
+			v.setFromCoplanarPoints(points[2], points[1], points[5]).clone(), // right
+			v.setFromCoplanarPoints(points[2], points[7], points[3]).clone(), // bottom
+			v.setFromCoplanarPoints(points[5], points[0], points[4]).clone(), // top
+			v.setFromCoplanarPoints(points[6], points[5], points[4]).clone()  // far
+		];
+	};
+
+	RegionsController.prototype.updatePlanes = function() {
+		this.regions.forEach(this.makePlanes, this);
+	};
+
 	RegionsController.prototype.drawRegions = function(renderer, camera) {
 		// draw the regions
 		var geom = new THREE.CubeGeometry(1, 1, 1);
@@ -384,6 +402,65 @@ var THREE = require("three"),
 				cc = new CameraControl(container || document);
 			}
 			return cc;
+		};
+	})();
+
+	function RegionClipper() {
+		this.uniforms = {
+			pointSize: {type: 'f', value: currentPointSize() },
+			xyzScale: { type: 'v3', value: new THREE.Vector3(1, 1, 1) },
+			zrange: { type: 'v2', value: new THREE.Vector2(0, 0) },
+			offsets: { type: 'v3', value: new THREE.Vector3(0, 0, 0) },
+			planes: { type: 'v4v', value: null }
+		};
+
+		this.mat = new THREE.ShaderMaterial({
+			/*jshint multistr: true */
+			vertexShader: '\
+			uniform float pointSize; \n\
+			uniform vec3 xyzScale; \n\
+			uniform vec2 zrange; \n\
+			uniform vec3 offsets; \n\
+			varying vec3 fpos; \n\
+			void main() { \n\
+				fpos = ((position.xyz - offsets) * xyzScale).xzy * vec3(-1, 1, 1); \n\
+				//vec3 world_pos = ((position.xyz - offsets) * xyzScale).xzy;\
+				//vec3 fpos = world_pos.xyz * vec3(-1, 1, 1); \n\
+				vec4 mvPosition = modelViewMatrix * vec4(fpos, 1.0); \n\
+				gl_Position = projectionMatrix * mvPosition; \n\
+				gl_PointSize = pointSize; \n\
+			}',
+			fragmentShader: '\
+			uniform vec4 planes[6]; \n\
+			varying vec3 fpos; \n\
+			void main() { \n\
+				for(int i = 0 ; i < 6 ; i ++) {\n\
+					if (dot(planes[i], vec4(fpos, 1.0)) < 0.0)\n\
+						discard; \n\
+				}\n\
+				gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }',
+			uniforms: this.uniforms
+		});
+	}
+
+	RegionClipper.prototype.render = function(region, renderer, scene, camera, target, forceClear) {
+		var prev = scene.overrideMaterial;
+		scene.overrideMaterial = this.mat;
+
+		this.uniforms.planes.value = region.planes.map(function(p) {
+			return new THREE.Vector4(p.normal.x, p.normal.y, p.normal.z, p.constant);
+		});
+
+		renderer.render(scene, camera, target, forceClear);
+		scene.overrideMaterial = prev;
+	};
+
+	var getRegionClipper = (function() {
+		var rc = null;
+		return function() {
+			if (rc === null)
+				rc = new RegionClipper();
+			return rc;
 		};
 	})();
 
@@ -769,7 +846,6 @@ var THREE = require("three"),
 		if (!this.scene)
 			return;
 
-		console.log('Rendering offscreen');
 		renderer.clearDepth();
 		renderer.render(this.scene, this.camera);
 	};
@@ -1266,8 +1342,23 @@ var THREE = require("three"),
 
 		// render the scene to our off screen surface also
 		// TODO: Change shader
-		if (offscreen.getRenderTarget())
-			renderer.render(scene, camera, offscreen.getRenderTarget(), true);
+		if (offscreen.getRenderTarget()) {
+			var regions = getRegionsController().regions;
+			var target = offscreen.getRenderTarget();
+
+			if (regions.length === 0) {
+				renderer.render(scene, camera, target, true);
+			}
+			else {
+				getRegionsController().updatePlanes();
+
+				var first = true;
+				regions.forEach(function(r) {
+					getRegionClipper().render(r, renderer, scene, camera, target, first);
+					if (first) first = false;
+				});
+			}
+		}
 
 		// Render the regions as quads
 		getRegionsController().drawRegions(renderer, camera);
@@ -1438,6 +1529,7 @@ var THREE = require("three"),
 		$(document).on("plasio.pointSizeChanged", function() {
 			var f = currentPointSize();
 			getXYZRenderer().uniforms.pointSize.value = f;
+			getRegionClipper().uniforms.pointSize.value = f;
 			uniforms.pointSize.value = f;
 		});
 
@@ -1447,16 +1539,19 @@ var THREE = require("three"),
 
 		$(document).on("plasio.offsetsChanged", function(e) {
 			getXYZRenderer().uniforms.offsets.value = e.offsets;
+			getRegionClipper().uniforms.offsets.value = e.offsets;
 			uniforms.offsets.value = e.offsets;
 		});
 
 		$(document).on("plasio.zrangeChanged", function(e) {
 			getXYZRenderer().uniforms.zrange.value = e.zrange;
+			getRegionClipper().uniforms.zrange.value = e.zrange;
 			uniforms.zrange.value = e.zrange;
 		});
 
 		$(document).on("plasio.scaleChanged", function(e) {
 			getXYZRenderer().uniforms.xyzScale.value = e.scale;
+			getRegionClipper().uniforms.xyzScale.value = e.scale;
 			uniforms.xyzScale.value = e.scale;
 		});
 
