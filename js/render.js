@@ -53,6 +53,66 @@ var THREE = require("three"),
 		needRefresh = true;
 	};
 
+	RegionsController.prototype.toPoints = function(region) {
+		// take a region and generate the 8 points
+		// first 4 points are on the starting side, top-left, top-right, bottom-right, bottom-left
+		// the next 4 points are on the ending side, same order
+		//
+		var points = [];
+		if (region.type === RegionsController.TypeRibbon) {
+			var dir = new THREE.Vector3(),
+				up = new THREE.Vector3(0, 1, 0),
+				right = new THREE.Vector3(),
+				v = new THREE.Vector3();
+
+			dir.copy(region.end).sub(region.start).normalize();
+			right.crossVectors(dir, up);
+			up.crossVectors(right, dir);
+
+			right.multiplyScalar(this.scaleFactor * region.widthScale * 0.5);
+			up.multiplyScalar(this.scaleFactor * region.heightScale * 0.5);
+			
+			// near quad
+			points.push(v.copy(region.start).add(up).sub(right).clone());
+			points.push(v.copy(region.start).add(up).add(right).clone());
+			points.push(v.copy(region.start).sub(up).add(right).clone());
+			points.push(v.copy(region.start).sub(up).sub(right).clone());
+
+			// far quad
+			points.push(v.copy(region.end).add(up).sub(right).clone());
+			points.push(v.copy(region.end).add(up).add(right).clone());
+			points.push(v.copy(region.end).sub(up).add(right).clone());
+			points.push(v.copy(region.end).sub(up).sub(right).clone());
+		}
+		else {
+			// this should mantain the same order as the 
+			var make = function(a, b, c) {
+				var af = a ? Math.max : Math.min;
+				var bf = b ? Math.max : Math.min;
+				var cf = c ? Math.max : Math.min;
+
+				return new THREE.Vector3(
+					af(region.start.x, region.end.x),
+					bf(region.start.y, region.end.y),
+					cf(region.start.z, region.end.z));
+			};
+
+			// near face, c = 0;
+			points.push(make(0, 0, 0));
+			points.push(make(1, 0, 0));
+			points.push(make(1, 1, 0));
+			points.push(make(0, 1, 0));
+
+			// far face, c = 1;
+			points.push(make(0, 0, 1));
+			points.push(make(1, 0, 1));
+			points.push(make(1, 1, 1));
+			points.push(make(0, 1, 1));
+		}
+
+		return points;
+	};
+
 	RegionsController.prototype.drawRegions = function(renderer, camera) {
 		// draw the regions
 		var geom = new THREE.CubeGeometry(1, 1, 1);
