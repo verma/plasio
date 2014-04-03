@@ -408,53 +408,20 @@ var THREE = require("three"),
 	})();
 
 	function RegionClipper() {
-		this.uniforms = {
-			pointSize: {type: 'f', value: currentPointSize() },
-			xyzScale: { type: 'v3', value: new THREE.Vector3(1, 1, 1) },
-			zrange: { type: 'v2', value: new THREE.Vector2(0, 0) },
-			offsets: { type: 'v3', value: new THREE.Vector3(0, 0, 0) },
-			planes: { type: 'v4v', value: null }
-		};
-
-		this.mat = new THREE.ShaderMaterial({
-			/*jshint multistr: true */
-			vertexShader: '\
-			uniform float pointSize; \n\
-			uniform vec3 xyzScale; \n\
-			uniform vec2 zrange; \n\
-			uniform vec3 offsets; \n\
-			varying vec3 fpos; \n\
-			void main() { \n\
-				fpos = ((position.xyz - offsets) * xyzScale).xzy * vec3(-1, 1, 1); \n\
-				//vec3 world_pos = ((position.xyz - offsets) * xyzScale).xzy;\
-				//vec3 fpos = world_pos.xyz * vec3(-1, 1, 1); \n\
-				vec4 mvPosition = modelViewMatrix * vec4(fpos, 1.0); \n\
-				gl_Position = projectionMatrix * mvPosition; \n\
-				gl_PointSize = pointSize; \n\
-			}',
-			fragmentShader: '\
-			uniform vec4 planes[6]; \n\
-			varying vec3 fpos; \n\
-			void main() { \n\
-				for(int i = 0 ; i < 6 ; i ++) {\n\
-					if (dot(planes[i], vec4(fpos, 1.0)) < 0.0)\n\
-						discard; \n\
-				}\n\
-				gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }',
-			uniforms: this.uniforms
-		});
 	}
 
 	RegionClipper.prototype.render = function(region, renderer, scene, camera, target, forceClear) {
-		var prev = scene.overrideMaterial;
-		scene.overrideMaterial = this.mat;
+		var mat = getMaterial();
 
-		this.uniforms.planes.value = region.planes.map(function(p) {
+		mat.uniforms.do_plane_clipping.value = 1; // enable clipping
+
+		mat.uniforms.planes.value = region.planes.map(function(p) {
 			return new THREE.Vector4(p.normal.x, p.normal.y, p.normal.z, p.constant);
 		});
 
 		renderer.render(scene, camera, target, forceClear);
-		scene.overrideMaterial = prev;
+
+		mat.uniforms.do_plane_clipping.value = 0; // disable clipping
 	};
 
 	var getRegionClipper = (function() {
@@ -1216,6 +1183,11 @@ var THREE = require("three"),
 		});
 
 		$(document).on('plasio.mensuration.addPoint', function(d) {
+			// Don't allow addition of mensuration points if we're in toggle mode and
+			// have some active region (we're seeing clipped area)
+			if (toggleActivate && _.some(getRegionsController().regions, 'active'))
+				return;
+
 			var point = getXYZRenderer().pick(renderer, scene, getCameraControl().activeCamera, d.x, d.y);
 			getPointCollector().push(d.x, d.y, point, d.startNew);
 
@@ -1465,6 +1437,9 @@ var THREE = require("three"),
 		if (shaderMaterial !== null)
 			return shaderMaterial;
 
+		if (vs === undefined || fs === undefined)
+			throw new Error('Cannot create shader material without vertex and fragment shaders');
+
 		var attributes = {
 			color: { type: 'c', value: null },
 			intensity: { type: 'f', value: null },
@@ -1500,7 +1475,11 @@ var THREE = require("three"),
 
 			zrange: { type: 'v2', value: new THREE.Vector2(0, 0) },
 			offsets: { type: 'v3', value: new THREE.Vector3(0, 0, 0) },
-			map: { type: 't', value: THREE.ImageUtils.loadTexture(currentColorMap())}
+			map: { type: 't', value: THREE.ImageUtils.loadTexture(currentColorMap())},
+
+			// clipping controls
+			do_plane_clipping: { type: 'i', value: 0 },
+			planes: { type: 'v4v', value: _.times(6, function() { return new THREE.Vector4(); }) }
 		};
 
 		updateColorUniformsForSource(uniforms, currentColorSource());
@@ -1555,7 +1534,6 @@ var THREE = require("three"),
 		$(document).on("plasio.pointSizeChanged", function() {
 			var f = currentPointSize();
 			getXYZRenderer().uniforms.pointSize.value = f;
-			getRegionClipper().uniforms.pointSize.value = f;
 			uniforms.pointSize.value = f;
 		});
 
@@ -1565,19 +1543,16 @@ var THREE = require("three"),
 
 		$(document).on("plasio.offsetsChanged", function(e) {
 			getXYZRenderer().uniforms.offsets.value = e.offsets;
-			getRegionClipper().uniforms.offsets.value = e.offsets;
 			uniforms.offsets.value = e.offsets;
 		});
 
 		$(document).on("plasio.zrangeChanged", function(e) {
 			getXYZRenderer().uniforms.zrange.value = e.zrange;
-			getRegionClipper().uniforms.zrange.value = e.zrange;
 			uniforms.zrange.value = e.zrange;
 		});
 
 		$(document).on("plasio.scaleChanged", function(e) {
 			getXYZRenderer().uniforms.xyzScale.value = e.scale;
-			getRegionClipper().uniforms.xyzScale.value = e.scale;
 			uniforms.xyzScale.value = e.scale;
 		});
 

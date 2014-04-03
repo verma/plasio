@@ -331,10 +331,11 @@
 			attribute float classification;
 
 			varying vec4 col;
+			varying vec3 fpos;
 
 
 			void main() {
-				vec3 fpos = ((position.xyz - offsets) * xyzScale).xzy * vec3(-1, 1, 1);
+				fpos = ((position.xyz - offsets) * xyzScale).xzy * vec3(-1, 1, 1);
 
 				vec4 mvPosition = modelViewMatrix * vec4( fpos, 1.0 );
 				gl_Position = projectionMatrix * mvPosition;
@@ -374,9 +375,20 @@
 			}
 		</script>
 		<script type="x-shader/x-fragment" id="fragmentshader">
+			uniform vec4 planes[6];
+			uniform int do_plane_clipping;
+
 			varying vec4 col;
+			varying vec3 fpos;
 
 			void main() {
+				if (do_plane_clipping > 0) {
+					for(int i = 0 ; i < 6 ; i ++) {
+						if (dot(planes[i], vec4(fpos, 1.0)) < 0.0)
+							discard;
+					}
+				}
+
 				gl_FragColor = col;
 			}
 		</script>
