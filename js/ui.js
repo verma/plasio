@@ -1216,7 +1216,7 @@ var Promise = require("bluebird"),
 
 				if (lines.length === 0)
 					return React.DOM.div({ className: "its-empty" },
-										 "No Mensuration Points");
+										 "No Measurement Segments");
 				return React.DOM.table({
 					class: "table"
 				}, [
