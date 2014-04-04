@@ -1,0 +1,15 @@
+{
+	"title": "Setting the load Density",
+	"summary": "The Density Slider allows you to load your LAS/LAZ file from 10% to 100% of the total points.",
+	"video": "/docs/videos/density.webm",
+	"tags": [
+		{
+			"title": "Low Density",
+			"offset": 0
+		},
+		{
+			"title": "High Density",
+			"offset": 11
+		}
+	]
+}
