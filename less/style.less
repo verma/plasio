@@ -139,6 +139,7 @@ body {
 }
 
 .labeled-controls {
+	position: relative;
 	margin-bottom: 20px;
 	background-color: #eee;
 	padding: 15px 10px;
@@ -365,4 +366,36 @@ h5.not-first {
 	text-align: center;
 	font-style: italic;
 	color: #999;
+}
+
+.doc-tag {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+}
+
+#docsPage {
+	p {
+		margin: 0 0 10px 0;
+		padding: 0px;
+	}
+
+	video {
+		border: 1px solid #333;
+		box-shadow: 0px 5px 5px #888888;
+	}
+
+	.tags {
+		p {
+			font-weight: bold;
+			text-transform: uppercase;
+			padding: 5px;
+			color: #999;
+			margin: 10px 0px 0px 0px;
+		}
+
+		button {
+			margin-right: 5px;
+		}
+	}
 }

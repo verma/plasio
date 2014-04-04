@@ -40,7 +40,7 @@ var path = require('path');
  */
  
 gulp.task('default', ['build']);
-gulp.task('build', ['css', 'less', 'bad-scripts', 'lint', 'scripts', 'resources', 'html']);
+gulp.task('build', ['css', 'less', 'bad-scripts', 'lint', 'scripts', 'resources', 'html', 'docs']);
 gulp.task('develop', ['build', 'serve', 'livereload']);
  
  
@@ -57,6 +57,7 @@ var paths = {
 	less     : 'less/style.less',
 	jade     : 'client/**/*.jade',
 	html	 : '*.html',
+	docs	 : 'docs/**/*',
 	build    : './build/'
 };
  
@@ -114,6 +115,7 @@ gulp.task('livereload', function() {
 	gulp.watch(paths.sources, ['lint', 'scripts']);
 	gulp.watch(paths.html, ['html']);
 	gulp.watch(paths.less, ['less']);
+	gulp.watch(paths.docs, ['docs']);
 	gulp.watch(paths.resources, ['resources']);
 
 	var server = livereload();
@@ -134,7 +136,7 @@ gulp.task('scripts', function(){
 		.pipe(browserify({
 			debug: gulp.env.production
 		}))
-		.pipe(gulp.dest(paths.build))
+		.pipe(gulp.dest(paths.build));
 });
 
 gulp.task('css', function() {
@@ -161,6 +163,10 @@ gulp.task('clean', function() {
 		.pipe(clean());
 });
 
+gulp.task('docs', function() {
+	return gulp.src(paths.docs).
+		pipe(gulp.dest(path.join(paths.build, 'docs')));
+});
 
 gulp.task('publish', ['build'], function() {
 	var homeDir = process.env['HOME'];

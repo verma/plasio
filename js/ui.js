@@ -156,6 +156,7 @@ var Promise = require("bluebird"),
 		setupMensurationHandlers();
 		setupScaleObjectsHandlers();
 		setupRegionHandlers();
+		setupDocHandlers();
 
 
 		// get the currently selected image
@@ -1475,6 +1476,60 @@ var Promise = require("bluebird"),
 		});
 
 		React.renderComponent(RegionsBox({}), $("#clipping-regions").get(0));
+	};
+
+	var setupDocHandlers = function() {
+		var $modal = $("#docsPage");
+
+		var url = null;
+		$(document).on('click', 'a.doc-tag', function(e) {
+			e.preventDefault();
+
+			url = $(this).attr('href');
+			$modal.modal('show');
+		});
+
+		$modal.on('click', '.tags button', function(e) {
+			e.preventDefault();
+
+			var offset = parseInt($(this).attr('data-offset'));
+			var video = $(".modal-body video").get(0);
+
+			if (video)
+				video.currentTime = offset;
+		});
+
+		$modal.on('hidden.bs.modal', function() {
+			var $title = $modal.find('.modal-title');
+			var $body = $modal.find('.modal-body');
+
+			$title.html('plasio Documentation');
+			$body.html('');
+		});
+
+
+		$modal.on('shown.bs.modal', function() {
+			$.get(url, function(data) {
+				var $title = $modal.find('.modal-title');
+				var $body = $modal.find('.modal-body');
+
+				$title.text(data.title);
+
+				$body.
+					html('').
+					append(
+						$('<p>').html(data.summary),
+						$('<video>', { controls: true, autoplay: true, style: 'width:100%;height:auto;' }).append(
+							$('<source>', { src: data.video, type: 'video/webm' }),
+							"Your player does not support HTML5 video, you can still download the video from <a href='" + data.video + "'>here</a>"
+						),
+						$('<div>', { class: 'tags' }).append(
+							$('<p>').text('Tags'),
+							data.tags.map(function(t) {
+								return $('<button>', { type: 'button', class:'btn btn-sm btn-default', 'data-offset': t.offset}).text(t.title);
+							})));
+			});
+		});
 	};
 })(window);
 

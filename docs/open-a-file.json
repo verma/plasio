@@ -1,0 +1,15 @@
+{
+	"title": "Opening a LAS/LAZ file",
+	"summary": "Note that LAZ file loading is only available in <strong>Google Chrome</strong>",
+	"video": "/docs/videos/open-a-file.webm",
+	"tags": [
+		{
+			"title": "Browse",
+			"offset": 0
+		},
+		{
+			"title": "Drag-n-Drop",
+			"offset": 9
+		}
+	]
+}
