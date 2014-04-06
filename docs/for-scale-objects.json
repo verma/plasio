@@ -1,0 +1,19 @@
+{
+	"title": "For Scale Objects",
+	"summary": "For scale objects provide perspective into the scale of your data.",
+	"video": "/docs/videos/for-scale-objects.webm",
+	"tags": [
+		{
+			"title": "Place Objects",
+			"offset": 0
+		},
+		{
+			"title": "Clear Objects",
+			"offset": 13
+		},
+		{
+			"title": "Change Units",
+			"offset": 17
+		}
+	]
+}
