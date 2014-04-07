@@ -13,6 +13,8 @@ var watch = require('gulp-watch');
 var livereload = require('gulp-livereload');
 var clean = require('gulp-clean');
 var awspublish = require('gulp-awspublish');
+var uglify = require('gulp-uglify');
+var htmlreplace = require('gulp-html-replace');
 
 var through = require('through2');
 var connect = require('connect');
@@ -150,7 +152,7 @@ gulp.task('less', function() {
 		pipe(less({
 			paths: ['./less/']
 		})).
-		pipe(gulp.dest(paths.build))
+		pipe(gulp.dest(paths.build));
 });
 
 gulp.task('html', function() {
@@ -163,12 +165,26 @@ gulp.task('clean', function() {
 		.pipe(clean());
 });
 
+gulp.task('uglify-built', ['build'], function() {
+	return gulp.src(path.join(paths.build, 'client.js')).
+		pipe(uglify({outSourceMap: true})).
+		pipe(gulp.dest(paths.build));
+});
+
 gulp.task('docs', function() {
 	return gulp.src(paths.docs).
 		pipe(gulp.dest(path.join(paths.build, 'docs')));
 });
 
-gulp.task('publish', ['build'], function() {
+gulp.task('prod-react-built', ['build'], function() {
+	return gulp.src(path.join(paths.build, 'index.html')).
+		pipe(htmlreplace({
+			reactjs: '//cdnjs.cloudflare.com/ajax/libs/react/0.10.0/react-with-addons.min.js'
+		})).
+		pipe(gulp.dest(paths.build));
+});
+
+gulp.task('publish', ['build', 'uglify-built', 'prod-react-built'], function() {
 	var homeDir = process.env['HOME'];
 	var settings = require(path.join(homeDir, ".aws.json"));
 

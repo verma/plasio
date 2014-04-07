@@ -20,7 +20,8 @@
     "gulp-watch": "~0.5.2",
     "gulp-livereload": "~1.2.0",
     "gulp-clean": "~0.2.4",
-    "gulp-awspublish": "0.0.11"
+    "gulp-awspublish": "0.0.11",
+    "gulp-html-replace": "~1.0.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -45,12 +46,12 @@
     "jquery-layout": "./vendor/jquery.layout.js",
     "bootstrap": "./vendor/bootstrap.min.js",
     "trackball-controls": "./vendor/controls/TrackballControls.js",
-	"binary-loader": "./vendor/loaders/BinaryLoader.js",
-	"lodash": "./vendor/lodash.min.js"
+    "binary-loader": "./vendor/loaders/BinaryLoader.js",
+    "lodash": "./vendor/lodash.min.js"
   },
   "browserify-shim": {
     "bluebird": "global:Promise",
-	"react": "global:React",
+    "react": "global:React",
     "jquery": "$",
     "jqueryui": {
       "depends": "jquery:$"
@@ -65,9 +66,9 @@
     "trackball-controls": {
       "depends": "three:THREE"
     },
-	"binary-loader": {
-		"depends": "three:THREE"
-	},
+    "binary-loader": {
+      "depends": "three:THREE"
+    },
     "bootstrap": {
       "depends": "jquery:$"
     }
