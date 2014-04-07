@@ -1079,6 +1079,17 @@ var Promise = require("bluebird"),
 	};
 
 	var makePanelsSlidable = function() {
+		var totalPanels = $(".section").length;
+		var colors = _.times(totalPanels, function(i) {
+			return "hsl(" + Math.floor((i + 1) * 360 / totalPanels) + ", 40%, 95%)";
+		});
+
+		$(".section").each(function(index, e) {
+			var $e = $(e);
+			$e.attr('target-bg-color', colors[index]);
+			$e.find('.labeled-controls').css('background-color', colors[index]);
+		});
+
 		// find all panel headers and add make them into slidable widgets
 		//
 		$(".p-head")
@@ -1088,17 +1099,18 @@ var Promise = require("bluebird"),
 					"<span class='glyphicon glyphicon-chevron-up'></span></div>");
 		$(".p-head h3").css("float", "left");
 
-
 		$("body").on("click", ".p-head", function() {
 			var $control = $(this);
 			var isOpen = $control.hasClass("p-collapse-open");
 			var $scroller = $control.next(".p-body");
 			var $span = $control.find(".toggle-control span");
+			var bgcolor = $control.closest('.section').attr('target-bg-color');
 			if (isOpen)
 				$scroller.slideUp(200, function() {
 					$control
 						.removeClass("p-collapse-open")
-						.addClass("p-collapse-close");
+						.addClass("p-collapse-close")
+						.css('background-color', bgcolor);
 
 					$span.attr("class", "glyphicon glyphicon-chevron-down");
 				});
@@ -1106,7 +1118,8 @@ var Promise = require("bluebird"),
 				// when scrolling down appply styles first, for awesomeness effect
 				$control
 					.removeClass("p-collapse-close")
-					.addClass("p-collapse-open");
+					.addClass("p-collapse-open")
+					.css('background-color', '');
 
 				$span.attr("class", "glyphicon glyphicon-chevron-up");
 				$scroller.slideDown(200);
