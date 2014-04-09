@@ -1055,6 +1055,10 @@ var THREE = require("three"),
 		var farPlaneDist = Math.max(range[0], range[1], range[2]);
 		var limits = Math.ceil(Math.sqrt(2*farPlaneDist*farPlaneDist));
 
+		console.log('Data range', range);
+		console.log('Far plane', farPlaneDist);
+		console.log('Limits', limits);
+
 
 		getCameraControl().setNearFar(1.0, farPlaneDist * 4);
 
@@ -1065,7 +1069,7 @@ var THREE = require("three"),
 				camera.lookAt(zero);
 			}
 			else {
-				camera.position.set(-range[0]/2, cg.z + range[2], -range[1]/2);
+				camera.position.set(-range[0]/2, 2*range[2], -range[1]/2);
 				camera.lookAt(zero);
 			}
 
