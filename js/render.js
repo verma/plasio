@@ -1141,8 +1141,10 @@ var THREE = require("three"),
 		$("#stats").show();
 
 		$(document).on("plasio.cameraFOVChanged", function() {
-			camera.fov = currentFOV();
-			camera.updateProjectionMatrix();
+			getCameraControl().eachCamera(function(c) {
+				c.fov = currentFOV();
+				c.updateProjectionMatrix();
+			}, THREE.PerspectiveCamera);
 		});
 
 		$(document).on("plasio.camera.perspective", function() {
