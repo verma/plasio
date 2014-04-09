@@ -946,7 +946,7 @@ var Promise = require("bluebird"),
 		}));
 
 
-		var activeColorMap = "/colormaps/blue-red.png";
+		var activeColorMap = "colormaps/blue-red.png";
 		$("#colorSwatches").on("click", "a", function(e) {
 			e.preventDefault();
 

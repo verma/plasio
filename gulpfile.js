@@ -144,7 +144,7 @@ gulp.task('scripts', function(){
 gulp.task('css', function() {
 	return gulp.src(paths.css).
 		pipe(concat('all.css')).
-		pipe(gulp.dest(paths.build));
+		pipe(gulp.dest(path.join(paths.build, 'css')));
 });
 
 gulp.task('less', function() {
@@ -152,7 +152,7 @@ gulp.task('less', function() {
 		pipe(less({
 			paths: ['./less/']
 		})).
-		pipe(gulp.dest(paths.build));
+		pipe(gulp.dest(path.join(paths.build, 'css')));
 });
 
 gulp.task('html', function() {
