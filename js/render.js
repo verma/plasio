@@ -1076,6 +1076,10 @@ var THREE = require("three"),
 			console.log('setup', camera.position);
 		});
 
+		getCameraControl().eachCamera(function(camera, controls) {
+			controls.__zoomLevel = 1.0;
+		}, THREE.OrthographicCamera);
+
 		getCameraControl().setPlanes(function(camera, controls, name) {
 			return [-farPlaneDist/2, farPlaneDist/2, farPlaneDist/2, -farPlaneDist/2];
 		});
