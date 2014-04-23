@@ -679,6 +679,95 @@ var Promise = require("bluebird"),
 	};
 
 	var setupSliders = function() {
+		// setup any react classes we may need
+		//
+		var InundationControls = React.createClass({
+			getInitialState: function() {
+				return { enabled: false,
+						 slider: false,
+						 opacity: 50,
+						 value: 0};
+			},
+
+			componentDidMount: function() {
+			},
+
+			componentDidUpdate: function() {
+				// if we have #inun, make it into a slider
+				if (!this.state.slider) {
+					var n = $("#inun").get(0);
+					var m = $("#inun-opacity").get(0);
+
+					var o = this;
+
+					$(n).noUiSlider({
+						range:[0, 1000],
+						start: o.state.value,
+						handles: 1,
+						connect: "lower",
+						slide: withRefresh(function() {
+							$.event.trigger({
+								type: 'plasio.inundationChanged'
+							});
+
+							o.setState({value: $(n).val()});
+						})
+					});
+
+					$(m).noUiSlider({
+						range:[0, 100],
+						start: o.state.opacity,
+						handles: 1,
+						connect: "lower",
+						slide: withRefresh(function() {
+							$.event.trigger({
+								type: 'plasio.inundationOpacityChanged'
+							});
+
+							o.setState({opacity: $(m).val()});
+						})
+					});
+
+					o.setState({slider: true});
+				}
+			},
+
+			render: function() {
+				var classes = React.addons.classSet({
+					'btn btn-block btn-sm': true,
+					'btn-default': !this.state.enabled,
+					'btn-success active': this.state.enabled
+				});
+
+				return React.DOM.div(null, [
+					React.DOM.button({
+						type: "button",
+						className: classes,
+						style: {marginBottom: '15px'},
+						onClick: withRefresh(this.toggle),
+					}, this.state.enabled ? "Disable" : "Enable"),
+					this.state.enabled ? React.DOM.div({id: "inun"}) : null,
+					this.state.enabled ? React.DOM.h5({className:"not-first"}, "Adjust opacity of inundation plane") : null,
+					this.state.enabled ? React.DOM.div({id: "inun-opacity"}) : null
+				]);
+			},
+
+			toggle: function() {
+				var nextEnabled = !this.state.enabled;
+				this.setState({enabled: nextEnabled,
+							   slider: false});
+
+				$.event.trigger({
+					type: 'plasio.inundationEnable',
+					enable: nextEnabled
+				});
+			}
+		});
+
+		// Mount any React components
+		React.renderComponent(InundationControls(), $("#inun-container").get(0));
+
+		// Setup UI sliders
 		$("#loadFidelity").noUiSlider({
 			range: [1, 9],
 			start: 5,
@@ -889,6 +978,22 @@ var Promise = require("bluebird"),
 
 		scope.currentFOV = function() {
 			return $("#fov").val();
+		};
+
+		scope.currentInundationLevel = function() {
+			var $n = $("#inun");
+			if ($n.length === 0)
+				return 0.0;
+
+			return $n.val();
+		};
+
+		scope.currentInundationOpacity = function() {
+			var $n = $("#inun-opacity");
+			if ($n.length === 0)
+				return 0.0;
+
+			return $n.val();
 		};
 
 		scope.currentLoadFidelity = function() {

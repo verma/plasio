@@ -891,6 +891,64 @@ var THREE = require("three"),
 		};
 	})();
 
+
+	function InundationPlane () {
+		this.h = 0.0;
+		this.m = new THREE.MeshBasicMaterial({color: 0x437DE8, side: THREE.DoubleSide, transparent: true, opacity: 0.5});
+	}
+
+	var getInundationPlane = (function() {
+		var plane = null;
+		return function() {
+			if (plane === null)
+				plane = new InundationPlane();
+			return plane;
+		};
+	})();
+
+
+	InundationPlane.prototype.setDimensions = function(heightRange, spanX, spanY) {
+		if (this.plane) {
+			scene.remove(this.plane);
+		}
+
+		var r = heightRange[1] - heightRange[0];
+		this.range = [heightRange[0] - r * 0.1, heightRange[1] + r * 0.1];
+
+		var g = new THREE.PlaneGeometry(spanX * 2.5, spanY * 2.5);
+
+		this.plane = new THREE.Mesh(g, this.m);
+		this.plane.visible = this.wasVisible;
+		this.plane.rotation.set(Math.PI/2, 0, 0);
+		scene.add(this.plane);
+		this.place(this.h * 1000.0);
+	};
+
+	InundationPlane.prototype.place = function(h) {
+		// h should be in range 0 -> 1000
+		this.h = h / 1000;
+
+		if (this.plane) {
+			this.plane.position.set(0, this.range[0] + this.h * (this.range[1] - this.range[0]), 0);
+		}
+	};
+
+	InundationPlane.prototype.setOpacity = function(o) {
+		this.m.opacity = o;
+	};
+
+	InundationPlane.prototype.show = function() {
+		this.wasVisible = true;
+		if (this.plane)
+			this.plane.visible = true;
+	};
+
+	InundationPlane.prototype.hide = function() {
+		this.wasVisible = false;
+		if (this.plane)
+			this.plane.visible = false;
+	};
+
 	w.startRenderer = function(render_container, status_cb) {
 		init(render_container);
 		animate();
@@ -1089,6 +1147,13 @@ var THREE = require("three"),
 		// change the sliders
 		//
 		getRegionsController().scaleFactor = farPlaneDist / 100.0;
+
+
+		// Setup inundation plane stuff
+		getInundationPlane().setDimensions([(mins.z - cg.z) * scale.z - range[2] * 0.1, (maxs.z - cg.z) * scale.z + range[2] * 0.1],
+										   range[0]/2, range[1]/2);
+		getInundationPlane().place(currentInundationLevel());
+
 	};
 
 	var numberWithCommas = function(x) {
@@ -1260,6 +1325,25 @@ var THREE = require("three"),
 		$(document).on('plasio.render.toggleClip', function(e) {
 			console.log('toggling');
 			toggleActivate = !toggleActivate;
+		});
+
+
+		$(document).on('plasio.inundationEnable', function(e) {
+			console.log(e, e.enable);
+			if (e.enable)
+				getInundationPlane().show();
+			else
+				getInundationPlane().hide();
+		});
+
+		$(document).on('plasio.inundationChanged', function(e) {
+			var l = currentInundationLevel();
+			getInundationPlane().place(l);
+		});
+
+		$(document).on('plasio.inundationOpacityChanged', function() {
+			var o = currentInundationOpacity();
+			getInundationPlane().setOpacity(o/100.0);
 		});
 	}
 
