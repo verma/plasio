@@ -220,6 +220,10 @@ var Promise = require("bluebird"),
 				reject(new Error("Could not get binary data"));
 			};
 
+			oReq.onerror = function(err) {
+				reject(err);
+			};
+
 			oReq.send();
 		}).cancellable().catch(Promise.CancellationError, function(e) {
 			oReq.abort();

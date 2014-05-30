@@ -85,6 +85,25 @@ $(function() {
 					type: "plasio.webglIsExperimental"
 				});
 			}
+
+			var parseURL = function(qs) {
+				var name = qs.match(/\?s=(\S+)/);
+				return name ? name[1] : null;
+			};
+
+
+			// If a URL is specified, load that now
+			var query = window.location.search;
+			if (query) {
+				query = parseURL(query);
+			}
+			console.log("query", query);
+
+			$.event.trigger({
+				type: "plasio.loadfiles.remote",
+				url: query,
+				name: query
+			});
 		}
 		else {
 			$("#no-support").css("opacity", 1.0);
