@@ -96,14 +96,14 @@ $(function() {
 			var query = window.location.search;
 			if (query) {
 				query = parseURL(query);
+				if (query && query.length > 0) {
+					$.event.trigger({
+						type: "plasio.loadfiles.remote",
+						url: query,
+						name: query
+					});
+				}
 			}
-			console.log("query", query);
-
-			$.event.trigger({
-				type: "plasio.loadfiles.remote",
-				url: query,
-				name: query
-			});
 		}
 		else {
 			$("#no-support").css("opacity", 1.0);
