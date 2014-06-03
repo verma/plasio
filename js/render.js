@@ -1052,7 +1052,7 @@ var THREE = require("three"),
 
 	var oldBatcher = null; // the particle system which is already loaded
 	var restorePoint = [];
-	w.loadBatcher = function(batcher, resetCamera, overrideCG) {
+	w.loadBatcher = function(batcher, resetCamera) {
 		if (oldBatcher !== null)
 			removeBatcher(oldBatcher);
 
@@ -1060,9 +1060,10 @@ var THREE = require("three"),
 		oldBatcher = batcher;
 
 		var batcherProps = determineBatcherProps(batcher);
+		console.log('Batcher props:', batcherProps);
 		var mn = batcherProps[0],
 			mx = batcherProps[1],
-			cg = overrideCG || batcherProps[2],
+			cg = batcherProps[2],
 			scale = batcherProps[3];
 
 		if (resetCamera === true) {
@@ -1071,9 +1072,9 @@ var THREE = require("three"),
 		}
 
 		// update some of the fields
-		var zrange = new THREE.Vector2(mn.z, mx.z);
+		var zrange = new THREE.Vector2(0, mx.z - mn.z);
 
-		var cgToUse = overrideCG || cg;
+		var cgToUse = batcher.correctiveOffset || cg;
 
 		// trigger signals for setting offsets
 		$.event.trigger({
@@ -1192,7 +1193,6 @@ var THREE = require("three"),
 		getCameraControl().addCamera("top", new THREE.OrthographicCamera(-w/2, w/2, h/2, -h/2, 1, 10000), true, true, true);
 
 		getCameraControl().onchange = function() {
-			console.log('change!');
 			needRefresh = true;
 		};
 
@@ -1694,12 +1694,17 @@ var THREE = require("three"),
 		var cn = null, cx = null;
 		var in_x = null, in_n = null;
 
+		this.corrective = new THREE.Vector3(lasBuffer.mins[0],
+											lasBuffer.mins[1],
+											lasBuffer.mins[2]);
+
 		for ( var i = 0; i < count; i ++) {
 			var p = lasBuffer.getPoint(i);
 
 			var x = p.position[0] * lasBuffer.scale[0] + lasBuffer.offset[0];
 			var y = p.position[1] * lasBuffer.scale[1] + lasBuffer.offset[1];
 			var z = p.position[2] * lasBuffer.scale[2] + lasBuffer.offset[2];
+
 
 			if (cg === null)
 				cg = new THREE.Vector3(x, y, z);
@@ -1756,9 +1761,9 @@ var THREE = require("three"),
 			in_n = (in_n === null)? p.intensity : Math.min(in_n, p.intensity);
 			in_x = (in_x === null)? p.intensity : Math.max(in_x, p.intensity);
 
-			positions[ 3*i ]     = x;
-			positions[ 3*i + 1 ] = y;
-			positions[ 3*i + 2 ] = z;
+			positions[ 3*i ]     = p.position[0] * lasBuffer.scale[0] + (lasBuffer.offset[0] - this.corrective.x);
+			positions[ 3*i + 1 ] = p.position[1] * lasBuffer.scale[1] + (lasBuffer.offset[1] - this.corrective.y);
+			positions[ 3*i + 2 ] = p.position[2] * lasBuffer.scale[2] + (lasBuffer.offset[2] - this.corrective.z);
 
 			colors[ 3*i ] = r;
 			colors[ 3*i + 1 ] = g;
@@ -1807,6 +1812,17 @@ var THREE = require("three"),
 		this.pss.push(ps);
 
 		this.pointsSoFar += count;
+	};
+
+	ParticleSystemBatcher.prototype.normalizePositionsWithOffset = function(offset) {
+		var o = this;
+
+		console.log("offset: ", offset, "corrective:", o.corrective);
+
+		this.correctiveOffset = offset.clone().sub(o.corrective);
+		this.cg.sub(offset);
+		this.mn.sub(offset);
+		this.mx.sub(offset);
 	};
 
 

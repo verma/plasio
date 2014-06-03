@@ -70,6 +70,8 @@ var common = require("./common"),
 		o.scale = readAs(arraybuffer, Float64Array, start, 3); start += 24; // 8*3
 		o.offset = readAs(arraybuffer, Float64Array, start, 3); start += 24;
 
+		console.log("Read stuff:", o.scale, o.offset);
+
 
 		var bounds = readAs(arraybuffer, Float64Array, start, 6); start += 48; // 8*6;
 		o.maxs = [bounds[0], bounds[2], bounds[4]];
@@ -313,13 +315,15 @@ var common = require("./common"),
 
 	// Decodes LAS records into points
 	//
-	var LASDecoder = function(buffer, pointFormatID, pointSize, pointsCount, scale, offset) {
+	var LASDecoder = function(buffer, pointFormatID, pointSize, pointsCount, scale, offset, mins, maxs) {
 		this.arrayb = buffer;
 		this.decoder = pointFormatReaders[pointFormatID];
 		this.pointsCount = pointsCount;
 		this.pointSize = pointSize;
 		this.scale = scale;
 		this.offset = offset;
+		this.mins = mins;
+		this.maxs = maxs;
 	};
 
 	LASDecoder.prototype.getPoint = function(index) {

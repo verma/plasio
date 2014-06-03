@@ -491,7 +491,8 @@ var Promise = require("bluebird"),
 														   header.pointsStructSize,
 														   data.count,
 														   header.scale,
-														   header.offset));
+														   header.offset,
+														   header.mins, header.maxs));
 
 						totalRead += data.count;
 						progressCB(totalRead / totalToRead);
@@ -828,11 +829,11 @@ var Promise = require("bluebird"),
 
 		$pbfps.html(currentPlaybackRate() + "fps");
 
-		var setCurrentBatcher = function(index, resetCamera, overrideCG) {
+		var setCurrentBatcher = function(index, resetCamera) {
 			console.log('Setting active batcher at index:', index);
 
 			var b = allBatches[index];
-			render.loadBatcher(b.batcher, resetCamera, overrideCG);
+			render.loadBatcher(b.batcher, resetCamera);
 			loadFileInformation(b.header);
 
 			$.event.trigger({
@@ -841,7 +842,7 @@ var Promise = require("bluebird"),
 		};
 
 		var pbTimeout = null;
-		var setBatchPlayAtRate = function(rate, sliderToUpdate, overrideCG) {
+		var setBatchPlayAtRate = function(rate, sliderToUpdate) {
 			console.log('Setting play rate at:', rate);
 			if (pbTimeout !== null) {
 				clearTimeout(pbTimeout);
@@ -864,7 +865,7 @@ var Promise = require("bluebird"),
 
 			var nextFrame = function() {
 				var thisIndex = frames[index];
-				setCurrentBatcher(thisIndex, false, overrideCGToUse);
+				setCurrentBatcher(thisIndex, false);
 				if (sliderToUpdate !== undefined && sliderToUpdate.length > 0) {
 					sliderToUpdate.val(thisIndex);
 				}
@@ -886,7 +887,6 @@ var Promise = require("bluebird"),
 		};
 
 		var $sliderToUpdate = null;
-		var overrideCGToUse = null;
 		$(document).on("plasio.newBatches", function() {
 			// New batches have arrived, set the range accordingly on our slider and
 			// set start to 0
@@ -905,8 +905,15 @@ var Promise = require("bluebird"),
 				$h5.html("Use slider to switch between data sets and view their properties.");
 
 				$sliderToUpdate = $slider;
-				overrideCGToUse = allBatches[0].batcher.cg.clone();
+				var correctedCG = allBatches[0].batcher.cg.clone();
 
+				// renormlize all batchers with the given CG
+				//
+				allBatches.forEach(function(b) {
+					b.batcher.normalizePositionsWithOffset(correctedCG);
+				});
+
+				// renormalization means that we use no offsets in our shaders
 				$slider.noUiSlider({
 					range: [0, allBatches.length - 1],
 					start: 0,
@@ -914,20 +921,24 @@ var Promise = require("bluebird"),
 					step: 1,
 					slide: function() {
 						stopAllPlayback();
-						setCurrentBatcher(parseInt($slider.val()), false, overrideCGToUse);
+						setCurrentBatcher(parseInt($slider.val()), false);
 					},
 				});
 
 				$(".auto-play").show();
 
 			}
+			else {
+				// still normalize stuff to our cg
+				allBatches[0].batcher.normalizePositionsWithOffset(allBatches[0].batcher.cg);
+			}
 
-			setCurrentBatcher(0, true, overrideCGToUse);
+			setCurrentBatcher(0, true);
 			$(".props").show();
 		});
 
 		$(document).on("plasio.playRateChanged", function() {
-			setBatchPlayAtRate(currentPlaybackRate(), $sliderToUpdate, overrideCGToUse);
+			setBatchPlayAtRate(currentPlaybackRate(), $sliderToUpdate);
 		});
 
 		var blendUpdate = function() {
