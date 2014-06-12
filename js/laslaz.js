@@ -211,54 +211,92 @@ var common = require("./common"),
 	};
 
 	LAZLoader.prototype.open = function() {
-		// open the file, using the laz module
-		if (!scope.LASModuleWasLoaded)
-			return new Promise(function(res, rej) {
-				setTimeout(function() {
-					rej(new Error("LAZ Module has not been loaded, LASzip functionality is not available"));
-				}, 0);
-			});
+		// nothing needs to be done to open this file
+		//
+		this.readOffset = 0;
+
+		this.laz = new Module.LASZip();
+
+		console.log("opening...");
+		var abInt = new Uint8Array(this.arraybuffer);
+		var buf = Module._malloc(this.arraybuffer.byteLength);
+
+		this.buf = buf;
+		Module.HEAPU8.set(abInt, this.buf);
+
+		console.log("Opening with", this.arraybuffer.byteLength, "bytes buffer");
+		this.laz.open(this.buf, this.arraybuffer.byteLength);
 
 
-		return doDataExchange({
-			command: 'open',
-			target: 'myfile',
-			buffer: this.arraybuffer
+
+		return new Promise(function(res, rej) {
+			setTimeout(res, 0);
 		});
 	};
 
 	LAZLoader.prototype.getHeader = function() {
 		var o = this;
 
-		return doDataExchange({
-			command: 'getheader'
-		}).then(function(header) {
-			// map the module over to what we want our fields to look like
-			return {
-				maxs: header.maxs,
-				mins: header.mins,
-				offset: header.offsets,
-				scale: header.scales,
-				pointsCount: header.point_count,
-				pointsFormatId: header.point_format_id,
-				pointsStructSize: header.point_record_length,
-				pointsOffset: header.data_offset
-			};
+		return new Promise(function(res, rej) {
+			setTimeout(function() {
+				o.header = parseLASHeader(o.arraybuffer);
+				o.header.pointsFormatId &= 0x3f; // get rid of bit 6 and 7
+				console.log("FIXED HEADER: ", o.header.pointsFormatId);
+				res(o.header);
+			}, 0);
 		});
 	};
 
-	LAZLoader.prototype.readData = function(count, start, skip) {
-		return doDataExchange({
-			command: 'read',
-			count: count,
-			start: start,
-			skip: skip
+	LAZLoader.prototype.readData = function(count, offset, skip) {
+		var o = this;
+
+		return new Promise(function(res, rej) {
+			setTimeout(function() {
+				if (!o.header)
+					return rej(new Error("Cannot start reading data till a header request is issued"));
+
+				var pointsToRead = Math.min(count * skip, o.header.pointsCount - o.readOffset);
+				var bufferSize = Math.ceil(pointsToRead / skip);
+				var pointsRead = 0;
+
+				var buf = new Uint8Array(bufferSize * o.header.pointsStructSize);
+				var buf_read = Module._malloc(o.header.pointsStructSize);
+				console.log("Destination size:", buf.byteLength);
+				for (var i = 0 ; i < pointsToRead ; i ++) {
+					o.laz.getPoint(buf_read);
+
+					console.log("getting point", i, skip);
+					if (i % skip === 0) {
+						console.log("placing point", i, skip);
+						var a = new Uint8Array(Module.HEAPU8.buffer, buf_read, o.header.pointsStructSize);
+						console.log(a);
+						for (var j = 0 ; j < a.length ; j ++) {
+							console.log(a[j]);
+						}
+
+						buf.set(a, pointsRead * o.header.pointsStructSize, o.header.pointsStructSize);
+						pointsRead ++;
+					}
+
+					o.readOffset ++;
+				}
+
+				res({
+					buffer: buf.buffer,
+					count: pointsRead,
+					hasMoreData: o.readOffset < o.header.pointsCount
+				});
+			}, 0);
 		});
 	};
 
 	LAZLoader.prototype.close = function() {
-		return doDataExchange({
-			command: 'close'
+		var o = this;
+		this.laz.delete();
+
+		return new Promise(function(res, rej) {
+			o.arraybuffer = null;
+			setTimeout(res, 0);
 		});
 	};
 
@@ -316,6 +354,7 @@ var common = require("./common"),
 	// Decodes LAS records into points
 	//
 	var LASDecoder = function(buffer, pointFormatID, pointSize, pointsCount, scale, offset, mins, maxs) {
+		console.log("POINT FORMAT ID:", pointFormatID);
 		this.arrayb = buffer;
 		this.decoder = pointFormatReaders[pointFormatID];
 		this.pointsCount = pointsCount;
