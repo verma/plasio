@@ -53,7 +53,7 @@ gulp.task('develop', ['build', 'serve', 'livereload']);
 var paths = {
 	main	 : 'js/client.js',
 	sources  : 'js/**/*.js',
-	badScripts: ['vendor/bluebird.js'],
+	badScripts: ['vendor/bluebird.js', 'vendor/laz-perf.js'],
 	resources: 'resources/**',
 	css      : 'less/**/*.css',
 	less     : 'less/style.less',

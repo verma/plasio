@@ -469,7 +469,9 @@ var Promise = require("bluebird"),
 				});
 			});
 		}).then(function(lf) {
+			console.log("getting header");
 			return lf.getHeader().then(function(h) {
+				console.log("got header", h);
 				return [lf, h];
 			});
 		}).then(function(v) {
@@ -486,6 +488,7 @@ var Promise = require("bluebird"),
 				var reader = function() {
 					var p = lf.readData(1000000, 0, skip);
 					return p.then(function(data) {
+						console.log(header);
 						batcher.push(new laslaz.LASDecoder(data.buffer,
 														   header.pointsFormatId,
 														   header.pointsStructSize,
