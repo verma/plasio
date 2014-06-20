@@ -261,19 +261,11 @@ var common = require("./common"),
 
 				var buf = new Uint8Array(bufferSize * o.header.pointsStructSize);
 				var buf_read = Module._malloc(o.header.pointsStructSize);
-				console.log("Destination size:", buf.byteLength);
 				for (var i = 0 ; i < pointsToRead ; i ++) {
 					o.laz.getPoint(buf_read);
 
-					console.log("getting point", i, skip);
 					if (i % skip === 0) {
-						console.log("placing point", i, skip);
 						var a = new Uint8Array(Module.HEAPU8.buffer, buf_read, o.header.pointsStructSize);
-						console.log(a);
-						for (var j = 0 ; j < a.length ; j ++) {
-							console.log(a[j]);
-						}
-
 						buf.set(a, pointsRead * o.header.pointsStructSize, o.header.pointsStructSize);
 						pointsRead ++;
 					}
