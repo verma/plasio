@@ -42,7 +42,7 @@ var path = require('path');
  */
  
 gulp.task('default', ['build']);
-gulp.task('build', ['css', 'less', 'bad-scripts', 'lint', 'scripts', 'resources', 'html', 'docs']);
+gulp.task('build', ['css', 'less', 'bad-scripts', 'workers', 'lint', 'scripts', 'resources', 'html', 'docs']);
 gulp.task('develop', ['build', 'serve', 'livereload']);
  
  
@@ -54,6 +54,7 @@ var paths = {
 	main	 : 'js/client.js',
 	sources  : 'js/**/*.js',
 	badScripts: ['vendor/bluebird.js', 'vendor/laz-perf.js'],
+	workers: 'workers/**',
 	resources: 'resources/**',
 	css      : 'less/**/*.css',
 	less     : 'less/style.less',
@@ -118,6 +119,7 @@ gulp.task('livereload', function() {
 	gulp.watch(paths.html, ['html']);
 	gulp.watch(paths.less, ['less']);
 	gulp.watch(paths.docs, ['docs']);
+	gulp.watch(paths.workers, ['workers']);
 	gulp.watch(paths.resources, ['resources']);
 
 	var server = livereload();
@@ -174,6 +176,11 @@ gulp.task('uglify-built', ['build'], function() {
 gulp.task('docs', function() {
 	return gulp.src(paths.docs).
 		pipe(gulp.dest(path.join(paths.build, 'docs')));
+});
+
+gulp.task('workers', function() {
+	return gulp.src(paths.workers).
+		pipe(gulp.dest(path.join(paths.build, 'workers')));
 });
 
 gulp.task('prod-react-built', ['build'], function() {
