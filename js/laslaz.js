@@ -208,29 +208,38 @@ var common = require("./common"),
 	//
 	var LAZLoader = function(arraybuffer) {
 		this.arraybuffer = arraybuffer;
+		this.ww = new Worker("/workers/laz-loader-worker.js");
+
+		this.nextCB = null;
+		var o = this;
+
+		this.ww.onmessage = function(e) {
+			if (o.nextCB !== null) {
+				console.log('dorr: >>', e.data);
+				o.nextCB(e.data);
+				o.nextCB = null;
+			}
+		};
+
+		this.dorr = function(req, cb) {
+			console.log('dorr: <<', req);
+			o.nextCB = cb;
+			o.ww.postMessage(req);
+		};
 	};
 
 	LAZLoader.prototype.open = function() {
+
 		// nothing needs to be done to open this file
 		//
-		this.readOffset = 0;
-
-		this.laz = new Module.LASZip();
-
-		console.log("opening...");
-		var abInt = new Uint8Array(this.arraybuffer);
-		var buf = Module._malloc(this.arraybuffer.byteLength);
-
-		this.buf = buf;
-		Module.HEAPU8.set(abInt, this.buf);
-
-		console.log("Opening with", this.arraybuffer.byteLength, "bytes buffer");
-		this.laz.open(this.buf, this.arraybuffer.byteLength);
-
-
-
+		var o = this;
 		return new Promise(function(res, rej) {
-			setTimeout(res, 0);
+			o.dorr({type:"open", arraybuffer: o.arraybuffer}, function(r) {
+				if (r.status !== 1)
+					return rej(new Error("Failed to open file"));
+
+				res(true);
+			});
 		});
 	};
 
@@ -238,12 +247,12 @@ var common = require("./common"),
 		var o = this;
 
 		return new Promise(function(res, rej) {
-			setTimeout(function() {
-				o.header = parseLASHeader(o.arraybuffer);
-				o.header.pointsFormatId &= 0x3f; // get rid of bit 6 and 7
-				console.log("FIXED HEADER: ", o.header.pointsFormatId);
-				res(o.header);
-			}, 0);
+			o.dorr({type:'header'}, function(r) {
+				if (r.status !== 1)
+					return rej(new Error("Failed to get header"));
+
+				res(r.header);
+			});
 		});
 	};
 
@@ -251,44 +260,28 @@ var common = require("./common"),
 		var o = this;
 
 		return new Promise(function(res, rej) {
-			setTimeout(function() {
-				if (!o.header)
-					return rej(new Error("Cannot start reading data till a header request is issued"));
-
-				var pointsToRead = Math.min(count * skip, o.header.pointsCount - o.readOffset);
-				var bufferSize = Math.ceil(pointsToRead / skip);
-				var pointsRead = 0;
-
-				var buf = new Uint8Array(bufferSize * o.header.pointsStructSize);
-				var buf_read = Module._malloc(o.header.pointsStructSize);
-				for (var i = 0 ; i < pointsToRead ; i ++) {
-					o.laz.getPoint(buf_read);
-
-					if (i % skip === 0) {
-						var a = new Uint8Array(Module.HEAPU8.buffer, buf_read, o.header.pointsStructSize);
-						buf.set(a, pointsRead * o.header.pointsStructSize, o.header.pointsStructSize);
-						pointsRead ++;
-					}
-
-					o.readOffset ++;
-				}
-
+			o.dorr({type:'read', count: count, offset: offset, skip: skip}, function(r) {
+				if (r.status !== 1)
+					return rej(new Error("Failed to read data"));
 				res({
-					buffer: buf.buffer,
-					count: pointsRead,
-					hasMoreData: o.readOffset < o.header.pointsCount
+					buffer: r.buffer,
+					count: r.count,
+					hasMoreData: r.hasMoreData
 				});
-			}, 0);
+			});
 		});
 	};
 
 	LAZLoader.prototype.close = function() {
 		var o = this;
-		this.laz.delete();
 
 		return new Promise(function(res, rej) {
-			o.arraybuffer = null;
-			setTimeout(res, 0);
+			o.dorr({type:'close'}, function(r) {
+				if (r.status !== 1)
+					return rej(new Error("Failed to close file"));
+
+				res(true);
+			});
 		});
 	};
 
