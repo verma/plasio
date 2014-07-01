@@ -208,7 +208,7 @@ var common = require("./common"),
 	//
 	var LAZLoader = function(arraybuffer) {
 		this.arraybuffer = arraybuffer;
-		this.ww = new Worker("/workers/laz-loader-worker.js");
+		this.ww = new Worker("workers/laz-loader-worker.js");
 
 		this.nextCB = null;
 		var o = this;
