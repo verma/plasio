@@ -581,9 +581,6 @@ var Promise = require("bluebird"),
 
 			// if we don't have LAZ available, we download the LAS version
 			//
-			if (!laslaz.LASModuleWasLoaded)
-				target = target.replace(/\.laz$/, ".las");
-
 			console.log("Will load", target);
 
 			var name = target.substring(target.lastIndexOf('/')+1);
