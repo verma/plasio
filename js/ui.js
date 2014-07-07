@@ -551,8 +551,18 @@ var Promise = require("bluebird"),
 			});
 		}));
 
-		$(document).on('change', '.btn-file :file', withRefresh(function(e) {
+		$(".btn-file").on("click", function(e) {
 			e.preventDefault();
+			console.log("Doing shit!");
+			console.log($("#filebrowser"));
+			$("#filebrowser").click();
+		});
+
+
+		$(document).on('change', '#filebrowser', withRefresh(function(e) {
+			e.preventDefault();
+
+			console.log("Selected a file");
 
 			var input = $(this);
 			var files = input.get(0).files;
@@ -1132,9 +1142,6 @@ var Promise = require("bluebird"),
 	var setupNaclErrorHandler = function() {
 		$(document).on("plasio.nacl.error", function(err) {
 			console.log(err);
-			$("#naclerror").html("<div class='alert alert-warning'><span class='glyphicon glyphicon-info-sign'></span>&nbsp;" +
-								 "<strong>LASzip not available!</strong><br>" + err.message + "</div>");
-			$("#naclerror").show();
 		});
 	};
 
