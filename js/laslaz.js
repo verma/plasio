@@ -267,8 +267,8 @@ var common = require("./common"),
 		this.arraybuffer = arraybuffer;
 
 		this.determineVersion();
-		if (this.version > 12)
-			throw new Error("Only file versions <= 1.2 are supported at this time");
+		if (this.version > 13)
+			throw new Error("Only file versions <= 1.3 are supported at this time");
 
 		this.determineFormat();
 		if (pointFormatReaders[this.formatId] === undefined)
