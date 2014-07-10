@@ -1098,6 +1098,12 @@ var THREE = require("three"),
 			type: 'plasio.scaleChanged',
 			scale: scale
 		});
+
+		// change classification clamp
+		$.event.trigger({
+			type: 'plasio.classificationRangeChanged',
+			range: batcher.klass
+		});
 	};
 
 	var setupView = function(mins, maxs, cg, scale) {
@@ -1571,6 +1577,8 @@ var THREE = require("three"),
 			offsets: { type: 'v3', value: new THREE.Vector3(0, 0, 0) },
 			map: { type: 't', value: THREE.ImageUtils.loadTexture(currentColorMap())},
 
+			klassRange: { type: 'v2', value: new THREE.Vector2(0, 0) },
+
 			// clipping controls
 			do_plane_clipping: { type: 'i', value: 0 },
 			planes: { type: 'v4v', value: _.times(6, function() { return new THREE.Vector4(); }) }
@@ -1650,6 +1658,10 @@ var THREE = require("three"),
 			uniforms.xyzScale.value = e.scale;
 		});
 
+		$(document).on("plasio.classificationRangeChanged", function(e) {
+			console.log("new classification range", e.range.x, "->", e.range.y);
+			uniforms.klassRange.value = e.range;
+		});
 
 		shaderMaterial.uniforms = uniforms;
 		shaderMaterial.attributes = attributes;
@@ -1670,6 +1682,7 @@ var THREE = require("three"),
 		this.cx = null;
 		this.in_x = null;
 		this.in_y = null;
+		this.klass = null;
 		this.pointsSoFar = 0;
 	};
 
@@ -1693,6 +1706,7 @@ var THREE = require("three"),
 		var mn = null;
 		var cn = null, cx = null;
 		var in_x = null, in_n = null;
+		var klass = null;
 
 		this.corrective = new THREE.Vector3(lasBuffer.mins[0],
 											lasBuffer.mins[1],
@@ -1758,6 +1772,14 @@ var THREE = require("three"),
 				cx.b = Math.max(cx.b, b);
 			}
 
+			if (klass === null) {
+				klass = new THREE.Vector2(p.classification, p.classification);
+			}
+			else {
+				klass.x = Math.min(klass.x, p.classification);
+				klass.y = Math.max(klass.y, p.classification);
+			}
+
 			in_n = (in_n === null)? p.intensity : Math.min(in_n, p.intensity);
 			in_x = (in_x === null)? p.intensity : Math.max(in_x, p.intensity);
 
@@ -1803,6 +1825,12 @@ var THREE = require("three"),
 			this.cx.r = Math.max(this.cx.r, cx.r);
 			this.cx.g = Math.max(this.cx.g, cx.g);
 			this.cx.b = Math.max(this.cx.b, cx.b);
+		}
+
+		if (this.klass === null) this.klass = klass;
+		else {
+			this.klass.x = Math.min(this.klass.x, klass.x);
+			this.klass.y = Math.max(this.klass.y, klass.y);
 		}
 
 		this.in_n = (this.in_n === null)? in_n : Math.min(in_n, this.in_y);

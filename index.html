@@ -357,6 +357,7 @@
 			uniform vec2  zrange;
 			uniform vec3  offsets;
 			uniform sampler2D map;
+			uniform vec2  klassRange;
 
 			attribute vec3 color;
 			attribute float intensity;
@@ -380,7 +381,9 @@
 				vec3 norm_color = color / maxColorComponent;
 				vec3 map_color = texture2D(map, vec2(nhclamp, 0.5)).rgb;
 				vec3 inv_map_color = texture2D(map, vec2(1.0 - nhclamp, 0.5)).rgb;
-				vec3 class_color = texture2D(map, vec2(classification / 12.0, 0.5)).rgb;
+
+				float iklass = (classification - klassRange.x) / (klassRange.y - klassRange.x);
+				vec3 class_color = texture2D(map, vec2(iklass, 0.5)).rgb;
 
 				// compute intensity channels
 				float i = (intensity - clampLower) / (clampHigher - clampLower);
