@@ -1155,6 +1155,9 @@ var THREE = require("three"),
 		//
 		getRegionsController().scaleFactor = farPlaneDist / 100.0;
 
+		console.log("Setting inundation plane dimensions");
+		console.log("Range", range);
+		console.log("CG", cg, "Mins", mins, "Maxs", maxs);
 
 		// Setup inundation plane stuff
 		getInundationPlane().setDimensions([(mins.z - cg.z) * scale.z - range[2] * 0.1, (maxs.z - cg.z) * scale.z + range[2] * 0.1],
@@ -1845,12 +1848,12 @@ var THREE = require("three"),
 	ParticleSystemBatcher.prototype.normalizePositionsWithOffset = function(offset) {
 		var o = this;
 
-		console.log("offset: ", offset, "corrective:", o.corrective);
+		var off = offset.clone();
 
-		this.correctiveOffset = offset.clone().sub(o.corrective);
-		this.cg.sub(offset);
-		this.mn.sub(offset);
-		this.mx.sub(offset);
+		this.correctiveOffset = off.clone().sub(o.corrective);
+		this.cg.sub(off);
+		this.mn.sub(off);
+		this.mx.sub(off);
 	};
 
 
