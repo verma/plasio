@@ -15,6 +15,7 @@ var clean = require('gulp-clean');
 var awspublish = require('gulp-awspublish');
 var uglify = require('gulp-uglify');
 var htmlreplace = require('gulp-html-replace');
+var react = require('gulp-react');
 
 var through = require('through2');
 var connect = require('connect');
@@ -40,19 +41,20 @@ var path = require('path');
  *  debug:
  *    like develop but also runs tests and linting
  */
- 
+
 gulp.task('default', ['build']);
 gulp.task('build', ['css', 'less', 'bad-scripts', 'workers', 'lint', 'scripts', 'resources', 'html', 'docs']);
 gulp.task('develop', ['build', 'serve', 'livereload']);
- 
- 
+
+
 /**
  * path globs / expressions for targets below
  */
- 
+
 var paths = {
 	main	 : 'js/client.js',
 	sources  : 'js/**/*.js',
+	jsx      : 'js/**/*.jsx',
 	badScripts: ['vendor/bluebird.js', 'vendor/laz-perf.js'],
 	workers: 'workers/**',
 	resources: 'resources/**',
@@ -63,8 +65,8 @@ var paths = {
 	docs	 : 'docs/**/*',
 	build    : './build/'
 };
- 
- 
+
+
 //clean build directory
 gulp.task('clean', function(){
 	return gulp.src(paths.client.build, {read: false} )
@@ -75,7 +77,7 @@ gulp.task('resources', function() {
 	return gulp.src(paths.resources)
 	.pipe(gulp.dest(paths.build));
 });
- 
+
 // lint all of our js source files
 gulp.task('lint', function (){
   return gulp.src(paths.sources)
@@ -133,12 +135,13 @@ gulp.task('bad-scripts', function() {
 		.pipe(concat("bad.js"))
 		.pipe(gulp.dest(paths.build));
 });
- 
+
 // build client side js app
 gulp.task('scripts', function(){
-	return gulp.src(paths.main)
+	return gulp.src([paths.main, paths.jsx])
 		.pipe(browserify({
-			debug: gulp.env.production
+			debug: gulp.env.production,
+			transform: ['reactify']
 		}))
 		.pipe(gulp.dest(paths.build));
 });
@@ -204,4 +207,4 @@ gulp.task('publish', ['build', 'uglify-built', 'prod-react-built'], function() {
 		.pipe(publisher.sync())
 		.pipe(awspublish.reporter());
 });
- 
+

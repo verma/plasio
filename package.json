@@ -21,7 +21,9 @@
     "gulp-livereload": "~1.2.0",
     "gulp-clean": "~0.2.4",
     "gulp-awspublish": "0.0.11",
-    "gulp-html-replace": "~1.0.0"
+    "gulp-html-replace": "~1.0.0",
+    "gulp-react": "~1.0.0",
+    "reactify": "~0.14.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

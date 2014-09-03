@@ -7,7 +7,9 @@ var Promise = require("bluebird"),
 	render = require("./render"),
 	laslaz = require('./laslaz'),
 	React = require('react'),
-	_ = require('lodash');
+	_ = require('lodash'),
+	controls = require('./controls');
+	withRefresh = require('./util').withRefresh;
 
 	require("jqueryui");
 	require("jquery-layout");
@@ -89,18 +91,6 @@ var Promise = require("bluebird"),
 	};
 
 	var colormapRange = new ColormapRange(document.getElementById('colorCanvasObject'));
-
-	var withRefresh = function(f) {
-		// return f wrapped around with a call to renderer.needRefresh
-		return function() {
-			var r = f.apply(this, arguments);
-			$.event.trigger({
-				type: 'plasio.renderer.needRefresh'
-			});
-
-			return r;
-		};
-	};
 
 	// convert from array like object to an array
 	var toArray = function(m) {
@@ -451,7 +441,7 @@ var Promise = require("bluebird"),
 			cleanup();
 		});
 	};
-	
+
 
 	var loadData = function(buffer, progressCB) {
 		var lf = new laslaz.LASFile(buffer);
@@ -534,7 +524,7 @@ var Promise = require("bluebird"),
 		}).catch(Promise.CancellationError, function(e) {
 			// If there was a cancellation, make sure the file is closed, if the file is open
 			// close and then fail
-			if (lf.isOpen) 
+			if (lf.isOpen)
 				return lf.close().then(function() {
 					lf.isOpen = false;
 					console.log("File was closed");
@@ -608,7 +598,7 @@ var Promise = require("bluebird"),
 			if (msg !== undefined) obj.message = msg;
 			$.event.trigger(obj);
 		};
-		
+
 		var loaderPromise = null;
 		$(document).on("plasio.load.cancel", function() {
 			if (loaderPromise === null) return;
@@ -694,93 +684,8 @@ var Promise = require("bluebird"),
 	};
 
 	var setupSliders = function() {
-		// setup any react classes we may need
-		//
-		var InundationControls = React.createClass({
-			getInitialState: function() {
-				return { enabled: false,
-						 slider: false,
-						 opacity: 50,
-						 value: 0};
-			},
-
-			componentDidMount: function() {
-			},
-
-			componentDidUpdate: function() {
-				// if we have #inun, make it into a slider
-				if (!this.state.slider) {
-					var n = $("#inun").get(0);
-					var m = $("#inun-opacity").get(0);
-
-					var o = this;
-
-					$(n).noUiSlider({
-						range:[0, 1000],
-						start: o.state.value,
-						handles: 1,
-						connect: "lower",
-						slide: withRefresh(function() {
-							$.event.trigger({
-								type: 'plasio.inundationChanged'
-							});
-
-							o.setState({value: $(n).val()});
-						})
-					});
-
-					$(m).noUiSlider({
-						range:[0, 100],
-						start: o.state.opacity,
-						handles: 1,
-						connect: "lower",
-						slide: withRefresh(function() {
-							$.event.trigger({
-								type: 'plasio.inundationOpacityChanged'
-							});
-
-							o.setState({opacity: $(m).val()});
-						})
-					});
-
-					o.setState({slider: true});
-				}
-			},
-
-			render: function() {
-				var classes = React.addons.classSet({
-					'btn btn-block btn-sm': true,
-					'btn-default': !this.state.enabled,
-					'btn-success active': this.state.enabled
-				});
-
-				return React.DOM.div(null, [
-					React.DOM.button({
-						type: "button",
-						className: classes,
-						style: {marginBottom: '15px'},
-						onClick: withRefresh(this.toggle),
-					}, this.state.enabled ? "Disable" : "Enable"),
-					this.state.enabled ? React.DOM.div({id: "inun"}) : null,
-					this.state.enabled ? React.DOM.h5({className:"not-first"}, "Adjust opacity of inundation plane") : null,
-					this.state.enabled ? React.DOM.div({id: "inun-opacity"}) : null
-				]);
-			},
-
-			toggle: function() {
-				var nextEnabled = !this.state.enabled;
-				this.setState({enabled: nextEnabled,
-							   slider: false});
-
-				$.event.trigger({
-					type: 'plasio.inundationEnable',
-					enable: nextEnabled
-				});
-			}
-		});
-
 		// Mount any React components
-		React.renderComponent(InundationControls(), $("#inun-container").get(0));
+		React.renderComponent(controls.InundationControls(), $("#inun-container").get(0));
 
 		// Setup UI sliders
 		$("#loadFidelity").noUiSlider({
@@ -858,7 +763,7 @@ var Promise = require("bluebird"),
 				clearTimeout(pbTimeout);
 				pbTimeout = 0;
 			}
-			
+
 			if (rate === 0)
 				return;
 
@@ -1133,7 +1038,7 @@ var Promise = require("bluebird"),
 				type: 'plasio.camera.reset'
 			});
 		}));
-		
+
 	};
 
 	var setupNaclErrorHandler = function() {
@@ -1146,7 +1051,7 @@ var Promise = require("bluebird"),
 		$(document).on("plasio.webglIsExperimental", function() {
 			$("#webglinfo").html("<div class='alert alert-warning'>" +
 								"<span class='glyphicon glyphicon-info-sign'></span>&nbsp;" +
-								 "<strong>Experimental WebGL!</strong><br>" + 
+								 "<strong>Experimental WebGL!</strong><br>" +
 								 "Your browser reports that its WebGL support is experimental." +
 								 "  You may experience rendering problems.</div>");
 			$("#webglinfo").show();
@@ -1309,70 +1214,7 @@ var Promise = require("bluebird"),
 			}
 		});
 
-		var LineSegment = React.createClass({
-			render: function() {
-				return React.DOM.tr({
-					style: { backgroundColor: '#' + this.props.start.color.getHexString() } }, [
-						React.DOM.td(null, this.props.lineIndex),
-						React.DOM.td({style: {textAlign: 'right'}}, this.props.start.distanceTo(this.props.end).toFixed(1)),
-						React.DOM.td(null, React.DOM.a({ href: "#", onClick: this.addRegion }, React.DOM.span({className: "glyphicon glyphicon-picture"}, '')))
-					]);
-			},
-			addRegion: function(e) {
-				render.createNewRegion(this.props.start, this.props.end, this.props.start.color);
-			}
-		});
-
-		var LineSegmentsBox = React.createClass({
-			getInitialState: function() {
-				return { points: [] };
-			},
-			componentWillMount: function() {
-				var c = this;
-				$(document).on('plasio.mensuration.pointAdded', function(e) {
-					c.setState({ points: c.state.points.concat([e.point])});
-				});
-
-				$(document).on('plasio.mensuration.pointRemoved', function(e) {
-					c.setState({ points: _.without(c.state.points, e.point) });
-				});
-
-				$(document).on('plasio.mensuration.pointsReset', function(e) {
-					console.log("Resetting all points");
-					c.setState({ points: [] });
-				});
-			},
-			render: function() {
-				var lines = [];
-				var index = 0;
-				for (var i = 0 ; i < this.state.points.length - 1 ; i ++) {
-					var p1 = this.state.points[i],
-						p2 = this.state.points[i+1];
-					if (p1.id === p2.id) {
-						lines.push(LineSegment({ lineIndex: index+1, start: p1, end: p2 }));
-						index ++;
-					}
-				}
-
-				if (lines.length === 0)
-					return React.DOM.div({ className: "its-empty" },
-										 "No Measurement Segments");
-				return React.DOM.table({
-					class: "table"
-				}, [
-					React.DOM.thead(null, [
-						React.DOM.tr(null, [
-							React.DOM.td(null, 'Index'),
-							React.DOM.td({style: {textAlign: 'right'}}, 'Length'),
-							React.DOM.td(null, '')
-						])
-					]),
-					React.DOM.tbody(null, lines)
-				]);
-			}
-		});
-
-		React.renderComponent(LineSegmentsBox({}), $("#points-list-table").get(0));
+		React.renderComponent(controls.LineSegmentsBox({}), $("#points-list-table").get(0));
 	};
 
 	function nameToScale(name) {
@@ -1448,174 +1290,7 @@ var Promise = require("bluebird"),
 			render.createNewRegion(p1, p2);
 		});
 
-		var RegionViewport = React.createClass({
-			render: function() {
-				var classes = React.addons.classSet({
-					'btn btn-block btn-sm': true,
-					'btn-default': !this.props.region.active,
-					'btn-success active': this.props.region.active
-				});
-				return React.DOM.button({
-					className: classes,
-					onClick: this.props.toggle
-				},
-				this.props.region.active ? "Deactivate" : "Activate");
-			}
-		});
-
-		var RegionSizeSlider = React.createClass({
-			componentDidMount: function() {
-				var a = this.getDOMNode();
-				$(a).noUiSlider({
-					range: [1, 10],
-					start: Math.round(this.props.startScale),
-					step: 1,
-					handles: 1,
-					connect: false,
-					slide: this.setSize
-				});
-			},
-			render: function() {
-				return React.DOM.div({style: { marginBottom: '15px' }});
-			},
-			setSize: function() {
-				var v = $(this.getDOMNode()).val();
-				this.props.setSize(v);
-			},
-		});
-
-		var Region = React.createClass({
-			render: function() {
-				var cx = React.addons.classSet;
-				var classesFor = function(active) {
-					return cx({
-						'btn': true,
-						'btn-default': true,
-						'btn-sm': true,
-						'active': active });
-				};
-
-				console.log('Rendering');
-
-				return React.DOM.div({ style: {
-					borderLeft: '10px solid #' + this.props.region.color.getHexString(),
-					marginBottom: '5px',
-					paddingLeft: '5px',
-					boxSizing: 'border-box'
-				}}, [
-					React.DOM.div({ 
-						style: { float: 'right', padding: '0px' },
-						className: "btn btn-link btn-sm",
-						onClick: _.partial(this.props.remove, this.props.index),
-						type: "button" }, React.DOM.span({ className: "glyphicon glyphicon-remove"})),
-					React.DOM.div({ className: "btn-group btn-group-justified", style: { marginBottom: '10px' }}, [
-						React.DOM.div({
-							className: classesFor(this.props.region.type == 1),
-							onClick: _.partial(this.props.setRibbon, this.props.index),
-							type: "button" }, "Ribbon"),
-						React.DOM.div({
-							className: classesFor(this.props.region.type == 2),
-							onClick: _.partial(this.props.setAxisAligned, this.props.index),
-							type: "button" }, "Axis-Aligned")
-					]),
-					this.props.region.type === 1 ? RegionSizeSlider({
-						region: this.props.region,
-						startScale: this.props.region.widthScale,
-						setSize: _.partial(this.props.setWidth, this.props.index)
-					}) : '',
-					this.props.region.type === 1 ? RegionSizeSlider({
-						region: this.props.region,
-						startScale: this.props.region.heightScale,
-						setSize: _.partial(this.props.setHeight, this.props.index)
-					}) : '',
-					RegionViewport({
-						region: this.props.region,
-						toggle: _.partial(this.props.toggle, this.props.index)
-					})
-				]);
-			},
-		});
-
-		var RegionsBox = React.createClass({
-			getInitialState: function() {
-				return { regions: [] };
-			},
-			componentWillMount: function() {
-				var o = this;
-				$(document).on("plasio.regions.new", function(e) {
-					o.setState({ regions: o.state.regions.concat(e.region) });
-				});
-
-				$(document).on("plasio.regions.reset", function() {
-					o.setState({ regions: [] });
-				});
-
-			},
-			render: function() {
-				if (this.state.regions.length === 0)
-					return React.DOM.div({ className: 'its-empty' }, 'No regions defined');
-
-				var o = this;
-				var resetButton = React.DOM.button({
-					className: 'btn btn-info btn-sm btn-block',
-					style: { marginBottom: '10px' },
-					onClick: withRefresh(function() { $.event.trigger({ type: 'plasio.render.toggleClip' }); })
-				}, 'Toggle Regions View (T)');
-
-				return React.DOM.div({
-					class: "all-regions" },
-					[resetButton].concat(
-						_.times(this.state.regions.length, function(i) {
-							var r = o.state.regions[i];
-							return Region({ 
-								index: i,
-								region: o.state.regions[i],
-								setRibbon: o.setRibbon,
-								setAxisAligned: o.setAxisAligned,
-								setWidth: o.setWidth,
-								setHeight: o.setHeight,
-								remove: o.remove,
-								toggle: o.toggle });
-						})));
-			},
-
-			setRibbon: withRefresh(function(i) {
-				this.state.regions[i].type = 1;
-				this.setState({ regions: this.state.regions });
-			}),
-			setAxisAligned: withRefresh(function(i) {
-				this.state.regions[i].type = 2;
-				this.setState({ regions: this.state.regions });
-			}),
-
-			setWidth: withRefresh(function(i, w) {
-				this.state.regions[i].widthScale = w;
-				this.setState({ regions: this.state.regions });
-			}),
-
-			setHeight: withRefresh(function(i, h) {
-				this.state.regions[i].heightScale = h;
-
-				this.setState({ regions: this.state.regions });
-			}),
-
-			remove: withRefresh(function(i) {
-				console.log('Removing region');
-				var r = this.state.regions[i];
-				this.setState({ regions: _.without(this.state.regions, r) });
-
-				$.event.trigger({
-					type: 'plasio.regions.remove',
-					region: r
-				});
-			}),
-			toggle: withRefresh(function(i) {
-				this.state.regions[i].active = !this.state.regions[i].active;
-				this.setState({ regions: this.state.regions });
-			})
-		});
-
-		React.renderComponent(RegionsBox({}), $("#clipping-regions").get(0));
+		React.renderComponent(controls.RegionsBox({}), $("#clipping-regions").get(0));
 	};
 
 	var setupDocHandlers = function() {
