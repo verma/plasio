@@ -192,6 +192,12 @@ var Promise = require("bluebird"),
 		return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 	};
 
+	var getGreyhound = function(url, cb) {
+		return new Promise(function(resolve, reject) {
+			resolve(null);
+		});
+	};
+
 	var getBinary = function(url, cb) {
 		var oReq = new XMLHttpRequest();
 		return new Promise(function(resolve, reject) {
@@ -264,6 +270,10 @@ var Promise = require("bluebird"),
 
 		$(document).on("plasio.loadfiles.remote", function(e) {
 			cancellableLoad(getBinary, [e.url], e.name);
+		});
+
+		$(document).on("plasio.loadfiles.greyhound", function(e) {
+			cancellableLoad(getGreyhound, [e.url], e.name);
 		});
 
 		$(document).on("plasio.load.started", function() {
@@ -581,6 +591,68 @@ var Promise = require("bluebird"),
 				name: name
 			});
 		}));
+
+		var OpenGreyhound = React.createClass({
+			componentDidMount: function() {
+				var node = this.refs.urlBox.getDOMNode();
+
+				// TODO: Sorry guys
+				setTimeout(function() {
+					node.focus();
+				}, 500);
+			},
+			render: function() {
+				return React.DOM.div({className: "container-fluid"}, [
+					React.DOM.div({className: "row"},
+						React.DOM.div({className: "col-xs-12"},
+							React.DOM.input({
+								className: "form-control input-block",
+								placeholder: "greyhound  URL",
+								ref: "urlBox"
+							}))
+					),
+					React.DOM.div({className: "row"},
+						React.DOM.div({className: "col-xs-12"},
+							React.DOM.h5({
+								style: {
+									"text-align": "center"
+								}}, "OR"))),
+					React.DOM.div({className: "row"},
+						React.DOM.div({className: "col-xs-4"},
+							React.DOM.input({
+								className: "form-control input-block",
+								placeholder: "server address"
+							})),
+						React.DOM.div({className: "col-xs-8"},
+							React.DOM.input({
+								className: "form-control input-block",
+								placeholder: "pipeline-id"
+							})))
+				]);
+			}
+		});
+
+		var $openGreyHoundModal = $("#openGreyhoundModal");
+		var ghUIPanel = $openGreyHoundModal.find(".ui-panel").get(0);
+
+		$openGreyHoundModal.on("show.bs.modal", function() {
+			console.log("Mouting");
+			React.renderComponent(OpenGreyhound({}), ghUIPanel);
+		});
+
+		$openGreyHoundModal.on("hidden.bs.modal", function() {
+			console.log("UnMouting");
+			React.unmountComponentAtNode(ghUIPanel);
+		});
+
+		$("#openGreyhoundButton").on("click", function(e) {
+			e.preventDefault();
+
+			// Mount react component to manage modal's UI
+			//
+			$openGreyHoundModal.modal('show');
+		});
+
 	};
 
 	var cancellableLoad = function(fDataLoader, files, name) {

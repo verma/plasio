@@ -114,7 +114,7 @@ gulp.task('serve', ['build'], function(cb) {
 	startServer(cb);
 });
 
-gulp.task('livereload', function() {
+gulp.task('watch', ['build'], function() {
 	// watch all our dirs and reload if any build stuff changes
 	//
 	gulp.watch(paths.sources, ['lint', 'scripts']);
@@ -123,7 +123,9 @@ gulp.task('livereload', function() {
 	gulp.watch(paths.docs, ['docs']);
 	gulp.watch(paths.workers, ['workers']);
 	gulp.watch(paths.resources, ['resources']);
+})
 
+gulp.task('livereload', ['watch'], function() {
 	var server = livereload();
 	return gulp.watch(path.join(paths.build, "/**/*"), function(evt) {
 		server.changed(evt.path);
@@ -143,6 +145,8 @@ gulp.task('scripts', function(){
 			debug: gulp.env.production,
 			transform: ['reactify']
 		}))
+		.on("error", gutil.log)
+		.on("error", gutil.beep)
 		.pipe(gulp.dest(paths.build));
 });
 
