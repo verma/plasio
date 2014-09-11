@@ -273,7 +273,8 @@ var Promise = require("bluebird"),
 		});
 
 		$(document).on("plasio.loadfiles.greyhound", function(e) {
-			cancellableLoad(getGreyhound, [e.url], e.name);
+			//cancellableLoad(getGreyhound, [e.url], e.name);
+            console.log("Opening GH URL:", e.url);
 		});
 
 		$(document).on("plasio.load.started", function() {
@@ -592,67 +593,7 @@ var Promise = require("bluebird"),
 			});
 		}));
 
-		var OpenGreyhound = React.createClass({
-			componentDidMount: function() {
-				var node = this.refs.urlBox.getDOMNode();
-
-				// TODO: Sorry guys
-				setTimeout(function() {
-					node.focus();
-				}, 500);
-			},
-			render: function() {
-				return React.DOM.div({className: "container-fluid"}, [
-					React.DOM.div({className: "row"},
-						React.DOM.div({className: "col-xs-12"},
-							React.DOM.input({
-								className: "form-control input-block",
-								placeholder: "greyhound  URL",
-								ref: "urlBox"
-							}))
-					),
-					React.DOM.div({className: "row"},
-						React.DOM.div({className: "col-xs-12"},
-							React.DOM.h5({
-								style: {
-									"text-align": "center"
-								}}, "OR"))),
-					React.DOM.div({className: "row"},
-						React.DOM.div({className: "col-xs-4"},
-							React.DOM.input({
-								className: "form-control input-block",
-								placeholder: "server address"
-							})),
-						React.DOM.div({className: "col-xs-8"},
-							React.DOM.input({
-								className: "form-control input-block",
-								placeholder: "pipeline-id"
-							})))
-				]);
-			}
-		});
-
-		var $openGreyHoundModal = $("#openGreyhoundModal");
-		var ghUIPanel = $openGreyHoundModal.find(".ui-panel").get(0);
-
-		$openGreyHoundModal.on("show.bs.modal", function() {
-			console.log("Mouting");
-			React.renderComponent(OpenGreyhound({}), ghUIPanel);
-		});
-
-		$openGreyHoundModal.on("hidden.bs.modal", function() {
-			console.log("UnMouting");
-			React.unmountComponentAtNode(ghUIPanel);
-		});
-
-		$("#openGreyhoundButton").on("click", function(e) {
-			e.preventDefault();
-
-			// Mount react component to manage modal's UI
-			//
-			$openGreyHoundModal.modal('show');
-		});
-
+        React.renderComponent(controls.openGreyhoundPipelineButton, $("#openGreyhoundButton").get(0));
 	};
 
 	var cancellableLoad = function(fDataLoader, files, name) {
@@ -1212,7 +1153,7 @@ var Promise = require("bluebird"),
 			if (isOpen)
 				$scroller.slideUp(200, function() {
 					$control
-						.removeClass("p-collapse-open")
+						urlremoveClass("p-collapse-open")
 						.addClass("p-collapse-close")
 						.css('background-color', bgcolor);
 
@@ -1244,22 +1185,10 @@ var Promise = require("bluebird"),
 	};
 
 	var setupKeyboardHooks = function() {
-		$(document).on('keypress', withRefresh(function(e) {
-			console.log('Keypress', e);
+        document.addEventListener('keydown', function(e) {
+            console.log(e);
 
-			var keyCode = e.key || e.which || e.keyCode;
-
-			// we hold the space down to get into mensuration mode
-			//
-			if (keyCode === 84 || keyCode === 116) {
-				e.preventDefault();
-				e.stopPropagation();
-
-				$.event.trigger({
-					type: 'plasio.render.toggleClip'
-				});
-			}
-		}));
+        }, false);
 	};
 
 	var setupMensurationHandlers = function() {

@@ -23,7 +23,15 @@
     "gulp-awspublish": "0.0.11",
     "gulp-html-replace": "~1.0.0",
     "gulp-react": "~1.0.0",
-    "reactify": "~0.14.0"
+    "reactify": "~0.14.0",
+    "react": "~0.11.1",
+    "react-bootstrap": "~0.11.1",
+    "envify": "~3.0.0",
+    "react-addons": "~0.9.0",
+    "gulp-closure-compiler": "~0.2.4",
+    "gulp-mocha": "~1.1.0",
+    "mochify": "~1.0.4",
+    "chai": "~1.9.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -53,7 +61,6 @@
   },
   "browserify-shim": {
     "bluebird": "global:Promise",
-    "react": "global:React",
     "jquery": "$",
     "jqueryui": {
       "depends": "jquery:$"

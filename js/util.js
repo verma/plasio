@@ -19,4 +19,9 @@ var $ = require("jquery");
 			return r;
 		};
 	};
+
+    scope.greyhoundURL = function(url) {
+        // needs to be one of the supported URL formats
+        return url;
+    };
 })(module.exports);
