@@ -72,7 +72,7 @@ var THREE = require("three"),
 
 			right.multiplyScalar(this.scaleFactor * region.widthScale * 0.5);
 			up.multiplyScalar(this.scaleFactor * region.heightScale * 0.5);
-			
+
 			// near quad
 			points.push(v.copy(region.start).add(up).sub(right).clone());
 			points.push(v.copy(region.start).add(up).add(right).clone());
@@ -86,7 +86,7 @@ var THREE = require("three"),
 			points.push(v.copy(region.end).sub(up).sub(right).clone());
 		}
 		else {
-			// this should mantain the same order as the 
+			// this should mantain the same order as the
 			var make = function(a, b, c) {
 				var af = a ? Math.max : Math.min;
 				var bf = b ? Math.max : Math.min;
@@ -510,7 +510,7 @@ var THREE = require("three"),
 	}
 
 	XYZRenderer.prototype.resize = function(width, height) {
-		this.off = new THREE.WebGLRenderTarget(width/this.downBy, height/this.downBy, { 
+		this.off = new THREE.WebGLRenderTarget(width/this.downBy, height/this.downBy, {
 			stencilBuffer: false,
 			magFilter: THREE.NearestFilter,
 			minFilter: THREE.NearestFilter
@@ -695,7 +695,7 @@ var THREE = require("three"),
 		this.fromCamera.matrixWorldInverse.getInverse( this.fromCamera.matrixWorld );
 
 		var frustum = new THREE.Frustum();
-		frustum.setFromMatrix( new THREE.Matrix4().multiplyMatrices(this.fromCamera.projectionMatrix, 
+		frustum.setFromMatrix( new THREE.Matrix4().multiplyMatrices(this.fromCamera.projectionMatrix,
 																	this.fromCamera.matrixWorldInverse ) );
 
 		for (var i = 0, il = this.points.length ; i < il ; i ++) {
@@ -841,7 +841,7 @@ var THREE = require("three"),
 				//
 				return this.inprogress[url].push(cb);
 			}
-			
+
 			// this URL is neither loaded nor has it been queued, queue it
 			this.inprogress[url] = [cb];
 
@@ -1455,7 +1455,7 @@ var THREE = require("three"),
 			// and point cloud to offscreen
 			renderRegions();
 			renderEverything(offscreen.getRenderTarget());
-			
+
 			offscreen.render(renderer);
 		}
 		else if (needOverlay) {

@@ -10,6 +10,8 @@ var Promise = require("bluebird"),
 	_ = require('lodash'),
 	controls = require('./controls');
 	withRefresh = require('./util').withRefresh;
+    greyhound = require("greyhound.js");
+    gh = require('./gh-loader');
 
 	require("jqueryui");
 	require("jquery-layout");
@@ -192,9 +194,23 @@ var Promise = require("bluebird"),
 		return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 	};
 
-	var getGreyhound = function(url, cb) {
+	var getGreyhound = function(comps, cb) {
 		return new Promise(function(resolve, reject) {
-			resolve(null);
+			var reader = new greyhound.GreyhoundReader(comps.server);
+            reader.createSession(comps.pipelineId, function(err, sessionId) {
+                if (err) return reject(err);
+
+                var schema = greyhound.Schema.standard();
+
+                reader.read(sessionId, {
+                    schema: schema
+                }, function(err, data) {
+                    if (err) return reject(err);
+                    reader.destroy(sessionId, function() {});
+
+                    resolve(new gh.GHLoader(data.data, data.numPoints, schema));
+                });
+            });
 		});
 	};
 
@@ -211,7 +227,7 @@ var Promise = require("bluebird"),
 			oReq.onload = function(oEvent) {
 				if (oReq.status == 200) {
 					console.log(oReq.getAllResponseHeaders());
-					return resolve(oReq.response);
+					return resolve(new laslaz.LASFile(oReq.response));
 				}
 				reject(new Error("Could not get binary data"));
 			};
@@ -235,7 +251,7 @@ var Promise = require("bluebird"),
 			cb(e.loaded / e.total);
 		};
 		fr.onload = function(e) {
-			p.resolve(e.target.result);
+			p.resolve(new laslaz.LASFile(e.target.result));
 		};
 
 		fr.readAsArrayBuffer(file);
@@ -273,8 +289,7 @@ var Promise = require("bluebird"),
 		});
 
 		$(document).on("plasio.loadfiles.greyhound", function(e) {
-			//cancellableLoad(getGreyhound, [e.url], e.name);
-            console.log("Opening GH URL:", e.url);
+            cancellableLoad(getGreyhound, e.comps, "Greyhound Pipeline");
 		});
 
 		$(document).on("plasio.load.started", function() {
@@ -454,9 +469,7 @@ var Promise = require("bluebird"),
 	};
 
 
-	var loadData = function(buffer, progressCB) {
-		var lf = new laslaz.LASFile(buffer);
-
+	var loadData = function(lf, buffer, progressCB) {
 		return Promise.resolve(lf).cancellable().then(function(lf) {
 			return lf.open().then(function() {
 				lf.isOpen = true;
@@ -490,13 +503,11 @@ var Promise = require("bluebird"),
 					var p = lf.readData(1000000, 0, skip);
 					return p.then(function(data) {
 						console.log(header);
-						batcher.push(new laslaz.LASDecoder(data.buffer,
-														   header.pointsFormatId,
-														   header.pointsStructSize,
-														   data.count,
-														   header.scale,
-														   header.offset,
-														   header.mins, header.maxs));
+                        var Unpacker = lf.getUnpacker();
+
+                        batcher.push(new Unpacker(data.buffer,
+                                                  data.count,
+                                                  header));
 
 						totalRead += data.count;
 						progressCB(totalRead / totalToRead);
@@ -648,9 +659,9 @@ var Promise = require("bluebird"),
 
 		files.forEach(function(fname) {
 			cur = cur.then(function() {
-				return fDataLoader(fname, pfuncDataLoad).then(function(data) {
+				return fDataLoader(fname, pfuncDataLoad).then(function(lf) {
 					console.log(fname.name, 'Done loading file, loading data...');
-					return loadData(data, pfuncDecompress);
+					return loadData(lf, data, pfuncDecompress);
 				})
 				.then(function(r) {
 					console.log(fname.name, 'Done loading data...');
@@ -1153,7 +1164,7 @@ var Promise = require("bluebird"),
 			if (isOpen)
 				$scroller.slideUp(200, function() {
 					$control
-						urlremoveClass("p-collapse-open")
+						.removeClass("p-collapse-open")
 						.addClass("p-collapse-close")
 						.css('background-color', bgcolor);
 

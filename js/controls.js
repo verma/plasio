@@ -400,12 +400,19 @@ var withRefresh = require('./util').withRefresh;
             };
         },
 
+        componentDidMount: function() {
+            this.updateControlState();
+        },
+
         updateControlState: function(e) {
             var url = this.refs.pipelineUrl.getValue(),
                 server = this.refs.serverAddress.getValue(),
                 pipelineId = this.refs.pipelineId.getValue();
 
-            e.stopPropagation();
+            if (e)
+                e.stopPropagation();
+
+            console.log(url, server, pipelineId);
 
             this.setState({
                 error: null,
@@ -419,14 +426,17 @@ var withRefresh = require('./util').withRefresh;
                 pipelineId = this.refs.pipelineId.getValue();
 
 
+            var comps = {};
             if (url.length > 0) {
-                url = util.greyhoundURL(url); // normalize this URL
+                comps = util.parseGHComponents(url); // normalize this URL
             }
             else {
-                url = util.makeGreyhoundURL(server, pipelineId);
+                comps = {server: server, pipelineId: pipelineId};
             }
 
-            if (!url) {
+            console.log("Got components:", comps);
+
+            if (!comps) {
                 return this.setState({error: 'The specified pipeline settings seem invalid.'}, function() {
                     var node = this.refs.pipelineUrl.getInputDOMNode();
 
@@ -437,7 +447,7 @@ var withRefresh = require('./util').withRefresh;
 
             $.event.trigger({
                 type: 'plasio.loadfiles.greyhound',
-                url: url
+                comps: [comps]
             });
 
             this.props.onRequestHide();

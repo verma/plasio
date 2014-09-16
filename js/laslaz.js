@@ -92,7 +92,7 @@ var common = require("./common"),
 
 		// call the callback in a separate context, make sure we've cleaned our
 		// state out before the callback is invoked since it may queue more doExchanges
-		setTimeout(function() { 
+		setTimeout(function() {
 			if (msg.error)
 				return resolver.reject(new Error(msg.message || "Unknown Error"));
 
@@ -338,16 +338,17 @@ var common = require("./common"),
 
 	// Decodes LAS records into points
 	//
-	var LASDecoder = function(buffer, pointFormatID, pointSize, pointsCount, scale, offset, mins, maxs) {
-		console.log("POINT FORMAT ID:", pointFormatID);
+	var LASDecoder = function(buffer, len, header) {
+        console.log(header);
+		console.log("POINT FORMAT ID:", header.pointsFormatId);
 		this.arrayb = buffer;
-		this.decoder = pointFormatReaders[pointFormatID];
-		this.pointsCount = pointsCount;
-		this.pointSize = pointSize;
-		this.scale = scale;
-		this.offset = offset;
-		this.mins = mins;
-		this.maxs = maxs;
+		this.decoder = pointFormatReaders[header.pointsFormatId];
+		this.pointsCount = len;
+		this.pointSize = header.pointsStructSize;
+		this.scale = header.scale;
+		this.offset = header.offset;
+		this.mins = header.mins;
+		this.maxs = header.maxs;
 	};
 
 	LASDecoder.prototype.getPoint = function(index) {
@@ -378,7 +379,7 @@ var common = require("./common"),
 				common.attachDefaultListeners();
 				common.createNaClModule(name, tc, config, width, height);
 		},
-		function(e) { 
+		function(e) {
 			console.log("Failed!");
 			$.event.trigger({
 				type: "plasio.nacl.error",
@@ -392,8 +393,11 @@ var common = require("./common"),
 		});
 	};
 
+    LASFile.prototype.getUnpacker = function() {
+        return LASDecoder;
+    };
+
 	scope.LASFile = LASFile;
-	scope.LASDecoder = LASDecoder;
 	scope.LASModuleWasLoaded = false;
 })(module.exports);
 

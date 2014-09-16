@@ -17,7 +17,6 @@ var uglify = require('gulp-uglify');
 var htmlreplace = require('gulp-html-replace');
 var react = require('gulp-react');
 
-var through = require('through2');
 var connect = require('connect');
 var http = require('http');
 var open = require('open');

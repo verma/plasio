@@ -31,7 +31,8 @@
     "gulp-closure-compiler": "~0.2.4",
     "gulp-mocha": "~1.1.0",
     "mochify": "~1.0.4",
-    "chai": "~1.9.1"
+    "chai": "~1.9.1",
+    "greyhound.js": "*"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
