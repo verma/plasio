@@ -10,6 +10,7 @@ var Promise = require("bluebird"),
     _ = require('lodash'),
     controls = require('./controls');
     withRefresh = require('./util').withRefresh;
+    util = require('./util');
     greyhound = require("greyhound.js");
     gh = require('./gh-loader');
 
@@ -203,7 +204,7 @@ var Promise = require("bluebird"),
 
                 var schema = greyhound.Schema.standard();
 
-                reader.read(sessionId, {
+                var e = reader.read(sessionId, {
                     schema: schema
                 }, function(err, data) {
                     if (err) return reject(err);
@@ -211,6 +212,15 @@ var Promise = require("bluebird"),
                     reader.close();
 
                     resolve(new gh.GHLoader(data.data, data.numPoints, schema));
+                });
+
+                var total = 0;
+                e.on("begin", function(data) {
+                    total = data.numBytes;
+                });
+
+                e.on("read", function(data) {
+                    cb(data.sofar / total, data.sofar);
                 });
             });
         });
@@ -223,7 +233,7 @@ var Promise = require("bluebird"),
             oReq.responseType = "arraybuffer";
 
             oReq.onprogress = function(e) {
-                cb(e.loaded / e.total);
+                cb(e.loaded / e.total, e.loaded);
             };
 
             oReq.onload = function(oEvent) {
@@ -250,7 +260,7 @@ var Promise = require("bluebird"),
         var p = Promise.defer();
 
         fr.onprogress = function(e) {
-            cb(e.loaded / e.total);
+            cb(e.loaded / e.total, e.loaded);
         };
         fr.onload = function(e) {
             p.resolve(new laslaz.LASFile(e.target.result));
@@ -651,10 +661,29 @@ var Promise = require("bluebird"),
         var maxLoadIndex = files.length;
 
         var sofar = [];
+        var rate = new util.RateCompute();
 
-        var pfuncDataLoad = function(p, msg) {
-            progress((currentLoadIndex + p*0.5) / maxLoadIndex, msg);
-        };
+        var pfuncDataLoad = (function() {
+            var lastm = "Fetching " + name + "...";
+            var lastsofar = 0;
+            return function(p, msg, sofar) {
+                if (typeof msg === 'number') {
+                    sofar = msg;
+                    msg = null;
+                }
+
+                if (msg)
+                    lastm = msg;
+
+                var count = sofar - lastsofar;
+                lastsofar = sofar;
+
+                rate.push(count);
+
+                var m = (lastm ? (lastm + " @ ") : "") + rate.message;
+                progress((currentLoadIndex + p*0.5) / maxLoadIndex, m);
+            }
+        })();
 
         var pfuncDecompress = function(p, msg) {
             progress((currentLoadIndex + 0.5 + p*0.5) / maxLoadIndex, msg);

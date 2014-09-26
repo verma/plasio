@@ -453,6 +453,15 @@ var withRefresh = require('./util').withRefresh;
             this.props.onRequestHide();
         },
 
+        openQuickPipeline: function(pipeline) {
+            $.event.trigger({
+                type: 'plasio.loadfiles.greyhound',
+                comps: [{server: 'test.greyhound.io', pipelineId: pipeline}]
+            });
+
+            this.props.onRequestHide();
+        },
+
         render: function() {
             var error = this.state.error ? (
                 <Row>
@@ -493,6 +502,23 @@ var withRefresh = require('./util').withRefresh;
                                         ref="pipelineId"
                                         placeholder="pipeline-id"
                                         onChange={this.updateControlState} />
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col xs={12}>
+                                    <h5 style={{textAlign: "center", fontWeight:"bold", color:"#999", paddingBottom: "10px"}}>OR</h5>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col xs={6}>
+                                    <Button type="button"
+                                        onClick={this.openQuickPipeline.bind(this, "58a6ee2c990ba94db936d56bd42aa703")}
+                                        className="btn-block btn-default">Low Density Autzen</Button>
+                                </Col>
+                                <Col xs={6}>
+                                    <Button type="button"
+                                        onClick={this.openQuickPipeline.bind(this, "3c51e54a3f0e1b7f4ffd582d4d970162")}
+                                        className="btn-block btn-default">High Density Half Dome</Button>
                                 </Col>
                             </Row>
                             { error }
