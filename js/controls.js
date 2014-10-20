@@ -456,7 +456,7 @@ var withRefresh = require('./util').withRefresh;
         openQuickPipeline: function(pipeline) {
             $.event.trigger({
                 type: 'plasio.loadfiles.greyhound',
-                comps: [{server: 'test.greyhound.io', pipelineId: pipeline}]
+                comps: [{server: 'test.greyhound.io:8080', pipelineId: pipeline}]
             });
 
             this.props.onRequestHide();
@@ -512,12 +512,12 @@ var withRefresh = require('./util').withRefresh;
                             <Row>
                                 <Col xs={6}>
                                     <Button type="button"
-                                        onClick={this.openQuickPipeline.bind(this, "58a6ee2c990ba94db936d56bd42aa703")}
+                                        onClick={this.openQuickPipeline.bind(this, "d7b7380b4529abaacbd963ab4c6c474b")}
                                         className="btn-block btn-default">Low Density Autzen</Button>
                                 </Col>
                                 <Col xs={6}>
                                     <Button type="button"
-                                        onClick={this.openQuickPipeline.bind(this, "3c51e54a3f0e1b7f4ffd582d4d970162")}
+                                        onClick={this.openQuickPipeline.bind(this, "de18c06d3bbd7777b5c0bd141af81b34")}
                                         className="btn-block btn-default">High Density Half Dome</Button>
                                 </Col>
                             </Row>
