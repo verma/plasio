@@ -748,7 +748,7 @@ var Promise = require("bluebird"),
         // Setup UI sliders
         $("#loadFidelity").noUiSlider({
             range: [1, 9],
-            start: 5,
+            start: 7,
             handles: 1,
             connect: "lower",
             step: 1
