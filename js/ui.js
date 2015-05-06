@@ -928,6 +928,18 @@ var Promise = require("bluebird"),
             set: withRefresh(blendUpdate)
         });
 
+        $("#zscale").noUiSlider({
+            range: [1, 5],
+            start: 1,
+            handles: 1,
+            step: 0.25,
+            slide: withRefresh(function() {
+                $.event.trigger({
+                    type: 'plasio.scaleChanged'
+                });
+            })
+        });
+
         $("#pointsize").noUiSlider({
             range: [1, 15],
             start: 3,
@@ -999,6 +1011,10 @@ var Promise = require("bluebird"),
         scope.currentPointSize = function() {
             return $("#pointsize").val();
         };
+
+        scope.currentZScale = function() {
+            return $("#zscale").val();
+        }
 
         scope.currentColorClamp = currentColorClamp;
         scope.currentPlaybackRate = currentPlaybackRate;
