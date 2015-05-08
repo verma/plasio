@@ -1657,8 +1657,10 @@ var THREE = require("three"),
 		});
 
 		$(document).on("plasio.scaleChanged", function(e) {
-			getXYZRenderer().uniforms.xyzScale.value = e.scale;
-			uniforms.xyzScale.value = e.scale;
+            var factor = currentZScale();
+			getXYZRenderer().uniforms.xyzScale.value =
+                    new THREE.Vector3(1, 1, factor);
+			uniforms.xyzScale.value = new THREE.Vector3(1, 1, factor);
 		});
 
 		$(document).on("plasio.classificationRangeChanged", function(e) {
