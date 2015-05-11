@@ -274,6 +274,30 @@ var Promise = require("bluebird"),
         });
     };
 
+	var loadCreditsFile = function(sourceFile) {
+		console.log("Loading credits for:", sourceFile);
+
+		var f = sourceFile.lastIndexOf(".");
+		var creditsFile = "";
+		if (f === -1) {
+			sourceFile += ".json";
+		}
+		else {
+			creditsFile = sourceFile.substr(0, f) + ".json";
+		}
+
+		console.log("Credits file:", creditsFile);
+
+		return new Promise(function(resolve, reject) {
+			$.get(creditsFile, function(data) {
+				console.log("------------------ credits:", data);
+				resolve(data);
+			}).fail(function() {
+				resolve({});
+			});
+		});
+	};
+
     var loadFileInformation = function(header) {
         $(".props table").html(
             "<tr><td>Name</td><td>" + header.name + "</td></tr>" +
@@ -682,7 +706,7 @@ var Promise = require("bluebird"),
 
                 var m = (lastm ? (lastm + " @ ") : "") + rate.message;
                 progress((currentLoadIndex + p*0.5) / maxLoadIndex, m);
-            }
+            };
         })();
 
         var pfuncDecompress = function(p, msg) {
@@ -697,6 +721,14 @@ var Promise = require("bluebird"),
                     console.log(fname.name, 'Done loading file, loading data...');
                     return loadData(lf, data, pfuncDecompress);
                 })
+	            .then(function(r) {
+		            // pass through the data, but query if we have any credits for this file
+		            return loadCreditsFile(fname).then(function(credits) {
+			            r[1].credits = credits;
+
+			            return r;
+		            });
+	            })
                 .then(function(r) {
                     console.log(fname.name, 'Done loading data...');
                     var ret = {
@@ -797,10 +829,28 @@ var Promise = require("bluebird"),
             handles: 1,
             step: 1,
             connect: false,
-            slide: handlePlaybackRateChange,
+            slide: handlePlaybackRateChange
         });
 
         $pbfps.html(currentPlaybackRate() + "fps");
+
+	    var setCredits = function(credits) {
+		    var c = credits.credits;
+		    var u = credits.link;
+
+		    var $credits = $("#credits");
+
+		    if (c && u) {
+			    $credits.
+				    html("<a href='" + u + "' target='_blanks'>" + c + "</a>").
+				    show();
+		    }
+		    else {
+			    $credits.hide();
+		    }
+		    
+		    console.log(credits);
+	    };
 
         var setCurrentBatcher = function(index, resetCamera) {
             console.log('Setting active batcher at index:', index);
@@ -808,6 +858,8 @@ var Promise = require("bluebird"),
             var b = allBatches[index];
             render.loadBatcher(b.batcher, resetCamera);
             loadFileInformation(b.header);
+
+	        setCredits(b.batcher.credits);
 
             $.event.trigger({
                 type: "plasio.needRefresh"

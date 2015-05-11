@@ -92,6 +92,14 @@ $(function() {
 			};
 
 
+			var figureFilename = function(path) {
+				var i = path.lastIndexOf("/");
+				if (i === -1)
+					return path;
+
+				return path.substr(i+1);
+			};
+
 			// If a URL is specified, load that now
 			var query = window.location.search;
 			if (query) {
@@ -100,7 +108,7 @@ $(function() {
 					$.event.trigger({
 						type: "plasio.loadfiles.remote",
 						url: query,
-						name: query
+						name: figureFilename(query)
 					});
 				}
 			}
