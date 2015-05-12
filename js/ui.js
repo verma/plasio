@@ -277,6 +277,10 @@ var Promise = require("bluebird"),
 	var loadCreditsFile = function(sourceFile) {
 		console.log("Loading credits for:", sourceFile);
 
+		if (sourceFile instanceof File) {
+			sourceFile = sourceFile.name;
+		}
+
 		var f = sourceFile.lastIndexOf(".");
 		var creditsFile = "";
 		if (f === -1) {
