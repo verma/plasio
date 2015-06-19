@@ -1,0 +1,170 @@
+/* some style */
+
+body {
+    background: #333;
+    margin: 0px;
+    padding: 0px;
+}
+
+#slider-area {
+    height: 150px;
+    position: absolute;
+    bottom: 0px;
+    left: 15px;
+    right: 15px;
+}
+
+.intro-page {
+    font-family: 'Century Gothic', 'Arial', sans-serif;
+}
+
+.intro-page h1 {
+    text-align: center;
+    color: #999;
+    font-size: 5em;
+    padding: 0px;
+    margin: 2em 0 0 0;
+}
+
+.intro-page h2 {
+    padding:0px;
+    font-size: 1em;
+    color: RGBA(252, 101, 246, 1);
+    text-transform: uppercase;
+    font-weight: 100;
+    text-align: center;
+    opacity: 0.5;
+}
+
+.intro-page .form {
+    margin-top: 2em;
+}
+
+.intro-page .form {
+    text-align: center;
+}
+
+.intro-page .form input[type="text"] {
+    font-family: 'Century Gothic', 'Arial', sans-serif;
+    display: inline-block;
+    width: 50%;
+    background-color: transparent;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: 1px solid #999;
+    font-size: 1em;
+    line-height: 1.1em;
+    box-sizing: border-box;
+    padding: 0.5em;
+    margin: 0.5em;
+    color: RGBA(252, 101, 246, 1);
+}
+
+.intro-page .form input[type="text"]:focus {
+    outline: none;
+    border-bottom: 1px solid RGBA(252, 101, 246, 1);
+}
+
+.intro-page .form .controls {
+    margin-top: 1em;
+}
+
+.intro-page .form button {
+    font-family: 'Century Gothic', 'Arial', sans-serif;
+    display: inline-block;
+    font-size: 1em;
+    background-color: transparent;
+    border: 1px solid #999;
+    color: RGBA(252, 101, 246, 1);
+    padding: 0.5em;
+    margin: 0.5em;
+    width: 20%;
+}
+
+.intro-page .form button:focus {
+    outline: none;
+}
+
+.intro-page .form button:hover {
+    background-color: RGBA(252, 101, 246, 1);
+    color: black;
+}
+
+.intro-page .form button:disabled {
+    background-color: #999;
+    color: #555;
+}
+
+.peers {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    width: 300px;
+    padding: 10px;
+    font-family: 'Century Gothic', 'Arial', sans-serif;
+    text-align: center;
+    border-radius: 3px;
+    color: #eee;
+    background-color: RGBA(252, 101, 246, 0.2);
+}
+
+.peers a {
+    color: #eee;
+    text-decoration: none;
+}
+
+.peers a:hover {
+    text-decoration: underline;
+}
+
+.peers .no-peers {
+    font-style: italic;
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+.peers .session-name {
+    text-transform: uppercase;
+    font-size: 1.5em;
+}
+    
+
+.owner-mode .released {
+    color: #999;
+    font-size: small;
+}
+
+.owner-mode button {
+    font-family: 'Century Gothic', 'Arial', sans-serif;
+    display: inline-block;
+    font-size: 0.7em;
+    background-color: transparent;
+    border: 1px solid #999;
+    color: RGBA(252, 101, 246, 1);
+    margin-top: 0.3em;
+}
+
+.owner-mode button:focus {
+    outline: none;
+}
+
+.owner-mode button:hover {
+    background-color: RGBA(252, 101, 246, 1);
+    color: black;
+}
+
+.status {
+    font-family: 'Century Gothic', 'Arial', sans-serif;
+    position: absolute;
+    width: 300px;
+    margin-left: -150px;
+    left: 50%;
+    top: 100px;
+    font-size: 1.5em;
+    background-color: RGBA(252, 101, 246, 0.2);
+    color: #aaa;
+    padding: 1em;
+    text-align: center;
+    border-radius: 3px;
+}

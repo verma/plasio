@@ -1,0 +1,222 @@
+<html>
+  <style>
+   body {
+       margin: 0px;
+   }
+
+   #stats {
+       font-family: 'Consolas', 'Monaco', monospace;
+       color: white;
+       background-color: rgba(0, 0, 0, 0.5);
+       padding: 2px;
+       position: absolute;
+       top: 5px;
+       right: 5px;
+   }
+   #brand {
+       position: fixed;
+       bottom: 5px;
+       right: 5px;
+       opacity: 0.5;
+   }
+
+   #inst {
+       position: fixed;
+       top: 5px;
+       right: 5px;
+       color: rgba(255,255,255,0.7);
+       font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+       opacity: 0.8;
+   }
+
+   .data-credit {
+       position: fixed;
+       left: 10px;
+       bottom: 10px;
+       color: white;
+       font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+       background-color: rgba(0,0,0,0.7);
+       text-decoration: none;
+       padding: 3px;
+   }
+  </style>
+  <head>
+      <title>Nepal</title>
+  </head>
+
+<body>
+    <div id="app" style="width:100%;height:600px;"></div>
+    <div id="stats"></div>
+    <div id="brand">
+        <a href="http://hobu.co" target="_blank">
+            <img src="hobu.png" width="50">
+        </a>
+    </div>
+    <a class="data-credit" target="_blank" href="http://www.globaldirt.org/"> Global DIRT </a>
+
+    <div id="inst">
+        Double click to center view, click and drag to rotate around, right click and drag to pan.
+    </div>
+
+    <script>
+     var DECOMPRESS_WORKER_PATH = "/nepal/workers/decompress.js"; // when hosted under /nepal/ on plas.io
+    </script>
+
+
+    <script src="plasio-renderer.js"></script>
+    <script src="lib/dist/plasio-lib.js"></script>
+
+    <script>
+     var decomposeCamParameters = function() {
+         var q = window.location.search;
+         if (q.length === 0) return null;
+
+         q = q.slice(1);
+         var s = q.split("&").reduce(function(a, v) {
+             var p = v.split("=");
+             var k = p[0], v = JSON.parse(decodeURIComponent(p[1]));
+             a[k] = v;
+             return a;
+         }, {});
+
+
+         return s;
+     };
+
+     var camParams = decomposeCamParameters();
+     console.log("Camera parameters:", camParams);
+
+     var commonStartup = function() {
+       var stats = {}
+       var renderStats = function(ps, ds) {
+         stats.ps = ps || stats.ps;
+         stats.ds = ds || stats.ds;
+
+         if (stats.ps && stats.ds) {
+           document.getElementById("stats").innerHTML =
+           "Pool: active: " + stats.ps.inuse +
+           ", waiting: " + stats.ps.waiting +
+           ", max:" + stats.ps.max + "| Totals: points: " +
+           stats.ds.totalPoints + ", bytes: " + stats.ds.totalBytes;
+         }
+       };
+
+       var e = document.getElementById("app");
+
+       var r = renderer.core.createRenderer(e);
+
+       var baseURL = "http://52.0.223.227";
+       var pipelineId = "nepal";
+
+
+        var bbox = [
+            348327,
+            3067668,
+            1329.97,
+            349361,
+            3068647,
+            1399.52
+        ];
+
+
+
+       var loaders = {
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, 15, true, true),
+         transform: new PlasioLib.Loaders.TransformLoader()
+       };
+
+       var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox, 10, 15);
+
+       for (var l in loaders) {
+         r.addLoader(loaders[l].constructor);
+       }
+
+       var handleResize = function () {
+         r.setRenderViewSize(window.innerWidth, window.innerHeight);
+       };
+
+       window.onresize = handleResize;
+       handleResize();
+
+       PlasioLib.P2PNode.key = "d498vphryc8lg14i";
+       return { element: e, renderer: r, policy: p };
+     };
+
+     var ownerStartup = function() {
+       var s = commonStartup();
+
+       var e = s.element;
+       var r = s.renderer;
+       var p = s.policy;
+
+       r.addPropertyListener([], function(state) {
+         //console.log("state is:", state);
+       });
+
+       var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
+         r.setEyePosition(eye);
+         r.setTargetPosition(target);
+       }, camParams);
+
+       r.setClearColor(0.1, 0, 0);
+
+       r.setRenderOptions({
+         pointSize: 1,
+         rgb_f: 1.0,
+         maxColorComponent: (1 << 16)
+       });
+
+       // do some history setup in case we have that available
+       window.onpopstate = function(event) {
+           console.log("STATE!!!!");
+           c.applyState(event.state);
+       };
+
+       p.on("bbox", function(bbox) {
+         var x = bbox.maxs[0] - bbox.mins[0],
+         y = bbox.maxs[1] - bbox.mins[1],
+         z = bbox.maxs[2] - bbox.mins[2];
+
+         // reset the state of our camera
+         if (!camParams)
+               c.setHint([x, y, z]);
+
+         // update our renderer to set far clip plane to pretty far
+         var farPlane = Math.sqrt(x*x + y*y) * 2;
+         r.updateCamera(0, {far: farPlane});
+
+       });
+
+       p.on("view-changed", function() {
+           var state = c.serialize();
+
+           var kv = function(k, first) {
+               return (first ? "?" : "&") + encodeURIComponent(k) + "=" + encodeURIComponent(JSON.stringify(state[k]));
+           };
+
+           var s = kv('distance', true) + kv('elevation') + kv('azimuth') + kv('maxDistance') + kv('target');
+
+           if (history)
+               history.pushState(state, "Viewing stuffs", s);
+       });
+
+       p.start();
+     };
+
+     ownerStartup();
+
+    </script>
+
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+                })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+                ga('create', 'UA-61919717-1', 'auto');
+                ga('send', 'pageview');
+
+    </script>
+
+</body>
+</html>
