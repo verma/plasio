@@ -1,3 +1,5 @@
+/** @jsx React.DOM */
+
 // ui.js
 // All UI stuff goes here
 //
@@ -7,6 +9,7 @@ var Promise = require("bluebird"),
     render = require("./render"),
     laslaz = require('./laslaz'),
     React = require('react'),
+    ReactDOM = require('react-dom'),
     _ = require('lodash'),
     controls = require('./controls');
     withRefresh = require('./util').withRefresh;
@@ -647,7 +650,8 @@ var Promise = require("bluebird"),
             });
         }));
 
-        React.renderComponent(controls.openGreyhoundPipelineButton, $("#openGreyhoundButton").get(0));
+        // TODO: May be enable again one day?
+        //ReactDOM.render(<controls.openGreyhoundPipelineButton />, $("#openGreyhoundButton").get(0));
     };
 
     var cancellableLoad = function(fDataLoader, files, name) {
@@ -779,7 +783,7 @@ var Promise = require("bluebird"),
 
     var setupSliders = function() {
         // Mount any React components
-        React.renderComponent(controls.InundationControls(), $("#inun-container").get(0));
+        ReactDOM.render(<controls.InundationControls />, $("#inun-container").get(0));
 
         // Setup UI sliders
         $("#loadFidelity").noUiSlider({
@@ -1070,7 +1074,7 @@ var Promise = require("bluebird"),
 
         scope.currentZScale = function() {
             return $("#zscale").val();
-        }
+        };
 
         scope.currentColorClamp = currentColorClamp;
         scope.currentPlaybackRate = currentPlaybackRate;
@@ -1332,7 +1336,7 @@ var Promise = require("bluebird"),
             }
         });
 
-        React.renderComponent(controls.LineSegmentsBox({}), $("#points-list-table").get(0));
+        ReactDOM.render(<controls.LineSegmentsBox />, $("#points-list-table").get(0));
     };
 
     function nameToScale(name) {
@@ -1408,7 +1412,7 @@ var Promise = require("bluebird"),
             render.createNewRegion(p1, p2);
         });
 
-        React.renderComponent(controls.RegionsBox({}), $("#clipping-regions").get(0));
+        ReactDOM.render(<controls.RegionsBox />, $("#clipping-regions").get(0));
     };
 
     var setupDocHandlers = function() {

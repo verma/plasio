@@ -1,7 +1,7 @@
 /** @jsx React.DOM */
 
 var React = require('react');
-React.addons = require('react-addons');
+var classNames = require('classnames');
 
 var ReactBootstrap = require('react-bootstrap');
 var $ = require('jquery');
@@ -10,6 +10,7 @@ var _ = require('lodash');
 
 var util = require('./util');
 
+React.createClass = require('create-react-class');
 
 // Import some react-bootstrap componenets
 //
@@ -20,8 +21,11 @@ var Button = ReactBootstrap.Button,
     Row = ReactBootstrap.Row,
     Col = ReactBootstrap.Col,
     Alert = ReactBootstrap.Alert,
-    Input = ReactBootstrap.Input;
-    OverlayMixin = ReactBootstrap.OverlayMixin;
+    FormGroup = ReactBootstrap.FormGroup,
+    FormControl = ReactBootstrap.FormControl;
+
+
+console.log(ReactBootstrap);
 
 var withRefresh = require('./util').withRefresh;
 
@@ -80,7 +84,7 @@ var withRefresh = require('./util').withRefresh;
         },
 
         render: function() {
-            var classes = React.addons.classSet({
+            var classes = classNames({
                 'btn btn-block btn-sm': true,
                 'btn-default': !this.state.enabled,
                 'btn-success active': this.state.enabled
@@ -89,23 +93,23 @@ var withRefresh = require('./util').withRefresh;
             var additionControls = this.state.enabled ?
                 (<div>
                     <div id="inun"/>
-                    <h5 className="not-first">Adjust Opacity of Inundattion plane</h5>
+                    <h5 className="not-first">Adjust Opacity of Inundation plane</h5>
                     <div id="inun-opacity"/>
                 </div>) :
-                    <div />
+                    <div /> ;
 
 
-                return (
-                    <div>
-                        <button type="button"
+            return (
+                <div>
+                    <button type="button"
                             className={classes}
                             style={{marginBottom: '15px'}}
                             onClick={withRefresh(this.toggle)}>
-                            {this.state.enabled? "Disable" : "Enable"}
-                        </button>
-                        {additionControls}
-                    </div>
-                );
+                        {this.state.enabled? "Disable" : "Enable"}
+                    </button>
+                    {additionControls}
+                </div>
+            );
         },
 
         toggle: function() {
@@ -179,26 +183,26 @@ var withRefresh = require('./util').withRefresh;
                     <div className="its-empty">No Measurement Segments</div>
                 );
 
-                return (
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <td>Index</td>
-                                <td style={{textAlign: 'right'}}>Length</td>
-                                <td></td>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {lines}
-                        </tbody>
-                    </table>
-                );
+            return (
+                <table className="table">
+                    <thead>
+                    <tr>
+                        <td>Index</td>
+                        <td style={{textAlign: 'right'}}>Length</td>
+                        <td></td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {lines}
+                    </tbody>
+                </table>
+            );
         }
     });
 
     var RegionViewport = React.createClass({
         render: function() {
-            var classes = React.addons.classSet({
+            var classes = classNames({
                 'btn btn-block btn-sm': true,
                 'btn-default': !this.props.region.active,
                 'btn-success active': this.props.region.active
@@ -239,7 +243,7 @@ var withRefresh = require('./util').withRefresh;
 
     var Region = React.createClass({
         render: function() {
-            var cx = React.addons.classSet;
+            var cx = classNames;
             var classesFor = function(active) {
                 return cx({
                     'btn': true,
@@ -344,17 +348,17 @@ var withRefresh = require('./util').withRefresh;
                         toggle: o.toggle });
                 });
 
-                return (
-                    <div>
-                        <button
-                            className='btn btn-info btn-sm btn-block'
-                            style={{marginBottom: '10px'}}
-                            onClick={toggleClip}>
-                            Toggle Regions View (T)
-                        </button>
-                        {regions}
-                    </div>
-                );
+            return (
+                <div>
+                    <button
+                        className='btn btn-info btn-sm btn-block'
+                        style={{marginBottom: '10px'}}
+                        onClick={toggleClip}>
+                        Toggle Regions View (T)
+                    </button>
+                    {regions}
+                </div>
+            );
         },
 
         setRibbon: withRefresh(function(i) {
@@ -473,16 +477,18 @@ var withRefresh = require('./util').withRefresh;
                     </Col>
                 </Row> ) : <span /> ;
 
-            return this.transferPropsTo(
-                <Modal title="Open a Greyhound Pipeline">
+            return (
+                <div>
                     <div className="modal-body">
                         <Grid fluid={true}>
                             <Row>
                                 <Col xs={12}>
-                                    <Input type="text"
-                                        placeholder="pipeline-url"
-                                        onChange={this.updateControlState}
-                                        ref="pipelineUrl" autoFocus />
+                                    <FormGroup>
+                                        <FormControl type="text" placeholder="pipeline-url"
+                                                     ref="pipelineUrl"
+                                                     autoFocus
+                                                     onChange={this.updateControlState} />
+                                    </FormGroup>
                                 </Col>
                             </Row>
                             <Row>
@@ -492,16 +498,18 @@ var withRefresh = require('./util').withRefresh;
                             </Row>
                             <Row>
                                 <Col xs={4}>
-                                    <Input type="text"
-                                        placeholder="server-address"
-                                        ref="serverAddress"
-                                        onChange={this.updateControlState} />
+                                    <FormGroup>
+                                        <FormControl type="text" placeholder="server-address"
+                                                     ref="serverAddress"
+                                                     onChange={this.updateControlState} />
+                                    </FormGroup>
                                 </Col>
                                 <Col xs={8}>
-                                    <Input type="text"
-                                        ref="pipelineId"
-                                        placeholder="pipeline-id"
-                                        onChange={this.updateControlState} />
+                                    <FormGroup>
+                                        <FormControl type="text" placeholder="pipeline-id"
+                                                     ref="pipelineId"
+                                                     onChange={this.updateControlState} />
+                                    </FormGroup>
                                 </Col>
                             </Row>
                             <Row>
@@ -528,16 +536,44 @@ var withRefresh = require('./util').withRefresh;
                         <Button onClick={this.props.onRequestHide} bsStyle="warning">Cancel</Button>
                         <Button onClick={this.handleOpen} bsStyle="success" disabled={!this.state.canOpen}>Open Pipeline</Button>
                     </div>
-                </Modal>
+                </div>
             );
         }
     });
 
-    var openGreyhoundPipelineButton = (
-        <ModalTrigger modal={<OpenGreyhoundPipeline />}>
-            <Button bsStyle="default" bsSize="small" className="btn-block">Open</Button>
-        </ModalTrigger>
-    );
+    var openGreyhoundPipelineButton = React.createClass({
+        getInitialState: function() {
+            return { show: false };
+        },
+
+        render:function() {
+            var o = this;
+            var close = function() { o.setState({ show: false }); };
+            var open = function() { o.setState({show: true}); };
+
+            return (
+                <div className="modal-container">
+                    <Button
+                        bsStyle="default"
+                        bsSize="small"
+                        className="btn-block"
+                        onClick={open}
+                    >
+                        Open
+                    </Button>
+
+                    <Modal
+                        show={this.state.show}
+                        onHide={close}
+                        container={this}
+                        aria-labelledby="contained-modal-title"
+                    >
+                        <OpenGreyhoundPipeline onRequestHide={close} />
+                    </Modal>
+                </div>
+            );
+        },
+    });
 
     // export stuff
     scope.InundationControls = InundationControls;

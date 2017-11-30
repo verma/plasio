@@ -21,6 +21,8 @@ var connect = require('connect');
 var http = require('http');
 var open = require('open');
 var path = require('path');
+var logger = require('morgan');
+var serveStatic = require('serve-static');
 
 var execFile = require('child_process').execFile;
 var fs = require('fs');
@@ -86,7 +88,8 @@ gulp.task('resources', function() {
 gulp.task('lint', function (){
     return gulp.src(paths.sources)
     .pipe(jshint({
-        "smarttabs": true
+        "smarttabs": true,
+        "linter": require("jshint-jsx").JSXHINT
     }))
     .pipe(jshint.reporter('default'));
 });
@@ -94,8 +97,8 @@ gulp.task('lint', function (){
 var startServer = function(path, cb) {
     var devApp, devServer, devAddress, devHost, url, log=gutil.log, colors=gutil.colors;
     devApp = connect();
-    devApp.use(connect.logger('dev'));
-    devApp.use(connect.static(path));
+    devApp.use(logger());
+    devApp.use(serveStatic(path));
     devServer = http.createServer(devApp).listen(8000);
     devServer.on('error', function(error) {
         log(colors.underline(colors.red('ERROR'))+' Unable to start server!');
@@ -134,18 +137,11 @@ gulp.task('watch', ['build'], function() {
 });
 
 gulp.task('livereload', ['watch'], function() {
-    var server = livereload();
-    return gulp.watch(path.join(paths.build, "/**/*"), function(evt) {
-        server.changed(evt.path);
-    });
+    livereload.listen();
 });
 
 gulp.task('livereload-tests', ['watch-specs'], function() {
-    var server = livereload();
-
-    return gulp.watch("test/build/**/*", function(evt) {
-        server.changed(evt.path);
-    });
+    livereload.listen();
 });
 
 gulp.task('bad-scripts', function() {

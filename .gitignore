@@ -2,3 +2,5 @@
 pnacl_test*.*
 build/
 node_modules/
+*.iml
+.idea/
