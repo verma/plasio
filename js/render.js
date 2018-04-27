@@ -1788,9 +1788,9 @@ var THREE = require("three"),
 			in_n = (in_n === null)? p.intensity : Math.min(in_n, p.intensity);
 			in_x = (in_x === null)? p.intensity : Math.max(in_x, p.intensity);
 
-			positions[ 3*i ]     = p.position[0] * lasBuffer.scale[0] + (lasBuffer.offset[0] - this.corrective.x);
-			positions[ 3*i + 1 ] = p.position[1] * lasBuffer.scale[1] + (lasBuffer.offset[1] - this.corrective.y);
-			positions[ 3*i + 2 ] = p.position[2] * lasBuffer.scale[2] + (lasBuffer.offset[2] - this.corrective.z);
+			positions[ 3*i ]     = x - this.corrective.x;
+			positions[ 3*i + 1 ] = y - this.corrective.y;
+			positions[ 3*i + 2 ] = z - this.corrective.z;
 
 			colors[ 3*i ] = r;
 			colors[ 3*i + 1 ] = g;
