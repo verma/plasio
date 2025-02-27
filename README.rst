@@ -60,6 +60,28 @@ This will serve built files locally and open your default browser pointing to th
 source files will fire gulp tasks that will keep the ``build`` directory up to date. The build system also uses
 gulp's live-reload plugin, which works great with `Google Chrome's Live Reload`_ extension.
 
+Desktop Application
+...............................................................................
+Plasio now supports running as a desktop application using Electron. To build the desktop version::
+
+    # First build the web application
+    gulp build
+
+    # Then create the Windows installer and portable version
+    npm run dist
+
+This will create two files in the ``dist`` directory:
+- ``Plasio Viewer Setup 0.0.1.exe`` - Windows installer
+- ``Plasio Viewer 0.0.1.exe`` - Portable version
+
+The installer version will create shortcuts and can be uninstalled through Windows Control Panel.
+The portable version can be run directly without installation.
+
+System Requirements for Desktop Version:
+- Windows 10 or later (64-bit)
+- 4GB RAM minimum
+- Graphics card with WebGL support
+
 The gulp file includes a task to publish directly to plas.io, however, you need AWS Access for that to work. You may direct plasio
 to your own AWS buckets, in which case you will have to edit ``gulpfile.js`` to direct it likewise.
 

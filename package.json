@@ -2,46 +2,54 @@
   "name": "plasio",
   "version": "0.0.1",
   "description": "Online LAZ/LAS file viewer",
+  "main": "main.js",
   "devDependencies": {
-    "browserify": "^14.5.0",
-    "browserify-shim": "^3.8.14",
-    "chai": "^4.1.2",
-    "classnames": "^2.2.5",
-    "connect": "^3.6.5",
-    "create-react-class": "^15.6.2",
+    "browserify": "^17.0.0",
+    "browserify-shim": "^3.8.16",
+    "chai": "^4.3.7",
+    "classnames": "^2.3.2",
+    "connect": "^3.7.0",
+    "create-react-class": "^15.7.0",
+    "electron": "^34.3.0",
+    "electron-builder": "^25.1.8",
     "envify": "^4.1.0",
     "greyhound.js": "0.0.8",
-    "gulp": "^3.9.1",
+    "gulp": "^4.0.2",
     "gulp-awspublish": "^3.3.0",
-    "gulp-browserify": "^0.5.1",
-    "gulp-clean": "^0.3.2",
+    "gulp-clean": "^0.4.0",
     "gulp-closure-compiler": "^0.4.0",
     "gulp-concat": "^2.6.1",
     "gulp-html-replace": "^1.6.2",
-    "gulp-jshint": "^2.0.4",
-    "gulp-less": "^3.3.2",
-    "gulp-livereload": "^3.8.1",
-    "gulp-mocha": "^4.3.1",
-    "gulp-nodemon": "^2.2.1",
+    "gulp-jshint": "^2.1.0",
+    "gulp-less": "^5.0.0",
+    "gulp-livereload": "^4.0.2",
+    "gulp-mocha": "^8.0.0",
+    "gulp-nodemon": "^2.5.0",
     "gulp-react": "^3.1.0",
-    "gulp-rename": "^1.2.2",
-    "gulp-uglify": "^3.0.0",
+    "gulp-rename": "^2.0.0",
+    "gulp-uglify": "^3.0.2",
     "gulp-util": "^3.0.8",
-    "gulp-watch": "^4.3.11",
-    "jshint": "^2.9.5",
+    "gulp-watch": "^5.0.1",
+    "icon-gen": "^5.0.0",
+    "jshint": "^2.13.6",
     "jshint-jsx": "^0.5.0",
-    "mochify": "^4.0.0",
-    "morgan": "^1.9.0",
+    "mochify": "^9.0.0",
+    "morgan": "^1.10.0",
     "mori": "^0.3.2",
-    "open": "0.0.5",
-    "react": "^16.2.0",
-    "react-bootstrap": "^0.31.5",
-    "react-dom": "^16.2.0",
+    "open": "^8.4.2",
+    "react": "^18.2.0",
+    "react-bootstrap": "^2.7.4",
+    "react-dom": "^18.2.0",
     "reactify": "^1.1.1",
-    "serve-static": "^1.13.1"
+    "serve-static": "^1.15.0",
+    "vinyl-buffer": "^1.0.1",
+    "vinyl-source-stream": "^2.0.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
   "repository": {
     "type": "git",
@@ -88,5 +96,58 @@
     "bootstrap": {
       "depends": "jquery:$"
     }
+  },
+  "dependencies": {
+    "electron-log": "^5.0.1",
+    "puppeteer": "^24.3.0"
+  },
+  "build": {
+    "appId": "com.plasio.app",
+    "productName": "Plasio Viewer",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "main.js",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "build/",
+        "to": "build",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Plasio Viewer",
+      "installerIcon": "resources/icon.ico",
+      "uninstallerIcon": "resources/icon.ico"
+    },
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
+    "asar": true
   }
 }

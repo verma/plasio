@@ -4,3 +4,6 @@ build/
 node_modules/
 *.iml
 .idea/
+package-lock.json
+yarn.lock
+/dist
